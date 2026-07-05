@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Skill } from "@/lib/types";
+import { permissionLabels } from "@/lib/data";
 import { Badge, ButtonLink, Panel } from "./ui";
 
 function trustTone(trust: Skill["trustLevel"]) {
@@ -35,7 +36,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
       <div className="mt-4 flex flex-wrap gap-2">
         <Badge>{skill.category}</Badge>
         {skill.permissions.slice(0, 2).map((permission) => (
-          <Badge key={permission.key}>{permission.key}</Badge>
+          <Badge key={permission.key}>{permissionLabels[permission.key] ?? permission.key}</Badge>
         ))}
       </div>
       <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-4 text-sm">

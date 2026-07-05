@@ -1,3 +1,5 @@
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText } from "ai";
 import { latestVersion } from "./data";
 import { getProvider, getProviderRuntime } from "./providers";
 import { appendRunEvent, saveRun } from "./repository";
@@ -358,67 +360,37 @@ async function* streamOpenAICompatible(
   const runtime = getProviderRuntime(providerId);
   if (!runtime.isLive || !runtime.apiKey || !runtime.baseUrl) return;
 
-  const response = await fetch(`${runtime.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${runtime.apiKey}`,
-      ...(providerId === "openrouter"
-        ? {
-            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-            "X-Title": "Agent Skill Marketplace",
-          }
-        : {}),
+  const openai = createOpenAI({
+    baseURL: runtime.baseUrl,
+    apiKey: runtime.apiKey,
+    fetch: async (url, options) => {
+      const headers = new Headers(options?.headers);
+      if (providerId === "openrouter") {
+        headers.set("HTTP-Referer", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+        headers.set("X-Title", "Agent Skill Marketplace");
+      }
+      return fetch(url, { ...options, headers });
     },
-    body: JSON.stringify({
-      model: runtime.model,
-      stream: true,
-      messages: [
-        {
-          role: "system",
-          content:
-            isResearchBriefBuilder(skill)
-              ? "You are running the Research Brief Builder skill inside a browser-safe virtual agent sandbox. Produce the actual research brief as the final deliverable, not a sandbox status summary. Use these exact sections: Title, Executive Summary, Market Overview, Key Players, Feature Comparison Table, Developer Pain Points, Opportunities for Agent Skill Marketplace, Risks and Adoption Barriers, Recommended Product Moves, Source Notes / Research Method. Be concise and never claim real shell execution or unrestricted network access."
-              : "You are running inside a browser-safe virtual agent sandbox. Be concise, cite virtual tool behavior, and never claim real shell execution or unrestricted network access.",
-        },
-        {
-          role: "user",
-          content: [
-            `Skill: ${skill.name}`,
-            `Category: ${skill.category}`,
-            `User input: ${input}`,
-            `Workspace files: ${workspaceFiles.map((file) => `${file.path} (${file.size} bytes)`).join(", ") || "none"}`,
-            replayOf ? `Replay of: ${replayOf}` : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        },
-      ],
-      temperature: 0.2,
-    }),
   });
-  if (!response.ok || !response.body) return;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() ?? "";
-    for (const frame of frames) {
-      const line = frame
-        .split("\n")
-        .map((item) => item.trim())
-        .find((item) => item.startsWith("data: "));
-      if (!line) continue;
-      const data = line.slice(6);
-      if (data === "[DONE]") return;
-      const parsed = JSON.parse(data) as { choices?: { delta?: { content?: string } }[] };
-      const content = parsed.choices?.[0]?.delta?.content;
-      if (content) yield content;
-    }
+  const { textStream } = streamText({
+    model: openai(runtime.model),
+    system: isResearchBriefBuilder(skill)
+      ? "You are running the Research Brief Builder skill inside a browser-safe virtual agent sandbox. Produce the actual research brief as the final deliverable, not a sandbox status summary. Use these exact sections: Title, Executive Summary, Market Overview, Key Players, Feature Comparison Table, Developer Pain Points, Opportunities for Agent Skill Marketplace, Risks and Adoption Barriers, Recommended Product Moves, Source Notes / Research Method. Be concise and never claim real shell execution or unrestricted network access."
+      : "You are running inside a browser-safe virtual agent sandbox. Be concise, cite virtual tool behavior, and never claim real shell execution or unrestricted network access.",
+    prompt: [
+      `Skill: ${skill.name}`,
+      `Category: ${skill.category}`,
+      `User input: ${input}`,
+      `Workspace files: ${workspaceFiles.map((file) => `${file.path} (${file.size} bytes)`).join(", ") || "none"}`,
+      replayOf ? `Replay of: ${replayOf}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    temperature: 0.2,
+  });
+
+  for await (const textPart of textStream) {
+    yield textPart;
   }
 }

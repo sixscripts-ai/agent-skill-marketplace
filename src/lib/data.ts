@@ -736,14 +736,16 @@ export const skills: Skill[] = [
 
 export const categories = Array.from(new Set(skills.map((skill) => skill.category)));
 export const compatibilityTargets = targets;
-export const permissionKeys: PermissionKey[] = [
-  "read_files",
-  "write_files",
-  "network",
-  "shell",
-  "browser",
-  "api_keys",
-];
+export const permissionKeys = ["read_files", "write_files", "network", "shell", "browser", "api_keys"] as const;
+
+export const permissionLabels: Record<string, string> = {
+  read_files: "File System Access (Read)",
+  write_files: "File System Access (Write)",
+  network: "Network Access",
+  shell: "Command Execution",
+  browser: "Browser Automation",
+  api_keys: "API Keys",
+};
 
 export function getSkill(slug: string) {
   return skills.find((skill) => skill.slug === slug);

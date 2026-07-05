@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { categories, compatibilityTargets, permissionKeys } from "@/lib/data";
+import { categories, compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import type { CompatibilityTarget, Skill } from "@/lib/types";
 import { ActionGuide } from "./feature-walkthrough";
 import { SkillCard } from "./skill-card";
@@ -108,7 +108,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
             />
             <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
             <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
-            <Filter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} />
+            <Filter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} labels={permissionLabels} />
             <Filter label="Sort" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
           </div>
         </div>
@@ -201,12 +201,14 @@ function Filter({
   value,
   onChange,
   values,
+  labels,
 }: {
   label: string;
   testId: string;
   value: string;
   onChange: (value: string) => void;
   values: string[];
+  labels?: Record<string, string>;
 }) {
   return (
     <label className="block">
@@ -218,7 +220,7 @@ function Filter({
         className="h-11 w-full rounded-md border px-3 text-sm text-neutral-700 outline-none"
       >
         {values.map((item) => (
-          <option key={item}>{item}</option>
+          <option key={item} value={item}>{labels?.[item] ?? item}</option>
         ))}
       </select>
     </label>

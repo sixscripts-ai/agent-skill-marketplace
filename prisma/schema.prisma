@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -19,18 +19,18 @@ model User {
 }
 
 model Skill {
-  id             String             @id @default(cuid())
-  slug           String             @unique
+  id             String            @id @default(cuid())
+  slug           String            @unique
   name           String
   summary        String
   category       String
   trustLevel     String
-  installCount   Int                @default(0)
-  rating         Float              @default(0)
+  installCount   Int               @default(0)
+  rating         Float             @default(0)
   authorId       String
   ownerId        String?
-  visibility     String             @default("public")
-  author         User               @relation(fields: [authorId], references: [id])
+  visibility     String            @default("public")
+  author         User              @relation(fields: [authorId], references: [id])
   currentVersion String
   versions       SkillVersion[]
   permissions    SkillPermission[]
@@ -40,8 +40,8 @@ model Skill {
   reviews        Review[]
   packageExports PackageExport[]
   packages       SkillPackage[]
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 }
 
 model SkillVersion {
@@ -52,7 +52,7 @@ model SkillVersion {
   skillMd              String
   readme               String
   changelog            String
-  compatibilityTargets String[]
+  compatibilityTargets Json
   permissions          SkillPermission[]
   runs                 SkillRun[]
   packages             SkillPackage[]
@@ -84,11 +84,11 @@ model SkillRun {
   output         String
   latencyMs      Int
   estimatedCost  Float
-  provider        String            @default("virtual")
-  model           String            @default("sandbox-model")
-  replayOf        String?
-  workspaceFiles  Json?
-  artifacts       Json?
+  provider       String            @default("virtual")
+  model          String            @default("sandbox-model")
+  replayOf       String?
+  workspaceFiles Json?
+  artifacts      Json?
   events         SkillTraceEvent[]
   createdAt      DateTime          @default(now())
 
@@ -125,7 +125,7 @@ model EvaluationCase {
   input         String
   expected      String
   assertionType String
-  status        String  @default("pass")
+  status        String          @default("pass")
   modelOutput   String?
 }
 
@@ -143,14 +143,14 @@ model EvaluationResult {
 }
 
 model InstallTarget {
-  id            String @id @default(cuid())
-  skillId       String
-  skill         Skill  @relation(fields: [skillId], references: [id])
-  platform      String
+  id             String @id @default(cuid())
+  skillId        String
+  skill          Skill  @relation(fields: [skillId], references: [id])
+  platform       String
   installCommand String
-  configSnippet String
-  packageFormat String
-  notes         String
+  configSnippet  String
+  packageFormat  String
+  notes          String
 }
 
 model Review {

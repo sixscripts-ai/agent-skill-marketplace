@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, useEffect, type ChangeEvent } from "react";
+import { useCompletion } from "@ai-sdk/react";
 import { buildFixtureRun } from "@/lib/runner";
-import { compatibilityTargets, permissionKeys } from "@/lib/data";
+import { Send, Upload, Sparkles } from "lucide-react";
+import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { parseSkillMarkdown } from "@/lib/skill-import";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
 import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
@@ -51,7 +53,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     initialDraft?.summary ?? "Turns logs, traces, commits, and alerts into a source-backed incident timeline.",
   );
   const [skillMd, setSkillMd] = useState(initialDraft?.skillMd ?? starterSkill);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "network"]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "write_files", "network", "shell"]);
   const [selectedTargets, setSelectedTargets] = useState<string[]>(initialDraft?.compatibilityTargets ?? ["Codex", "Claude", "VS Code"]);
   const [visibility, setVisibility] = useState<"public" | "private" | "unlisted">(initialDraft?.visibility ?? "public");
   const [testInput, setTestInput] = useState("Create a postmortem from a failed deployment trace.");
@@ -64,6 +66,20 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [uploadError, setUploadError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
+
+  const [copilotPrompt, setCopilotPrompt] = useState("");
+  const { completion, complete, isLoading: isGenerating } = useCompletion({
+    api: "/api/skills/generate",
+    onFinish: (prompt, result) => {
+      importSkill(result);
+    },
+  });
+
+  useEffect(() => {
+    if (isGenerating && completion) {
+      setSkillMd(completion);
+    }
+  }, [completion, isGenerating]);
 
   const issues = useMemo(() => {
     const next: string[] = [];
@@ -309,6 +325,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <Checklist
               title="Permissions"
               values={permissionKeys}
+              labels={permissionLabels}
               selected={selectedPermissions}
               toggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)}
             />
@@ -385,7 +402,36 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <h2 className="text-base font-semibold text-neutral-950">SKILL.md editor</h2>
             <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
           </div>
-          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none">
+          
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+              <Sparkles className="size-4" />
+              AI Skill Copilot
+            </div>
+            <p className="mt-1 text-sm text-blue-800">Describe the skill you want to build and the AI will draft the markdown for you.</p>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={copilotPrompt}
+                onChange={(e) => setCopilotPrompt(e.target.value)}
+                placeholder="e.g. A skill that helps debug Postgres connection limits..."
+                className="h-10 flex-1 rounded-md border border-blue-200 bg-white px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && copilotPrompt && !isGenerating) {
+                    complete(copilotPrompt);
+                  }
+                }}
+              />
+              <button
+                onClick={() => complete(copilotPrompt)}
+                disabled={!copilotPrompt || isGenerating}
+                className="flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isGenerating ? "Drafting..." : "Generate Draft"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none shadow-sm focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
             <Editor
               value={skillMd}
               onValueChange={(code) => setSkillMd(code)}
@@ -560,11 +606,13 @@ function Field({
 function Checklist({
   title,
   values,
+  labels,
   selected,
   toggle,
 }: {
   title: string;
   values: readonly string[];
+  labels?: Record<string, string>;
   selected: string[];
   toggle: (value: string) => void;
 }) {
@@ -583,7 +631,7 @@ function Checklist({
                 : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
             }`}
           >
-            {value}
+            {labels?.[value] ?? value}
           </button>
         ))}
       </div>
