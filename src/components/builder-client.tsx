@@ -9,6 +9,11 @@ import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { SafeMessageResponse } from "./safe-message-response";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
+import Editor from "react-simple-code-editor";
+import Prism from "prismjs";
+import "prismjs/components/prism-markdown";
+import "prismjs/components/prism-yaml";
+import "prismjs/themes/prism.css";
 
 const starterSkill = `---
 name: Incident Postmortem Assistant
@@ -380,12 +385,22 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <h2 className="text-base font-semibold text-neutral-950">SKILL.md editor</h2>
             <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
           </div>
-          <textarea
-            value={skillMd}
-            onChange={(event) => setSkillMd(event.target.value)}
-            data-testid="builder-skill-md"
-            className="mt-4 min-h-[620px] w-full rounded-md border p-4 font-mono text-sm leading-6 outline-none"
-          />
+          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none">
+            <Editor
+              value={skillMd}
+              onValueChange={(code) => setSkillMd(code)}
+              highlight={(code) => Prism.highlight(code, Prism.languages.markdown, "markdown")}
+              padding={16}
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                fontSize: 14,
+                lineHeight: "1.5",
+                minHeight: "620px",
+              }}
+              textareaId="builder-skill-md"
+              textareaClassName="focus:outline-none"
+            />
+          </div>
           <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
             <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-white p-4">

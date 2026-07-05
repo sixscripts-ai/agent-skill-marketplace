@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, BookOpen, Code2, Moon, Search, Sparkles } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import type { ReactNode } from "react";
+import { getUserAction } from "@/app/actions";
+import type { MarketplaceUser } from "@/lib/types";
 
 const topNav = [
   { href: "/marketplace", label: "Marketplace" },
@@ -49,6 +51,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [search, setSearch] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [contrastMode, setContrastMode] = useState(false);
+  const [user, setUser] = useState<MarketplaceUser | null>(null);
+
+  useEffect(() => {
+    getUserAction().then(setUser);
+  }, []);
+
+  const initials = user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "AA";
+  const workspaceName = user
+    ? `${user.name.split(" ")[0].toLowerCase()}-workspace`
+    : "sixscripts-ai workspace";
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               pressed={contrastMode}
             />
             <div className="ml-1 grid size-8 place-items-center rounded-full bg-gradient-to-br from-neutral-700 to-neutral-950 text-xs font-semibold text-white ring-1 ring-neutral-700">
-              AA
+              {initials}
             </div>
           </div>
         </div>
@@ -184,8 +203,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-            <div className="text-sm font-semibold text-white">Ashton Aschenbrener</div>
-            <div className="mt-1 text-xs text-neutral-500">sixscripts-ai workspace</div>
+            <div className="text-sm font-semibold text-white">{user?.name ?? "Ashton Aschenbrener"}</div>
+            <div className="mt-1 text-xs text-neutral-500">{workspaceName}</div>
           </div>
         </div>
       </aside>

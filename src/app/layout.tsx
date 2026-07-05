@@ -14,9 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agent Skill Marketplace",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://agent-skill-marketplace.vercel.app",
+  ),
+  title: {
+    default: "Agent Skill Marketplace",
+    template: "%s | Agent Skill Marketplace",
+  },
   description:
     "Browse, run, evaluate, version, trace, and export portable AI agent skills.",
+  openGraph: {
+    type: "website",
+    siteName: "Agent Skill Marketplace",
+    title: "Agent Skill Marketplace",
+    description:
+      "Browse, run, evaluate, version, trace, and export portable AI agent skills.",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export const viewport: Viewport = {
