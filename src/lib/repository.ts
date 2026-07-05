@@ -75,7 +75,7 @@ async function seedDatabase() {
       ...seedUser,
       id: skill.ownerId ?? seedUser.id,
       name: skill.author,
-      email: `${skill.slug}@seed.local`,
+      email: seedUser.email,
     });
     await prisma.skill.upsert({
       where: { slug: skill.slug },
