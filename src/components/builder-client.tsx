@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { buildMockRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { ParsedSkillImport, SkillDraftInput } from "@/lib/types";
@@ -8,7 +8,7 @@ import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
 
 const starterSkill = `---
-name: incident-postmortem-assistant
+name: Incident Postmortem Assistant
 description: Use when the user needs to turn logs, traces, commits, and alerts into an incident timeline.
 ---
 
@@ -20,7 +20,20 @@ Use this skill when debugging production incidents or writing postmortem drafts.
 1. Ingest logs, alerts, trace snippets, and relevant commits.
 2. Build a timeline with confidence labels.
 3. Identify likely root cause and unresolved evidence gaps.
-4. Draft action items with owners and verification checks.`;
+4. Draft action items with owners and verification checks.
+
+## Permissions
+- read_files: Read uploaded logs, traces, commits, and alert exports.
+- network: Inspect allowlisted incident references or docs when approved.
+
+## Examples
+- "Create a postmortem from this deployment trace and alert timeline."
+- "Review these incident notes and produce root-cause hypotheses with confidence labels."
+
+## Compatibility
+- Codex
+- Claude
+- VS Code`;
 
 export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput }) {
   const [name, setName] = useState(initialDraft?.name ?? "Incident Postmortem Assistant");
@@ -37,14 +50,20 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [publishedSlug, setPublishedSlug] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [importResult, setImportResult] = useState<ParsedSkillImport | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState("");
 
   const issues = useMemo(() => {
     const next: string[] = [];
+    const lowerSkillMd = skillMd.toLowerCase();
     if (name.trim().length < 4) next.push("Name must be at least 4 characters.");
     if (!/^[a-z0-9-]+$/.test(slug)) next.push("Slug must use lowercase letters, numbers, and hyphens.");
     if (summary.trim().length < 40) next.push("Summary should explain the skill in at least 40 characters.");
+    if (!skillMd.trim().startsWith("---")) next.push("SKILL.md needs YAML frontmatter with name and description.");
+    if (!/^description:\s*.+$/im.test(skillMd)) next.push("SKILL.md frontmatter needs a description field.");
     if (!skillMd.includes("# ")) next.push("SKILL.md needs a top-level heading.");
     if (!skillMd.includes("## Workflow")) next.push("SKILL.md needs a Workflow section.");
+    if (!lowerSkillMd.includes("## permissions")) next.push("SKILL.md needs a Permissions section.");
+    if (!lowerSkillMd.includes("## examples")) next.push("SKILL.md needs an Examples section.");
     if (selectedPermissions.length === 0) next.push("Select at least one permission.");
     if (selectedTargets.length === 0) next.push("Select at least one install target.");
     return next;
@@ -56,11 +75,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
   }
 
-  async function importSkill() {
+  async function importSkill(nextSkillMd = skillMd) {
     const response = await fetch("/api/skills/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ skillMd }),
+      body: JSON.stringify({ skillMd: nextSkillMd }),
     });
     const parsed = (await response.json()) as ParsedSkillImport;
     setImportResult(parsed);
@@ -70,6 +89,27 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     setSummary(parsed.description);
     setSelectedPermissions(parsed.permissions);
     setSelectedTargets(parsed.compatibilityTargets);
+  }
+
+  async function uploadSkillFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    setUploadedFileName(file.name);
+    setSkillMd(text);
+    await importSkill(text);
+    event.target.value = "";
+  }
+
+  function applySuggestedSkillMd() {
+    if (!importResult) return;
+    setSkillMd(importResult.suggestedSkillMd);
+    setName(importResult.name);
+    setSlug(importResult.slug);
+    setCategory(importResult.category);
+    setSummary(importResult.description);
+    setSelectedPermissions(importResult.permissions);
+    setSelectedTargets(importResult.compatibilityTargets);
   }
 
   async function publishSkill() {
@@ -145,11 +185,23 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               toggle={(value) => toggle(value, selectedTargets, setSelectedTargets)}
             />
           </div>
+          <label className="mt-6 block rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white">
+            <span className="font-semibold text-neutral-950">Upload SKILL.md</span>
+            <span className="mt-1 block text-xs leading-5 text-neutral-500">
+              Select a markdown skill file to parse, validate, and prepare for publishing.
+            </span>
+            <input accept=".md,.markdown,text/markdown,text/plain" type="file" onChange={uploadSkillFile} className="mt-3 block w-full text-xs" />
+          </label>
+          {uploadedFileName ? (
+            <div className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
+              Uploaded: <span className="font-mono text-neutral-950">{uploadedFileName}</span>
+            </div>
+          ) : null}
           <button
-            onClick={importSkill}
+            onClick={() => importSkill()}
             className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
           >
-            Parse / import SKILL.md
+            Parse / suggest edits
           </button>
         </Panel>
 
@@ -182,8 +234,30 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               )}
               {importResult ? (
                 <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
-                  Parsed import: {importResult.permissions.length} permission(s), {importResult.compatibilityTargets.length} target(s),{" "}
-                  {importResult.issues.length} warning(s).
+                  <div>
+                    Parsed import: {importResult.permissions.length} permission(s), {importResult.compatibilityTargets.length} target(s),{" "}
+                    {importResult.issues.length} warning(s).
+                  </div>
+                  {importResult.suggestions.length ? (
+                    <div className="mt-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Suggested edits</div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {importResult.suggestions.map((suggestion) => (
+                          <li key={suggestion}>{suggestion}</li>
+                        ))}
+                      </ul>
+                      <button
+                        onClick={applySuggestedSkillMd}
+                        className="mt-3 h-9 rounded-md border border-neutral-950 bg-neutral-950 px-3 text-xs font-semibold text-white transition hover:bg-neutral-800"
+                      >
+                        Apply suggested formatting
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-2 text-xs font-medium text-green-800">
+                      Format matches the required SKILL.md structure.
+                    </div>
+                  )}
                 </div>
               ) : null}
               {publishedSlug ? (

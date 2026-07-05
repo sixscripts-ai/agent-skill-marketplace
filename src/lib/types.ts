@@ -173,4 +173,6 @@ export type ParsedSkillImport = {
   permissions: PermissionKey[];
   compatibilityTargets: CompatibilityTarget[];
   issues: string[];
+  suggestions: string[];
+  suggestedSkillMd: string;
 };
