@@ -1,11 +1,11 @@
 import type { MarketplaceUser } from "./types";
-import { allowLocalDemoAuth, isVercelDeployment } from "./deployment-config.js";
+import { allowLocalSeedAuth, isVercelDeployment } from "./deployment-config.js";
 
-export const demoUser: MarketplaceUser = {
-  id: "demo-user",
-  clerkId: "demo-clerk-user",
-  name: "Demo Publisher",
-  email: "demo@sixscripts.dev",
+export const seedUser: MarketplaceUser = {
+  id: "seed-user",
+  clerkId: "seed-clerk-user",
+  name: "SixScripts Seed Publisher",
+  email: "seed@sixscripts.dev",
   role: "admin",
 };
 
@@ -28,7 +28,7 @@ export function isClerkConfigured(env: NodeJS.ProcessEnv = process.env) {
 }
 
 export function fallbackUserForAuthState(clerkConfigured: boolean, env: NodeJS.ProcessEnv = process.env) {
-  return clerkConfigured || !allowLocalDemoAuth(env) ? anonymousUser : demoUser;
+  return clerkConfigured || !allowLocalSeedAuth(env) ? anonymousUser : seedUser;
 }
 
 export function isAuthenticatedUser(user: MarketplaceUser) {
@@ -57,7 +57,7 @@ export async function getOptionalUser(): Promise<MarketplaceUser | undefined> {
     }
   }
 
-  return isVercelDeployment() ? undefined : demoUser;
+  return isVercelDeployment() ? undefined : seedUser;
 }
 
 export async function getCurrentUser(): Promise<MarketplaceUser> {

@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ski
     name: skill.name,
     slug: skill.slug,
     version: version.version,
-    files: ["SKILL.md", "README.md", "skill.json", "examples/demo-inputs.json"],
+    files: ["SKILL.md", "README.md", "skill.json", "examples/sample-inputs.json"],
     permissions: skill.permissions.map((permission) => permission.key),
     compatibility: version.compatibilityTargets,
     exportId: record.id,
@@ -37,13 +37,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ski
     ]),
   );
   const uploadedFiles = await uploadedPackageZipFiles(skill);
-  const generatedPaths = new Set(["SKILL.md", "README.md", "skill.json", "examples/demo-inputs.json", "install/cli.md", ...Object.keys(installDocs)]);
+  const generatedPaths = new Set(["SKILL.md", "README.md", "skill.json", "examples/sample-inputs.json", "install/cli.md", ...Object.keys(installDocs)]);
   const zip = createZip([
     ...uploadedFiles.filter((file) => !generatedPaths.has(file.path)),
     { path: "SKILL.md", content: version.skillMd },
     { path: "README.md", content: version.readme },
     { path: "skill.json", content: JSON.stringify(manifest, null, 2) },
-    { path: "examples/demo-inputs.json", content: JSON.stringify([{ input: "Run this skill in browser sandbox mode." }], null, 2) },
+    { path: "examples/sample-inputs.json", content: JSON.stringify([{ input: "Run this skill against an uploaded package and return a trace-backed report." }], null, 2) },
     {
       path: "install/cli.md",
       content: `# CLI install\n\nDownload the marketplace CLI from /api/cli, then run:\n\n\`\`\`bash\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install ${skill.slug}\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run ${skill.slug}\n\`\`\`\n`,

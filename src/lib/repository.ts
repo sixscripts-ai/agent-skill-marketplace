@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
-import { demoUser, isAuthenticatedUser } from "./auth";
+import { seedUser, isAuthenticatedUser } from "./auth";
 import { AuthorizationError, canReadOwnedRun, canWriteOwnedResource } from "./access-control";
 import { getSkill, latestVersion, skills as seededSkills } from "./data";
 import { assertDurableDatabaseConfigured, isDatabaseConfigured, isVercelDeployment } from "./deployment-config.js";
@@ -31,7 +31,7 @@ const hasDatabase = isDatabaseConfigured();
 let seedPromise: Promise<void> | null = null;
 
 const initialState: MarketplaceState = {
-  users: [demoUser],
+  users: [seedUser],
   skills: seededSkills,
   runs: [],
   packageExports: [],
@@ -44,7 +44,7 @@ async function readState(): Promise<MarketplaceState> {
     const parsedSkills = parsed.skills?.length ? parsed.skills : [];
     const parsedSkillSlugs = new Set(parsedSkills.map((skill) => skill.slug));
     return {
-      users: parsed.users?.length ? parsed.users : [demoUser],
+      users: parsed.users?.length ? parsed.users : [seedUser],
       skills: parsedSkills.length
         ? [...parsedSkills, ...seededSkills.filter((skill) => !parsedSkillSlugs.has(skill.slug))]
         : seededSkills,
@@ -69,11 +69,11 @@ async function ensureSeeded() {
 }
 
 async function seedDatabase() {
-  await upsertUser(demoUser);
+  await upsertUser(seedUser);
   for (const skill of seededSkills) {
     const author = await upsertUser({
-      ...demoUser,
-      id: skill.ownerId ?? demoUser.id,
+      ...seedUser,
+      id: skill.ownerId ?? seedUser.id,
       name: skill.author,
       email: `${skill.slug}@seed.local`,
     });
@@ -272,7 +272,7 @@ function dateOnly(value: Date | string) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-export async function listVisibleSkills(user: MarketplaceUser = demoUser) {
+export async function listVisibleSkills(user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const state = await readState();
     return state.skills.filter(
@@ -305,7 +305,7 @@ export async function listMarketplaceSkills() {
   return rows.map(toSkill);
 }
 
-export async function findSkill(slug: string, user: MarketplaceUser = demoUser) {
+export async function findSkill(slug: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const skills = await listVisibleSkills(user);
     return skills.find((skill) => skill.slug === slug || skill.id === slug);
@@ -335,7 +335,7 @@ export async function listRuns() {
   return rows.map(toRun);
 }
 
-export async function findRun(runId: string, user: MarketplaceUser = demoUser) {
+export async function findRun(runId: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const run = (await readState()).runs.find((item) => item.id === runId);
     return run && canReadOwnedRun(run.ownerId, user) ? run : undefined;
@@ -350,7 +350,7 @@ export async function findRun(runId: string, user: MarketplaceUser = demoUser) {
   return row ? toRun(row as any) : undefined;
 }
 
-export async function findLatestRunForSkill(skillSlug: string, user: MarketplaceUser = demoUser) {
+export async function findLatestRunForSkill(skillSlug: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     return (await readState()).runs.find((run) => run.skillSlug === skillSlug && canReadOwnedRun(run.ownerId, user));
   }
@@ -394,7 +394,7 @@ function toRun(row: any): SkillRun {
   };
 }
 
-export async function saveRun(run: SkillRun, user: MarketplaceUser = demoUser) {
+export async function saveRun(run: SkillRun, user: MarketplaceUser = seedUser) {
   const ownedRun = { ...run, ownerId: user.id };
   if (!hasDatabase) {
     const state = await readState();
@@ -483,7 +483,7 @@ function eventToCreate(event: SkillTraceEvent) {
   };
 }
 
-export async function createOrUpdateSkill(input: SkillDraftInput, user: MarketplaceUser = demoUser) {
+export async function createOrUpdateSkill(input: SkillDraftInput, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) return createOrUpdateSkillFile(input, user);
 
   await ensureSeeded();
@@ -568,7 +568,7 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
           name: "Draft Quality",
           cases: {
             create: {
-              input: "Run the skill against a demo task.",
+              input: "Run the skill against a realistic uploaded package task.",
               expected: "Returns useful output with clear trace events.",
               assertionType: "usefulness",
               status: "pass",
@@ -584,7 +584,7 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
   return toSkill(skill as any);
 }
 
-async function createOrUpdateSkillFile(input: SkillDraftInput, user: MarketplaceUser = demoUser) {
+async function createOrUpdateSkillFile(input: SkillDraftInput, user: MarketplaceUser = seedUser) {
   const state = await readState();
   const existing = state.skills.find((skill) => skill.slug === input.slug);
   if (existing && !canWriteOwnedResource(existing.ownerId, user)) {
@@ -627,7 +627,7 @@ async function createOrUpdateSkillFile(input: SkillDraftInput, user: Marketplace
         name: "Draft Quality",
         cases: [
           {
-            input: "Run the skill against a demo task.",
+            input: "Run the skill against a realistic uploaded package task.",
             expected: "Returns useful output with clear trace events.",
             assertionType: "usefulness",
             status: "pass",
@@ -645,7 +645,7 @@ async function createOrUpdateSkillFile(input: SkillDraftInput, user: Marketplace
   return nextSkill;
 }
 
-export async function forkSkill(skillSlug: string, user: MarketplaceUser = demoUser) {
+export async function forkSkill(skillSlug: string, user: MarketplaceUser = seedUser) {
   const source = await findSkill(skillSlug, user);
   if (!source) throw new Error("Skill not found");
   const version = latestVersion(source);
@@ -666,7 +666,7 @@ export async function forkSkill(skillSlug: string, user: MarketplaceUser = demoU
   );
 }
 
-export async function addEvalCase(skillSlug: string, suiteName: string, input: string, expected: string, assertionType: string, user: MarketplaceUser = demoUser) {
+export async function addEvalCase(skillSlug: string, suiteName: string, input: string, expected: string, assertionType: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const state = await readState();
     const skill = state.skills.find((item) => item.slug === skillSlug);
@@ -714,7 +714,7 @@ export async function addEvalCase(skillSlug: string, suiteName: string, input: s
   };
 }
 
-export async function runEvalSuite(skillSlug: string, suiteName: string, user: MarketplaceUser = demoUser) {
+export async function runEvalSuite(skillSlug: string, suiteName: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const state = await readState();
     const skill = state.skills.find((item) => item.slug === skillSlug);
@@ -789,7 +789,7 @@ export async function runEvalSuite(skillSlug: string, suiteName: string, user: M
   return { suite: mappedSuite, result: mappedSuite.results[0] };
 }
 
-export async function savePackageExport(skill: Skill, target: string, user: MarketplaceUser = demoUser) {
+export async function savePackageExport(skill: Skill, target: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) {
     const state = await readState();
     const version = latestVersion(skill);
@@ -882,7 +882,7 @@ export async function createSkillPackage(input: {
   return toPackage(row);
 }
 
-export async function findSkillPackage(packageId: string, user: MarketplaceUser = demoUser) {
+export async function findSkillPackage(packageId: string, user: MarketplaceUser = seedUser) {
   if (!hasDatabase) return undefined;
   const row = await prisma.skillPackage.findFirst({
     where: user.role === "admin" ? { id: packageId } : { id: packageId, ownerId: user.id },

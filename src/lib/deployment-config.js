@@ -22,6 +22,6 @@ export function assertBlobStorageConfigured(env = process.env) {
   }
 }
 
-export function allowLocalDemoAuth(env = process.env) {
+export function allowLocalSeedAuth(env = process.env) {
   return !isVercelDeployment(env);
 }

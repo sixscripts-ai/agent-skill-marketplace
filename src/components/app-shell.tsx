@@ -24,7 +24,7 @@ const sections = [
       { href: "/builder", label: "Builder", icon: "B" },
       { href: "/ai-elements", label: "AI Elements", icon: "A" },
       { href: "/skills/agent-observer/evals", label: "Evaluations", icon: "E" },
-      { href: "/traces/agent-observer-demo", label: "Traces", icon: "T" },
+      { href: "/skills/agent-observer/run", label: "Traces", icon: "T" },
       { href: "/skills/agent-observer/graph", label: "Collections", icon: "C" },
     ],
   },

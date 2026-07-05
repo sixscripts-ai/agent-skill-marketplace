@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
+import { FeatureWalkthrough } from "@/components/feature-walkthrough";
 import { SafeMessageResponse } from "@/components/safe-message-response";
 import { Badge, ButtonLink, Panel } from "@/components/ui";
 
@@ -126,6 +127,31 @@ export default function AiElementsPage() {
           </div>
           <ButtonLink href="/skills/agent-observer/run">Open Runner</ButtonLink>
         </div>
+
+        <FeatureWalkthrough
+          title="AI Elements are the building blocks for agent interfaces."
+          description="This page is a component map. It shows which AI UI pieces are already useful for this app and where each one belongs. Use it when deciding what to add to the runner, traces, evals, or builder."
+          example="Start with the Runner Console bundle, then add eval/debug components only when the eval page needs richer failure displays."
+          why="Installing only the components the app actually uses keeps the interface focused and avoids dependency noise."
+          items={[
+            {
+              title: "Message",
+              body: "Renders AI markdown cleanly so briefs, reports, artifacts, and trace summaries do not look like raw text.",
+            },
+            {
+              title: "Conversation",
+              body: "Frames the back-and-forth between the user and the skill. This is the center of the runner.",
+            },
+            {
+              title: "Tool and Terminal",
+              body: "Show what the agent tried, what command ran, what passed, what failed, and what was blocked.",
+            },
+            {
+              title: "File Tree",
+              body: "Makes uploaded packages, workspace files, and generated artifacts inspectable instead of hidden in JSON.",
+            },
+          ]}
+        />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="space-y-6">

@@ -57,7 +57,7 @@ export default async function InstallPage({ params }: { params: Promise<{ skillI
                   entry: "SKILL.md",
                   permissions: skill.permissions.map((permission) => permission.key),
                   compatibility: version.compatibilityTargets,
-                  files: ["SKILL.md", "README.md", "skill.json", "examples/demo-inputs.json"],
+                  files: ["SKILL.md", "README.md", "skill.json", "examples/sample-inputs.json"],
                 },
                 null,
                 2,

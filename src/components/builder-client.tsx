@@ -4,6 +4,7 @@ import { useMemo, useState, type ChangeEvent } from "react";
 import { buildFixtureRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
+import { FeatureWalkthrough } from "./feature-walkthrough";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
 
@@ -185,6 +186,31 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           {isSaving ? "Saving..." : "Publish version"}
         </button>
       </div>
+
+      <FeatureWalkthrough
+        title="Builder turns an idea or uploaded package into a marketplace skill."
+        description="Use this page to create the skill record, normalize SKILL.md formatting, attach package files, choose permissions, and publish a version that can appear in My Skills or Marketplace."
+        example="Upload a folder with SKILL.md, README, scripts, references, and assets. Then click Parse / suggest edits before publishing."
+        why="Good skills need a clear workflow, explicit permissions, examples, and compatibility targets so users know when to trust and run them."
+        items={[
+          {
+            title: "Metadata",
+            body: "Name, slug, category, summary, and visibility decide how the skill appears and who can find it.",
+          },
+          {
+            title: "Package upload",
+            body: "Use .md, .skill, .zip, or folder upload to bring in the real skill files instead of typing everything manually.",
+          },
+          {
+            title: "SKILL.md editor",
+            body: "This is the source of truth for the agent instructions: workflow, permissions, examples, and compatibility.",
+          },
+          {
+            title: "Validation",
+            body: "Warnings show what is missing. Suggested formatting can repair common structure issues before publish.",
+          },
+        ]}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr_360px]">
         <Panel className="p-5">

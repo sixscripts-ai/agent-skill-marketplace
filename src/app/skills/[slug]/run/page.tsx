@@ -4,6 +4,7 @@ import { RunnerClient } from "@/components/runner-client";
 import { getCurrentUser } from "@/lib/auth";
 import { findLatestRunForSkill, findRun, findSkill } from "@/lib/repository";
 import { createPendingRun, workspaceFilesFromSkillPackages } from "@/lib/run-state";
+import { getSandboxReadiness } from "@/lib/sandbox-status";
 
 export default async function SkillRunPage({
   params,
@@ -24,7 +25,7 @@ export default async function SkillRunPage({
 
   return (
     <AppShell>
-      <RunnerClient skill={skill} initialRun={initialRun} />
+      <RunnerClient skill={skill} initialRun={initialRun} sandboxReadiness={getSandboxReadiness()} />
     </AppShell>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FeatureWalkthrough } from "@/components/feature-walkthrough";
 import type { EvaluationSuite, Skill } from "@/lib/types";
 import { Badge, Panel } from "./ui";
 
@@ -42,6 +43,31 @@ export function EvalsClient({ skill }: { skill: Skill }) {
           Create saved test cases, run suites against the current version, and track regression results.
         </p>
       </Panel>
+
+      <FeatureWalkthrough
+        title="Evals are saved tests for a skill."
+        description="Use this page to define what the skill should do, run those checks against the current version, and watch whether quality improves or regresses over time."
+        example="Create a case where shell permission is denied. Expected result: the skill explains the blocked action and still returns useful next steps."
+        why="A portfolio-grade AI app should not just run once. It should show that skill behavior can be tested, scored, and compared between versions."
+        items={[
+          {
+            title: "Suite",
+            body: "A named group of related tests, such as Draft Quality, Security Review, or Trace Grounding.",
+          },
+          {
+            title: "Case input",
+            body: "The prompt or scenario the skill must handle. Write it like a real user request.",
+          },
+          {
+            title: "Expected behavior",
+            body: "The standard the output should meet. This makes the test meaningful instead of just checking that text exists.",
+          },
+          {
+            title: "Score trend",
+            body: "Saved results show pass/fail counts and regressions, so new versions can be compared to older ones.",
+          },
+        ]}
+      />
 
       <Panel className="p-5" variant="floating">
         <h2 className="font-semibold text-neutral-950">Author eval case</h2>

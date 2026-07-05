@@ -29,9 +29,11 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-e
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Terminal } from "@/components/ai-elements/terminal";
 import { Tool, ToolContent, ToolHeader, ToolInput, type ToolPart } from "@/components/ai-elements/tool";
+import { FeatureWalkthrough } from "@/components/feature-walkthrough";
 import { SafeMessageResponse } from "@/components/safe-message-response";
 import { sandboxProviders } from "@/lib/providers";
 import { detectRunnableCommands } from "@/lib/run-state";
+import type { SandboxReadiness } from "@/lib/sandbox-status";
 import type {
   ExecutionMode,
   PermissionKey,
@@ -74,7 +76,15 @@ type TreeNode = {
   file?: RunnerFileRecord;
 };
 
-export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: SkillRun }) {
+export function RunnerClient({
+  skill,
+  initialRun,
+  sandboxReadiness,
+}: {
+  skill: Skill;
+  initialRun: SkillRun;
+  sandboxReadiness: SandboxReadiness;
+}) {
   const initialWorkspace = initialRun.workspaceFiles ?? [];
   const initialCommands = detectRunnableCommands(skill, initialWorkspace);
   const initialSelectedPath =
@@ -109,6 +119,14 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
   const selectedFile = fileRecords.find((file) => file.path === selectedFilePath) ?? fileRecords[0];
   const traceSummary = useMemo(() => buildTraceSummary(run, isRunning), [run, isRunning]);
   const terminalOutput = useMemo(() => buildTerminalOutput(run, command, executionMode), [run, command, executionMode]);
+  const networkPolicy =
+    denied.includes("network") || !networkAllowlist.trim()
+      ? "deny-all"
+      : `allow ${networkAllowlist
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .join(", ")}`;
   const suggestions = useMemo(() => skillSuggestions(skill), [skill]);
   const hasConversation = Boolean(run.input || input || run.output || run.events.length);
 
@@ -237,6 +255,31 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
         </div>
       </div>
 
+      <FeatureWalkthrough
+        title="Sandbox runs a skill and shows the evidence."
+        description="Use this page when you want to test whether a skill can handle a real prompt, inspect its files, request permissions, and produce a useful result. The sandbox is the place where a skill proves it can do work."
+        example="Ask: Audit the uploaded package, run the approved command, and produce a short report with risks and next steps."
+        why="A skill is only valuable if it can turn context into output while showing what it touched, what it blocked, and what it saved."
+        items={[
+          {
+            title: "Prompt",
+            body: "Tell the skill what job to do. Use the suggestions when you are not sure what a good request looks like.",
+          },
+          {
+            title: "Execution controls",
+            body: "Choose virtual agent for text/tool flow or real shell when you want an approved command to run inside Vercel Sandbox.",
+          },
+          {
+            title: "Approvals",
+            body: "These are safety gates. Denying shell, network, or file writes should change what the run is allowed to do.",
+          },
+          {
+            title: "Evidence panes",
+            body: "Conversation output is the answer. Files, terminal, artifacts, and tool timeline explain how that answer was produced.",
+          },
+        ]}
+      />
+
       <div className="grid gap-6 2xl:grid-cols-[360px_minmax(0,1fr)_390px]">
         <div className="flex flex-col gap-6">
           <Panel className="p-5">
@@ -287,6 +330,12 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
 
           <Panel className="p-5">
             <h2 className="font-semibold text-neutral-950">Execution controls</h2>
+            <SandboxStatusPanel
+              command={command}
+              executionMode={executionMode}
+              networkPolicy={networkPolicy}
+              readiness={sandboxReadiness}
+            />
             <div className="mt-4 grid gap-4">
               <label className="block text-sm font-medium text-neutral-700">
                 Execution mode
@@ -585,6 +634,62 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
           </div>
         </Panel>
       ) : null}
+    </div>
+  );
+}
+
+function SandboxStatusPanel({
+  command,
+  executionMode,
+  networkPolicy,
+  readiness,
+}: {
+  command: string;
+  executionMode: ExecutionMode;
+  networkPolicy: string;
+  readiness: SandboxReadiness;
+}) {
+  const shellReady =
+    executionMode !== "real-shell" ||
+    (readiness.realShellEnabled && readiness.sandboxAuthStatus !== "missing" && readiness.projectLinked);
+  return (
+    <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Sandbox readiness</div>
+          <div className="mt-1 text-sm text-neutral-700">
+            {shellReady ? "Execution route is configured for the selected mode." : "Real shell requires env enablement and Vercel Sandbox auth."}
+          </div>
+        </div>
+        <Badge tone={shellReady ? "green" : "amber"}>{shellReady ? "ready" : "setup needed"}</Badge>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+        <StatusRow label="real shell" tone={readiness.realShellEnabled ? "green" : "neutral"} value={readiness.realShellEnabled ? "enabled" : "disabled"} />
+        <StatusRow label="sandbox auth" tone={readiness.sandboxAuthStatus === "missing" ? "amber" : "green"} value={readiness.sandboxAuthStatus} />
+        <StatusRow label="project link" tone={readiness.projectLinked ? "green" : "amber"} value={readiness.projectLinked ? "linked" : "missing"} />
+        <StatusRow label="command" tone={command.trim() ? "green" : "amber"} value={command.trim() ? "selected" : "required"} />
+        <StatusRow label="network" tone={networkPolicy === "deny-all" ? "neutral" : "blue"} value={networkPolicy} />
+        <StatusRow label="default policy" tone="neutral" value={readiness.networkDefault} />
+      </div>
+    </div>
+  );
+}
+
+function StatusRow({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: "green" | "amber" | "blue" | "neutral";
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded border border-neutral-200 bg-white px-3 py-2">
+      <span className="shrink-0 text-neutral-500">{label}</span>
+      <span className="min-w-0 truncate">
+        <Badge tone={tone}>{value}</Badge>
+      </span>
     </div>
   );
 }
