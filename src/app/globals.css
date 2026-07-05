@@ -26,6 +26,17 @@
   --primary: #050505;
   --primary-hover: #171717;
   --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #111827;
+  --accent: #f4f4f5;
+  --accent-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --input: #d4d4d8;
+  --ring: #050505;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --radius-md: 0.5rem;
   --success: #16a34a;
   --warning: #ca8a04;
   --error: #dc2626;
@@ -42,6 +53,16 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -228,6 +249,17 @@ pre {
   border: 1px solid var(--border);
   color: var(--foreground);
   box-shadow: none;
+}
+
+.workspace .bg-zinc-950 pre {
+  background: transparent !important;
+  border: 0 !important;
+  color: inherit !important;
+}
+
+.workspace .bg-zinc-950,
+.workspace .bg-zinc-950 * {
+  color: inherit;
 }
 
 .workspace a {

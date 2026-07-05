@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const topNav = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/skills/agent-observer/run", label: "Sandbox" },
+  { href: "/ai-elements", label: "AI Elements" },
   { href: "/skills/agent-observer/evals", label: "Evals" },
   { href: "/cli", label: "CLI" },
 ];
@@ -21,6 +22,7 @@ const sections = [
     title: "Workspace",
     items: [
       { href: "/builder", label: "Builder", icon: "B" },
+      { href: "/ai-elements", label: "AI Elements", icon: "A" },
       { href: "/skills/agent-observer/evals", label: "Evaluations", icon: "E" },
       { href: "/traces/agent-observer-demo", label: "Traces", icon: "T" },
       { href: "/skills/agent-observer/graph", label: "Collections", icon: "C" },
