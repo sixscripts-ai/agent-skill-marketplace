@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
+import os from "os";
 import path from "path";
 import { demoUser } from "./auth";
 import { getSkill, latestVersion, skills as seededSkills } from "./data";
@@ -16,7 +17,9 @@ import type {
   SkillTraceEvent,
 } from "./types";
 
-const dataDir = path.join(process.cwd(), ".local-data");
+const dataDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "agent-skill-marketplace")
+  : path.join(process.cwd(), ".local-data");
 const dataFile = path.join(dataDir, "marketplace.json");
 
 const initialState: MarketplaceState = {
