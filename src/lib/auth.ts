@@ -43,7 +43,7 @@ export async function getOptionalUser(): Promise<MarketplaceUser | undefined> {
   
   if (session === "admin-session-token") {
     return {
-      id: "cmr82btr50000ihhf3jf6wh6v", // admin user id from seed
+      id: "cmr8c6fz90000ihd2cuqs764a", // admin user id from seed
       clerkId: "admin",
       name: "Admin",
       email: "admin@admin.com",
