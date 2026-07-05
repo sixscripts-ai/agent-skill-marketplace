@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { categories, compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { CompatibilityTarget, Skill } from "@/lib/types";
+import { ActionGuide } from "./feature-walkthrough";
 import { SkillCard } from "./skill-card";
 import { Badge, ButtonLink, Metric, Panel } from "./ui";
 
@@ -58,6 +59,16 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
         <ButtonLink href="/builder">New Skill</ButtonLink>
       </div>
 
+      <ActionGuide
+        steps={[
+          { label: "1", title: "Choose", body: "Search or filter until one skill looks relevant." },
+          { label: "2", title: "Inspect", body: "Open the detail page if you need README, permissions, or versions." },
+          { label: "3", title: "Run", body: "Use Run Skill to test it with a safe prompt before installing." },
+          { label: "4", title: "Install", body: "Export the package only after the result and trace make sense." },
+          { label: "5", title: "Build", body: "Use New Skill when you want to upload or author your own skill." },
+        ]}
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Panel className="p-5"><Metric label="published skills" value={skills.length} /></Panel>
         <Panel className="p-5"><Metric label="install targets" value={compatibilityTargets.length} /></Panel>
@@ -72,6 +83,7 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
               <button
                 key={item}
                 onClick={() => setPill(item)}
+                data-testid={`marketplace-pill-${item.toLowerCase().replaceAll(" ", "-")}`}
                 className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                   pill === item
                     ? "border-neutral-950 bg-neutral-950 text-white"
@@ -86,22 +98,30 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              data-testid="marketplace-search"
               placeholder="Search skills, authors, use cases"
               className="h-11 rounded-md border px-3 text-sm outline-none"
             />
-            <Filter label="Category" value={category} onChange={setCategory} values={["All", ...categories]} />
-            <Filter label="Compatibility" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
-            <Filter label="Permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} />
-            <Filter label="Sort" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
+            <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
+            <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
+            <Filter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} />
+            <Filter label="Sort" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
           </div>
         </div>
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {filtered.map((skill) => (
-            <SkillCard key={skill.slug} skill={skill} />
-          ))}
+          {filtered.length ? (
+            filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />)
+          ) : (
+            <Panel className="p-6 md:col-span-2 2xl:col-span-3">
+              <h2 className="font-semibold text-neutral-950">No skills match those filters.</h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-600">
+                Clear search, switch filters back to All, or create a new skill if the marketplace does not have this workflow yet.
+              </p>
+            </Panel>
+          )}
         </section>
 
         <aside className="flex flex-col gap-6">
@@ -114,6 +134,9 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
               <Badge tone={selected.trustLevel === "Verified" ? "green" : "amber"}>{selected.trustLevel}</Badge>
             </div>
             <p className="mt-3 text-sm leading-6 text-neutral-600">{selected.summary}</p>
+            <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
+              Selected skill preview. Use this panel to decide whether to run, inspect, or install the first matching result.
+            </p>
             <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
               <MiniMetric label="rating" value={selected.rating.toFixed(1)} />
               <MiniMetric label="runs" value={selected.installCount.toLocaleString()} />
@@ -170,11 +193,13 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
 
 function Filter({
   label,
+  testId,
   value,
   onChange,
   values,
 }: {
   label: string;
+  testId: string;
   value: string;
   onChange: (value: string) => void;
   values: string[];
@@ -185,6 +210,7 @@ function Filter({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        data-testid={testId}
         className="h-11 w-full rounded-md border px-3 text-sm text-neutral-700 outline-none"
       >
         {values.map((item) => (

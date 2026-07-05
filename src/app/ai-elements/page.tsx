@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
-import { FeatureWalkthrough } from "@/components/feature-walkthrough";
+import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthrough";
 import { SafeMessageResponse } from "@/components/safe-message-response";
 import { Badge, ButtonLink, Panel } from "@/components/ui";
 
@@ -119,14 +119,23 @@ export default function AiElementsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">AI Elements Lab</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">AI Elements Used By This App</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">
-              Pick targeted AI Elements for the marketplace runner, trace viewer, evals, and skill builder. This app already uses
-              <span className="font-semibold text-neutral-950"> message</span> through the safe markdown wrapper.
+              This is not a random component catalog. It explains the AI UI pieces powering the runner, traces, evals, and builder.
             </p>
           </div>
           <ButtonLink href="/skills/agent-observer/run">Open Runner</ButtonLink>
         </div>
+
+        <ActionGuide
+          steps={[
+            { label: "1", title: "Message", body: "Renders reports, artifacts, and model output as readable markdown." },
+            { label: "2", title: "Conversation", body: "Shows the user prompt and skill response in the runner." },
+            { label: "3", title: "Tool", body: "Explains each permission check, tool call, warning, and artifact." },
+            { label: "4", title: "Terminal", body: "Displays command output for real shell sandbox runs." },
+            { label: "5", title: "File tree", body: "Lists uploaded package files, workspace files, and artifacts." },
+          ]}
+        />
 
         <FeatureWalkthrough
           title="AI Elements are the building blocks for agent interfaces."

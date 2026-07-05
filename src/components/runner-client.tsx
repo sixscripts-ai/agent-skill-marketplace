@@ -29,7 +29,7 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-e
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Terminal } from "@/components/ai-elements/terminal";
 import { Tool, ToolContent, ToolHeader, ToolInput, type ToolPart } from "@/components/ai-elements/tool";
-import { FeatureWalkthrough } from "@/components/feature-walkthrough";
+import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthrough";
 import { SafeMessageResponse } from "@/components/safe-message-response";
 import { sandboxProviders } from "@/lib/providers";
 import { detectRunnableCommands } from "@/lib/run-state";
@@ -255,33 +255,18 @@ export function RunnerClient({
         </div>
       </div>
 
-      <FeatureWalkthrough
-        title="Sandbox runs a skill and shows the evidence."
-        description="Use this page when you want to test whether a skill can handle a real prompt, inspect its files, request permissions, and produce a useful result. The sandbox is the place where a skill proves it can do work."
-        example="Ask: Audit the uploaded package, run the approved command, and produce a short report with risks and next steps."
-        why="A skill is only valuable if it can turn context into output while showing what it touched, what it blocked, and what it saved."
-        items={[
-          {
-            title: "Prompt",
-            body: "Tell the skill what job to do. Use the suggestions when you are not sure what a good request looks like.",
-          },
-          {
-            title: "Execution controls",
-            body: "Choose virtual agent for text/tool flow or real shell when you want an approved command to run inside Vercel Sandbox.",
-          },
-          {
-            title: "Approvals",
-            body: "These are safety gates. Denying shell, network, or file writes should change what the run is allowed to do.",
-          },
-          {
-            title: "Evidence panes",
-            body: "Conversation output is the answer. Files, terminal, artifacts, and tool timeline explain how that answer was produced.",
-          },
+      <ActionGuide
+        steps={[
+          { label: "1", title: "Add files", body: "Use Builder uploads or Add file when the skill needs real context." },
+          { label: "2", title: "Pick a mode", body: "Use virtual agent for safe text output; use real shell only for approved commands." },
+          { label: "3", title: "Run", body: "Start with a safe test prompt, then watch output and events stream in." },
+          { label: "4", title: "Read output", body: "The center panel is the answer. Artifacts are saved reports or files." },
+          { label: "5", title: "Open trace", body: "After a run, inspect the trace to see exactly what happened." },
         ]}
       />
 
-      <div className="grid gap-6 2xl:grid-cols-[360px_minmax(0,1fr)_390px]">
-        <div className="flex flex-col gap-6">
+      <div className="grid min-w-0 gap-6 2xl:grid-cols-[360px_minmax(0,1fr)_390px]">
+        <div className="min-w-0 flex flex-col gap-6">
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -294,6 +279,10 @@ export function RunnerClient({
             </div>
 
             <div className="mt-4">
+              <div className="mb-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
+                <span className="font-semibold text-neutral-950">Safe test prompt:</span> Inspect the workspace files and summarize risks,
+                useful next steps, and any missing context.
+              </div>
               <Suggestions>
                 {suggestions.map((suggestion) => (
                   <Suggestion
@@ -310,6 +299,7 @@ export function RunnerClient({
               <PromptInputBody>
                 <PromptInputTextarea
                   className="min-h-32"
+                  data-testid="run-prompt"
                   onChange={(event) => setInput(event.currentTarget.value)}
                   placeholder="Ask the skill to inspect files, run a command, or produce an artifact..."
                   value={input}
@@ -321,6 +311,7 @@ export function RunnerClient({
                 </PromptInputTools>
                 <PromptInputSubmit
                   className="btn-primary bg-neutral-950 text-white hover:bg-neutral-800"
+                  data-testid="run-submit"
                   disabled={!input.trim() || isRunning}
                   status={isRunning ? "streaming" : "ready"}
                 />
@@ -342,6 +333,7 @@ export function RunnerClient({
                 <select
                   value={executionMode}
                   onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
+                  data-testid="execution-mode"
                   className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                 >
                   <option value="virtual-agent">Virtual provider route</option>
@@ -356,6 +348,7 @@ export function RunnerClient({
                     <input
                       value={command}
                       onChange={(event) => setCommand(event.target.value)}
+                      data-testid="run-command"
                       placeholder="npm test"
                       className="mt-2 h-10 w-full rounded-md border px-3 font-mono text-sm outline-none"
                     />
@@ -366,6 +359,7 @@ export function RunnerClient({
                         <button
                           key={item}
                           onClick={() => setCommand(item)}
+                          data-testid="detected-command"
                           className="rounded-md border border-neutral-300 bg-white px-3 py-2 font-mono text-xs text-neutral-900 transition hover:bg-neutral-100"
                           type="button"
                         >
@@ -383,6 +377,7 @@ export function RunnerClient({
                     <input
                       value={networkAllowlist}
                       onChange={(event) => setNetworkAllowlist(event.target.value)}
+                      data-testid="network-allowlist"
                       placeholder="registry.npmjs.org,github.com"
                       className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                     />
@@ -395,6 +390,7 @@ export function RunnerClient({
                     <select
                       value={provider}
                       onChange={(event) => setProvider(event.target.value as SandboxProvider)}
+                      data-testid="run-provider"
                       className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                     >
                       {sandboxProviders.map((item) => (
@@ -429,7 +425,7 @@ export function RunnerClient({
                     className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-white"}
                     state="approval-requested"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                       <ConfirmationTitle>
                         <span className="font-mono text-sm font-semibold text-neutral-950">{permission.key}</span>
                       </ConfirmationTitle>
@@ -438,9 +434,10 @@ export function RunnerClient({
                     <ConfirmationRequest>
                       <p className="text-sm leading-5 text-neutral-600">{permission.reason}</p>
                     </ConfirmationRequest>
-                    <ConfirmationActions>
+                    <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
                       <ConfirmationAction
-                        className="border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                        className="h-10 w-full border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100 sm:w-auto"
+                        data-testid={`permission-deny-${permission.key}`}
                         onClick={() => {
                           if (!isDenied) togglePermission(permission.key);
                         }}
@@ -449,7 +446,8 @@ export function RunnerClient({
                         Deny
                       </ConfirmationAction>
                       <ConfirmationAction
-                        className="btn-primary bg-neutral-950 text-white hover:bg-neutral-800"
+                        className="btn-primary h-10 w-full bg-neutral-950 text-white hover:bg-neutral-800 sm:w-auto"
+                        data-testid={`permission-approve-${permission.key}`}
                         onClick={() => {
                           if (isDenied) togglePermission(permission.key);
                         }}
@@ -464,14 +462,14 @@ export function RunnerClient({
           </Panel>
         </div>
 
-        <Panel className="overflow-hidden">
+        <Panel className="min-w-0 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
             <div>
               <h2 className="font-semibold text-neutral-950">Conversation output</h2>
               <p className="mt-1 font-mono text-sm text-neutral-500">{run.id}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              {run.status !== "pending" ? <ButtonLink href={`/traces/${run.id}`} variant="secondary">Open trace</ButtonLink> : null}
+              {run.status !== "pending" ? <ButtonLink href={`/traces/${run.id}`} testId="open-trace" variant="secondary">Open trace</ButtonLink> : null}
               {run.status !== "pending" ? <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">JSON</ButtonLink> : null}
             </div>
           </div>
@@ -529,7 +527,7 @@ export function RunnerClient({
           </div>
         </Panel>
 
-        <div className="flex flex-col gap-6">
+        <div className="min-w-0 flex flex-col gap-6">
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -538,6 +536,7 @@ export function RunnerClient({
               </div>
               <button
                 onClick={addWorkspaceFile}
+                data-testid="add-workspace-file"
                 className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 transition hover:bg-neutral-100"
                 type="button"
               >
@@ -602,6 +601,31 @@ export function RunnerClient({
           </Panel>
         </div>
       </div>
+
+      <FeatureWalkthrough
+        title="Sandbox runs a skill and shows the evidence."
+        description="Use this page when you want to test whether a skill can handle a real prompt, inspect its files, request permissions, and produce a useful result. The sandbox is the place where a skill proves it can do work."
+        example="Ask: Audit the uploaded package, run the approved command, and produce a short report with risks and next steps."
+        why="A skill is only valuable if it can turn context into output while showing what it touched, what it blocked, and what it saved."
+        items={[
+          {
+            title: "Prompt",
+            body: "Tell the skill what job to do. Use the suggestions when you are not sure what a good request looks like.",
+          },
+          {
+            title: "Execution controls",
+            body: "Choose virtual agent for text/tool flow or real shell when you want an approved command to run inside Vercel Sandbox.",
+          },
+          {
+            title: "Approvals",
+            body: "These are safety gates. Denying shell, network, or file writes should change what the run is allowed to do.",
+          },
+          {
+            title: "Evidence panes",
+            body: "Conversation output is the answer. Files, terminal, artifacts, and tool timeline explain how that answer was produced.",
+          },
+        ]}
+      />
 
       <Panel className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">

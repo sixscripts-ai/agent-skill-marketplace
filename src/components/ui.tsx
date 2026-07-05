@@ -27,14 +27,17 @@ export function ButtonLink({
   href,
   children,
   variant = "primary",
+  testId,
 }: {
   href: string;
   children: ReactNode;
   variant?: "primary" | "secondary";
+  testId?: string;
 }) {
   return (
     <Link
       href={href}
+      data-testid={testId}
       className={
         variant === "primary"
           ? "btn-primary inline-flex h-10 items-center justify-center rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"

@@ -12,7 +12,11 @@ export function SkillCard({ skill }: { skill: Skill }) {
   const latestScore = skill.evalSuites[0]?.results[0]?.score ?? 0;
 
   return (
-    <Panel className="group flex min-h-[310px] flex-col p-5 transition duration-150 hover:border-neutral-400 hover:shadow-md" variant="floating">
+    <Panel
+      className="group flex min-h-[310px] flex-col p-5 transition duration-150 hover:border-neutral-400 hover:shadow-md"
+      variant="floating"
+    >
+      <div data-testid="skill-card" data-skill-slug={skill.slug} className="contents">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-100 font-mono text-sm font-semibold text-neutral-900">
@@ -49,10 +53,11 @@ export function SkillCard({ skill }: { skill: Skill }) {
         </div>
       </div>
       <div className="mt-5 flex gap-3">
-        <ButtonLink href={`/skills/${skill.slug}/run`}>Run</ButtonLink>
-        <ButtonLink href={`/skills/${skill.slug}`} variant="secondary">
+        <ButtonLink href={`/skills/${skill.slug}/run`} testId="skill-card-run">Run</ButtonLink>
+        <ButtonLink href={`/skills/${skill.slug}`} testId="skill-card-inspect" variant="secondary">
           Inspect
         </ButtonLink>
+      </div>
       </div>
     </Panel>
   );

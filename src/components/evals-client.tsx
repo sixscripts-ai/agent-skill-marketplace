@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FeatureWalkthrough } from "@/components/feature-walkthrough";
+import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthrough";
 import type { EvaluationSuite, Skill } from "@/lib/types";
 import { Badge, Panel } from "./ui";
 
@@ -44,6 +44,16 @@ export function EvalsClient({ skill }: { skill: Skill }) {
         </p>
       </Panel>
 
+      <ActionGuide
+        steps={[
+          { label: "1", title: "Write scenario", body: "Use a real prompt the skill should handle." },
+          { label: "2", title: "Set expected", body: "Describe what a useful answer must include." },
+          { label: "3", title: "Save case", body: "Store the case in a named suite." },
+          { label: "4", title: "Run suite", body: "Score the current skill version." },
+          { label: "5", title: "Check trend", body: "Use regressions to decide whether a version got worse." },
+        ]}
+      />
+
       <FeatureWalkthrough
         title="Evals are saved tests for a skill."
         description="Use this page to define what the skill should do, run those checks against the current version, and watch whether quality improves or regresses over time."
@@ -70,14 +80,18 @@ export function EvalsClient({ skill }: { skill: Skill }) {
       />
 
       <Panel className="p-5" variant="floating">
-        <h2 className="font-semibold text-neutral-950">Author eval case</h2>
+        <h2 className="font-semibold text-neutral-950">Create a saved test</h2>
+        <p className="mt-2 text-sm leading-6 text-neutral-600">
+          Example: input a denied-permission scenario, then expect the skill to explain the block and preserve trace evidence.
+        </p>
         <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr_1.2fr_0.8fr_auto]">
-          <Input label="Suite" value={suiteName} onChange={setSuiteName} />
-          <Input label="Input" value={input} onChange={setInput} />
-          <Input label="Expected" value={expected} onChange={setExpected} />
-          <Input label="Assertion" value={assertionType} onChange={setAssertionType} />
+          <Input label="Suite" testId="eval-suite-name" value={suiteName} onChange={setSuiteName} />
+          <Input label="Input" testId="eval-input" value={input} onChange={setInput} />
+          <Input label="Expected" testId="eval-expected" value={expected} onChange={setExpected} />
+          <Input label="Assertion" testId="eval-assertion" value={assertionType} onChange={setAssertionType} />
           <button
             onClick={addCase}
+            data-testid="eval-save-case"
             className="self-end rounded-md border border-neutral-950 bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
             Save case
@@ -95,6 +109,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
             <button
               onClick={() => runSuite(suite.name)}
               disabled={isRunning}
+              data-testid="eval-run-suite"
               className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-60"
             >
               {isRunning ? "Running..." : "Run suite"}
@@ -143,10 +158,12 @@ export function EvalsClient({ skill }: { skill: Skill }) {
 
 function Input({
   label,
+  testId,
   value,
   onChange,
 }: {
   label: string;
+  testId: string;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -156,6 +173,7 @@ function Input({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        data-testid={testId}
         className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none"
       />
     </label>

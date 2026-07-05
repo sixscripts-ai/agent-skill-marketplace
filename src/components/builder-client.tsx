@@ -4,7 +4,7 @@ import { useMemo, useState, type ChangeEvent } from "react";
 import { buildFixtureRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
-import { FeatureWalkthrough } from "./feature-walkthrough";
+import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
 
@@ -180,12 +180,23 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         </div>
         <button
           onClick={publishSkill}
+          data-testid="builder-publish"
           className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={issues.length > 0 || isSaving}
         >
           {isSaving ? "Saving..." : "Publish version"}
         </button>
       </div>
+
+      <ActionGuide
+        steps={[
+          { label: "1", title: "Upload", body: "Bring in SKILL.md, a .skill file, zip, or folder." },
+          { label: "2", title: "Format", body: "Parse the file and apply suggested structure fixes." },
+          { label: "3", title: "Validate", body: "Resolve missing workflow, permissions, examples, and targets." },
+          { label: "4", title: "Preview", body: "Check the marketplace card and README excerpt." },
+          { label: "5", title: "Publish", body: "Save an unlisted, private, or public version." },
+        ]}
+      />
 
       <FeatureWalkthrough
         title="Builder turns an idea or uploaded package into a marketplace skill."
@@ -214,17 +225,23 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr_360px]">
         <Panel className="p-5">
-          <h2 className="text-base font-semibold text-neutral-950">Metadata</h2>
+          <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
+            {["Upload", "Format", "Validate", "Publish"].map((step) => (
+              <div key={step} className="rounded bg-white px-2 py-2">{step}</div>
+            ))}
+          </div>
+          <h2 className="mt-5 text-base font-semibold text-neutral-950">Metadata</h2>
           <div className="mt-5 flex flex-col gap-4">
-            <Field label="Name" value={name} onChange={setName} />
-            <Field label="Slug" value={slug} onChange={setSlug} />
-            <Field label="Category" value={category} onChange={setCategory} />
-            <Field label="Summary" value={summary} onChange={setSummary} />
+            <Field label="Name" testId="builder-name" value={name} onChange={setName} />
+            <Field label="Slug" testId="builder-slug" value={slug} onChange={setSlug} />
+            <Field label="Category" testId="builder-category" value={category} onChange={setCategory} />
+            <Field label="Summary" testId="builder-summary" value={summary} onChange={setSummary} />
             <label className="block text-sm font-medium text-neutral-700">
               Visibility
               <select
                 value={visibility}
                 onChange={(event) => setVisibility(event.target.value as "public" | "private" | "unlisted")}
+                data-testid="builder-visibility"
                 className="mt-2 h-10 w-full rounded-md border px-3 text-sm"
               >
                 <option value="public">public</option>
@@ -255,7 +272,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
               <span className="font-semibold text-neutral-950">File / zip</span>
               <span className="mt-1 block text-xs leading-5 text-neutral-500">Accepts `.md`, `.skill`, and `.zip` packages.</span>
-              <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} className="mt-3 block w-full text-xs" />
+              <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} data-testid="builder-file-upload" className="mt-3 block w-full text-xs" />
             </label>
             <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
               <span className="font-semibold text-neutral-950">Folder</span>
@@ -264,6 +281,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 type="file"
                 multiple
                 onChange={uploadSkillFile}
+                data-testid="builder-folder-upload"
                 className="mt-3 block w-full text-xs"
                 {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
               />
@@ -300,6 +318,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </label>
           <button
             onClick={() => importSkill()}
+            data-testid="builder-parse"
             className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
           >
             Parse / suggest edits
@@ -314,6 +333,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           <textarea
             value={skillMd}
             onChange={(event) => setSkillMd(event.target.value)}
+            data-testid="builder-skill-md"
             className="mt-4 min-h-[620px] w-full rounded-md border p-4 font-mono text-sm leading-6 outline-none"
           />
         </Panel>
@@ -349,6 +369,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                       </ul>
                       <button
                         onClick={applySuggestedSkillMd}
+                        data-testid="builder-apply-suggestions"
                         className="mt-3 h-9 rounded-md border border-neutral-950 bg-neutral-950 px-3 text-xs font-semibold text-white transition hover:bg-neutral-800"
                       >
                         Apply suggested formatting
@@ -402,6 +423,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <input
               value={testInput}
               onChange={(event) => setTestInput(event.target.value)}
+              data-testid="builder-test-input"
               className="mt-4 h-10 w-full rounded-md border px-3 text-sm outline-none"
             />
             <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
@@ -424,13 +446,14 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Field({ label, testId, value, onChange }: { label: string; testId: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block text-sm font-medium text-neutral-700">
       {label}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        data-testid={testId}
         className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
       />
     </label>
@@ -456,6 +479,7 @@ function Checklist({
           <button
             key={value}
             onClick={() => toggle(value)}
+            data-testid={`builder-toggle-${value.toLowerCase().replaceAll(" ", "-")}`}
             className={`rounded-md border px-3 py-2 text-xs font-medium transition ${
               selected.includes(value)
                 ? "border-neutral-950 bg-neutral-950 text-white"

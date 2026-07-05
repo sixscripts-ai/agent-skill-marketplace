@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { FileTree, FileTreeFile, FileTreeFolder } from "@/components/ai-elements/file-tree";
-import { FeatureWalkthrough } from "@/components/feature-walkthrough";
+import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthrough";
 import { Terminal } from "@/components/ai-elements/terminal";
 import { Tool, ToolContent, ToolHeader, ToolInput, type ToolPart } from "@/components/ai-elements/tool";
 import { SafeMessageResponse } from "@/components/safe-message-response";
@@ -40,18 +40,28 @@ export function TraceClient({ run }: { run: SkillRun }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href={`/skills/${run.skillSlug}/run?replay=${run.id}`} variant="secondary">
+            <ButtonLink href={`/skills/${run.skillSlug}/run?replay=${run.id}`} testId="trace-replay" variant="secondary">
               Replay
             </ButtonLink>
-            <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">
+            <ButtonLink href={`/api/traces/${run.id}`} testId="trace-json-export" variant="secondary">
               Export JSON
             </ButtonLink>
-            <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">
+            <ButtonLink href={`/api/workspaces/${run.id}`} testId="trace-workspace-zip" variant="secondary">
               Workspace zip
             </ButtonLink>
           </div>
         </div>
       </Panel>
+
+      <ActionGuide
+        steps={[
+          { label: "1", title: "Find failure", body: "Start with blocked, failed, or warning events." },
+          { label: "2", title: "Read terminal", body: "Check command lifecycle and exit status for shell runs." },
+          { label: "3", title: "Inspect files", body: "Confirm which inputs and artifacts belonged to the run." },
+          { label: "4", title: "Replay", body: "Open the same context back in the Sandbox." },
+          { label: "5", title: "Export", body: "Use JSON or workspace zip for deeper debugging." },
+        ]}
+      />
 
       <FeatureWalkthrough
         title="Traces explain exactly what happened during a run."

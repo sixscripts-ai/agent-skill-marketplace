@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://agent-skill-marketplace.vercel.app playwright test",
     "test:security": "node --test --experimental-strip-types tests/security.test.mjs",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate"
@@ -40,6 +43,7 @@
     "use-stick-to-bottom": "^1.1.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
