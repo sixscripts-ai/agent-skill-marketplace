@@ -35,16 +35,16 @@ export function EvalsClient({ skill }: { skill: Skill }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <Panel className="p-6" variant="floating">
-        <h1 className="text-3xl font-semibold text-white">{skill.name} Evaluations</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-400">
+        <h1 className="text-3xl font-semibold text-neutral-950">{skill.name} Evaluations</h1>
+        <p className="mt-3 text-sm leading-6 text-neutral-600">
           Create saved test cases, run suites against the current version, and track regression results.
         </p>
       </Panel>
 
       <Panel className="p-5" variant="floating">
-        <h2 className="font-semibold text-white">Author eval case</h2>
+        <h2 className="font-semibold text-neutral-950">Author eval case</h2>
         <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr_1.2fr_0.8fr_auto]">
           <Input label="Suite" value={suiteName} onChange={setSuiteName} />
           <Input label="Input" value={input} onChange={setInput} />
@@ -52,7 +52,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
           <Input label="Assertion" value={assertionType} onChange={setAssertionType} />
           <button
             onClick={addCase}
-            className="self-end rounded-md bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+            className="self-end rounded-md border border-neutral-950 bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
           >
             Save case
           </button>
@@ -61,47 +61,47 @@ export function EvalsClient({ skill }: { skill: Skill }) {
 
       {suites.map((suite) => (
         <Panel key={suite.name} className="overflow-hidden" variant="floating">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
             <div>
-              <h2 className="font-semibold text-white">{suite.name}</h2>
-              <p className="mt-1 text-sm text-slate-500">{suite.cases.length} saved case(s)</p>
+              <h2 className="font-semibold text-neutral-950">{suite.name}</h2>
+              <p className="mt-1 text-sm text-neutral-500">{suite.cases.length} saved case(s)</p>
             </div>
             <button
               onClick={() => runSuite(suite.name)}
               disabled={isRunning}
-              className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08] disabled:cursor-wait disabled:opacity-60"
+              className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-60"
             >
               {isRunning ? "Running..." : "Run suite"}
             </button>
           </div>
           <div className="grid gap-0 lg:grid-cols-[1fr_420px]">
             <div className="p-5">
-              <h3 className="text-sm font-semibold text-white">Cases</h3>
-              <div className="mt-4 overflow-hidden rounded-lg border border-white/10">
+              <h3 className="text-sm font-semibold text-neutral-950">Cases</h3>
+              <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
                 {suite.cases.map((item) => (
-                    <div key={`${item.input}-${item.assertionType}`} className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-4 last:border-b-0 md:grid-cols-[1fr_1fr_120px]">
-                    <div className="text-sm text-slate-300">{item.input}</div>
-                    <div className="text-sm text-slate-400">{item.expected}</div>
+                    <div key={`${item.input}-${item.assertionType}`} className="grid gap-3 border-b border-neutral-200 bg-white p-4 last:border-b-0 md:grid-cols-[1fr_1fr_120px]">
+                    <div className="text-sm text-neutral-700">{item.input}</div>
+                    <div className="text-sm text-neutral-600">{item.expected}</div>
                     <Badge tone={item.status === "pass" ? "green" : "red"}>{item.status}</Badge>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="border-t border-white/10 p-5 lg:border-l lg:border-t-0">
-              <h3 className="text-sm font-semibold text-white">Score trend</h3>
-              <div className="mt-4 space-y-3">
+            <div className="border-t border-neutral-200 p-5 lg:border-l lg:border-t-0">
+              <h3 className="text-sm font-semibold text-neutral-950">Score trend</h3>
+              <div className="mt-4 flex flex-col gap-3">
                 {suite.results.map((result) => (
-                  <div key={`${result.version}-${result.createdAt}`} className="glass-subtle rounded-xl p-4">
+                  <div key={`${result.version}-${result.createdAt}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">{result.version}</span>
+                      <span className="font-semibold text-neutral-950">{result.version}</span>
                       <Badge tone={result.regressions ? "amber" : "green"}>
                         {result.regressions ? `${result.regressions} regression` : "stable"}
                       </Badge>
                     </div>
-                    <div className="mt-4 h-2 rounded bg-white/10">
-                      <div className="h-2 rounded bg-cyan-300" style={{ width: `${result.score}%` }} />
+                    <div className="mt-4 h-2 rounded bg-neutral-200">
+                      <div className="h-2 rounded bg-neutral-950" style={{ width: `${result.score}%` }} />
                     </div>
-                    <div className="mt-3 text-sm text-slate-400">
+                    <div className="mt-3 text-sm text-neutral-600">
                       {result.score}% score, {result.passed} passed, {result.failed} failed
                     </div>
                   </div>
@@ -125,12 +125,12 @@ function Input({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block text-sm font-medium text-slate-300">
+    <label className="block text-sm font-medium text-neutral-700">
       {label}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 h-11 w-full rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-cyan-300/60"
+        className="mt-2 h-11 w-full rounded-md border px-3 text-sm outline-none"
       />
     </label>
   );

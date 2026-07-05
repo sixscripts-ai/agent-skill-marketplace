@@ -9,15 +9,15 @@ export function Badge({
   tone?: "neutral" | "green" | "amber" | "red" | "blue";
 }) {
   const tones = {
-    neutral: "border-white/15 bg-white/[0.06] text-slate-200",
-    green: "border-emerald-300/30 bg-emerald-300/12 text-emerald-100",
-    amber: "border-amber-300/30 bg-amber-300/12 text-amber-100",
-    red: "border-red-300/30 bg-red-300/12 text-red-100",
-    blue: "border-cyan-300/30 bg-cyan-300/12 text-cyan-100",
+    neutral: "border-neutral-300 bg-neutral-100 text-neutral-700",
+    green: "border-green-200 bg-green-50 text-green-700",
+    amber: "border-yellow-200 bg-yellow-50 text-yellow-700",
+    red: "border-red-200 bg-red-50 text-red-700",
+    blue: "border-blue-200 bg-blue-50 text-blue-700",
   };
 
   return (
-    <span className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md ${tones[tone]}`}>
+    <span className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -37,8 +37,8 @@ export function ButtonLink({
       href={href}
       className={
         variant === "primary"
-          ? "inline-flex h-10 items-center justify-center rounded-md border border-cyan-100/40 bg-cyan-200/90 px-4 text-sm font-semibold text-slate-950 shadow-[0_12px_34px_rgba(34,211,238,0.2),inset_0_1px_0_rgba(255,255,255,0.42)] transition hover:bg-cyan-100"
-          : "glass-subtle inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.1]"
+          ? "btn-primary inline-flex h-10 items-center justify-center rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          : "inline-flex h-10 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
       }
     >
       {children}
@@ -56,10 +56,10 @@ export function Panel({
   variant?: "default" | "floating" | "toolbar" | "subtle";
 }) {
   const variants = {
-    default: "glass-surface",
-    floating: "glass-surface glass-floating",
-    toolbar: "glass-surface glass-toolbar",
-    subtle: "glass-subtle",
+    default: "border border-neutral-200 bg-white shadow-sm",
+    floating: "border border-neutral-200 bg-white shadow-sm",
+    toolbar: "border border-neutral-200 bg-white shadow-sm",
+    subtle: "border border-neutral-200 bg-neutral-50",
   };
 
   return <section className={`rounded-xl ${variants[variant]} ${className}`}>{children}</section>;
@@ -68,8 +68,8 @@ export function Panel({
 export function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <div className="text-2xl font-semibold text-white">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
+      <div className="text-2xl font-semibold text-neutral-950">{value}</div>
+      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-neutral-500">{label}</div>
     </div>
   );
 }
