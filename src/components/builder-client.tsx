@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
-import { buildMockRun } from "@/lib/runner";
+import { buildFixtureRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
 import { Badge, Panel } from "./ui";
@@ -74,7 +74,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     return next;
   }, [name, selectedPermissions.length, selectedTargets.length, skillMd, slug, summary]);
 
-  const testRun = buildMockRun("agent-observer", testInput);
+  const testRun = buildFixtureRun("agent-observer", testInput);
 
   function toggle(value: string, selected: string[], setter: (value: string[]) => void) {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
@@ -379,7 +379,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               className="mt-4 h-10 w-full rounded-md border px-3 text-sm outline-none"
             />
             <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-              <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">mock output</div>
+              <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">test output</div>
               <p className="mt-2 text-sm leading-6 text-neutral-600">{testRun.output}</p>
             </div>
           </Panel>

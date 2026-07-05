@@ -4,7 +4,7 @@ export const sandboxProviders: {
   id: SandboxProvider;
   label: string;
   model: string;
-  mode: "openai-compatible" | "simulated";
+  mode: "openai-compatible" | "local-deterministic";
   keyEnv?: string;
   baseUrlEnv?: string;
   defaultBaseUrl?: string;
@@ -20,7 +20,7 @@ export const sandboxProviders: {
     defaultBaseUrl: "https://api.openai.com/v1",
     modelEnv: "OPENAI_MODEL",
   },
-  { id: "gemini", label: "Gemini", model: "gemini-2.0-flash", mode: "simulated" },
+  { id: "gemini", label: "Gemini", model: "gemini-2.0-flash", mode: "local-deterministic" },
   {
     id: "groq",
     label: "Groq",
@@ -41,7 +41,7 @@ export const sandboxProviders: {
     defaultBaseUrl: "https://openrouter.ai/api/v1",
     modelEnv: "OPENROUTER_MODEL",
   },
-  { id: "local", label: "Local model", model: "llama.cpp/local", mode: "simulated" },
+  { id: "local", label: "Local model", model: "llama.cpp/local", mode: "local-deterministic" },
 ];
 
 export function getProvider(provider: string | undefined) {

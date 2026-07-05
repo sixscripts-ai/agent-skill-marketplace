@@ -19,10 +19,10 @@ export function buildSkillGraph(skill: Skill) {
   const currentVersion = skill.versions[0];
   const tools = [
     { id: "tool:read_file", label: "read_file", permission: "read_files", detail: "Reads SKILL.md, README, and uploaded workspace files." },
-    { id: "tool:write_file", label: "write_file", permission: "write_files", detail: "Writes virtual artifacts into the downloadable workspace." },
-    { id: "tool:network", label: "network", permission: "network", detail: "Uses allowlisted simulated fetches or provider metadata." },
-    { id: "tool:shell", label: "shell preview", permission: "shell", detail: "Shows blocked shell intent without executing commands." },
-    { id: "tool:browser", label: "browser", permission: "browser", detail: "Inspects simulated source pages and DOM summaries." },
+    { id: "tool:write_file", label: "write_file", permission: "write_files", detail: "Writes artifacts into the downloadable workspace." },
+    { id: "tool:network", label: "network", permission: "network", detail: "Uses allowlisted network access or provider metadata." },
+    { id: "tool:shell", label: "shell", permission: "shell", detail: "Runs approved commands inside an isolated sandbox." },
+    { id: "tool:browser", label: "browser", permission: "browser", detail: "Inspects browser/source context." },
     { id: "tool:api_keys", label: "api_keys", permission: "api_keys", detail: "Reads redacted provider/key metadata only." },
   ].filter((tool) => skill.permissions.some((permission) => permission.key === tool.permission));
   const evalCases = skill.evalSuites.flatMap((suite) =>
@@ -109,7 +109,7 @@ export function buildSkillGraph(skill: Skill) {
     ...sandboxProviders.map((provider) => ({
       from: skill.slug,
       to: `provider:${provider.id}`,
-      label: provider.mode === "openai-compatible" ? "live when keyed" : "simulated",
+      label: provider.mode === "openai-compatible" ? "live when keyed" : "local deterministic",
     })),
     ...tools.map((tool) => ({
       from: `permission:${tool.permission}`,

@@ -336,6 +336,18 @@ export async function findRun(runId: string) {
   return row ? toRun(row as any) : undefined;
 }
 
+export async function findLatestRunForSkill(skillSlug: string) {
+  if (!hasDatabase) {
+    return (await readState()).runs.find((run) => run.skillSlug === skillSlug);
+  }
+  const row = await prisma.skillRun.findFirst({
+    where: { skill: { slug: skillSlug } },
+    include: { skill: true, skillVersion: true, events: { orderBy: { order: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return row ? toRun(row as any) : undefined;
+}
+
 function toRun(row: any): SkillRun {
   return {
     id: row.id,
@@ -892,10 +904,10 @@ function permissionRisk(permission: PermissionKey) {
 function permissionReason(permission: PermissionKey) {
   const reasons: Record<PermissionKey, string> = {
     read_files: "Read uploaded sandbox files and skill package context.",
-    write_files: "Create virtual artifacts during sandbox execution.",
-    network: "Use allowlisted simulated network fetches.",
-    shell: "Preview shell commands; real execution stays blocked in browser mode.",
-    browser: "Inspect simulated browser/source context.",
+    write_files: "Create artifacts during sandbox execution.",
+    network: "Use allowlisted network access.",
+    shell: "Execute approved commands inside an isolated sandbox.",
+    browser: "Inspect browser/source context.",
     api_keys: "Access redacted provider metadata only.",
   };
   return reasons[permission];

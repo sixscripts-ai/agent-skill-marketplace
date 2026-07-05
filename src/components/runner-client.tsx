@@ -1,42 +1,60 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildMockRun } from "@/lib/runner";
+import { MessageResponse } from "@/components/ai-elements/message";
 import { sandboxProviders } from "@/lib/providers";
-import type { SandboxProvider, Skill, SkillRun, SkillTraceEvent, WorkspaceFile } from "@/lib/types";
+import { detectRunnableCommands } from "@/lib/run-state";
+import type { ExecutionMode, PermissionKey, SandboxProvider, Skill, SkillPermission, SkillRun, SkillTraceEvent, WorkspaceFile } from "@/lib/types";
 import { Badge, ButtonLink, Panel } from "./ui";
 
-export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?: SkillRun }) {
-  const [input, setInput] = useState("Audit the last failed agent run and produce a replay plan.");
+const RUNTIME_SHELL_PERMISSION: SkillPermission = {
+  key: "shell",
+  reason: "Execute the approved command inside an isolated Vercel Sandbox microVM.",
+  risk: "high",
+};
+
+export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: SkillRun }) {
+  const initialWorkspace = initialRun.workspaceFiles ?? [];
+  const initialCommands = detectRunnableCommands(skill, initialWorkspace);
+  const [input, setInput] = useState(initialRun.input || "Run this skill against the uploaded package and produce artifacts.");
   const [denied, setDenied] = useState<string[]>([]);
-  const [provider, setProvider] = useState<SandboxProvider>(initialRun?.provider ?? "openai");
-  const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>(
-    initialRun?.workspaceFiles?.length
-      ? initialRun.workspaceFiles
-      : [
-          {
-            path: "workspace/context.md",
-            content: "# Demo workspace\n\nThe sandbox should inspect this file and write a report artifact.",
-            size: 86,
-            updatedAt: new Date().toISOString(),
-          },
-        ],
-  );
-  const [run, setRun] = useState<SkillRun>(
-    () => initialRun ?? buildMockRun(skill.slug, "Audit the last failed agent run and produce a replay plan."),
-  );
+  const [provider, setProvider] = useState<SandboxProvider>(initialRun.provider ?? "openai");
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>("real-shell");
+  const [command, setCommand] = useState(initialRun.sandbox?.command ?? initialCommands[0] ?? "");
+  const [networkAllowlist, setNetworkAllowlist] = useState("registry.npmjs.org,github.com");
+  const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>(initialWorkspace);
+  const [run, setRun] = useState<SkillRun>(initialRun);
   const [isRunning, setIsRunning] = useState(false);
 
+  const detectedCommands = useMemo(() => detectRunnableCommands(skill, workspaceFiles), [skill, workspaceFiles]);
+  const permissions = useMemo(() => {
+    if (executionMode !== "real-shell" || skill.permissions.some((permission) => permission.key === "shell")) {
+      return skill.permissions;
+    }
+    return [...skill.permissions, RUNTIME_SHELL_PERMISSION];
+  }, [executionMode, skill.permissions]);
   const allApproved = useMemo(
-    () => skill.permissions.every((permission) => !denied.includes(permission.key)),
-    [denied, skill.permissions],
+    () => permissions.every((permission) => !denied.includes(permission.key)),
+    [denied, permissions],
   );
   const selectedProvider = sandboxProviders.find((item) => item.id === provider) ?? sandboxProviders[0];
 
-  function togglePermission(permission: string) {
+  function togglePermission(permission: PermissionKey) {
     setDenied((current) =>
       current.includes(permission) ? current.filter((item) => item !== permission) : [...current, permission],
     );
+  }
+
+  function addWorkspaceFile() {
+    setWorkspaceFiles((current) => [
+      ...current,
+      {
+        path: `workspace/file-${current.length + 1}.md`,
+        content: "# Workspace file\n\nAdd real context for this run.",
+        size: 48,
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
   }
 
   async function execute() {
@@ -49,12 +67,23 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
         input,
         deniedPermissions: denied,
         provider,
+        executionMode,
+        command,
+        networkAllowlist: networkAllowlist
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
         workspaceFiles,
-        replayOf: initialRun?.id,
+        replayOf: initialRun.status === "pending" ? undefined : initialRun.id,
       }),
     });
+
     if (!response.body) {
-      setRun(buildMockRun(skill.slug, input, denied));
+      setRun((current) => ({
+        ...current,
+        status: "failed",
+        output: "Run stream failed to start. No run was created.",
+      }));
       setIsRunning(false);
       return;
     }
@@ -99,7 +128,7 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Run {skill.name}</h1>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Stream a browser-safe sandbox run with provider routing, permission checks, virtual tools, and saved traces.
+            Execute uploaded skill files in an isolated Vercel Sandbox or use the virtual provider route for agent-only runs.
           </p>
         </div>
         <Badge tone={allApproved ? "green" : "amber"}>{allApproved ? "approved" : "restricted"}</Badge>
@@ -117,92 +146,142 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
               />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="grid gap-4">
               <label className="block text-sm font-medium text-neutral-700">
-                Provider
+                Execution mode
                 <select
-                  value={provider}
-                  onChange={(event) => setProvider(event.target.value as SandboxProvider)}
+                  value={executionMode}
+                  onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
                   className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                 >
-                  {sandboxProviders.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.label} - {item.model}
-                    </option>
-                  ))}
+                  <option value="real-shell">Real shell sandbox</option>
+                  <option value="virtual-agent">Virtual provider route</option>
                 </select>
               </label>
-              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">Mode</div>
-                <div className="mt-2 text-sm text-neutral-700">
-                  {selectedProvider.mode === "openai-compatible"
-                    ? `Streams live with ${selectedProvider.keyEnv} when configured; otherwise simulated.`
-                    : "Simulated provider route."}
+
+              {executionMode === "real-shell" ? (
+                <>
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Approved command
+                    <input
+                      value={command}
+                      onChange={(event) => setCommand(event.target.value)}
+                      placeholder="npm test"
+                      className="mt-2 h-10 w-full rounded-md border px-3 font-mono text-sm outline-none"
+                    />
+                  </label>
+                  {detectedCommands.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {detectedCommands.map((item) => (
+                        <button
+                          key={item}
+                          onClick={() => setCommand(item)}
+                          className="rounded-md border border-neutral-300 bg-white px-3 py-2 font-mono text-xs text-neutral-900 transition hover:bg-neutral-100"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm leading-5 text-neutral-600">
+                      No package script was detected. Enter the exact command to run inside the sandbox.
+                    </div>
+                  )}
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Network allowlist
+                    <input
+                      value={networkAllowlist}
+                      onChange={(event) => setNetworkAllowlist(event.target.value)}
+                      placeholder="registry.npmjs.org,github.com"
+                      className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+                    />
+                  </label>
+                </>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Provider
+                    <select
+                      value={provider}
+                      onChange={(event) => setProvider(event.target.value as SandboxProvider)}
+                      className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+                    >
+                      {sandboxProviders.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label} - {item.model}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                    <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">Mode</div>
+                    <div className="mt-2 text-sm text-neutral-700">
+                      {selectedProvider.mode === "openai-compatible"
+                        ? `Streams live with ${selectedProvider.keyEnv} when configured; otherwise uses local deterministic provider output.`
+                        : "Local deterministic provider route."}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div>
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-sm font-semibold text-neutral-950">Workspace files</h2>
                 <button
-                  onClick={() =>
-                    setWorkspaceFiles((current) => [
-                      ...current,
-                      {
-                        path: `workspace/file-${current.length + 1}.md`,
-                        content: "# New file\n\nAdd context for the sandbox.",
-                        size: 38,
-                        updatedAt: new Date().toISOString(),
-                      },
-                    ])
-                  }
+                  onClick={addWorkspaceFile}
                   className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 transition hover:bg-neutral-100"
                 >
                   Add file
                 </button>
               </div>
               <div className="mt-3 flex flex-col gap-3">
-                {workspaceFiles.map((file, index) => (
-                  <div key={`${file.path}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                    <input
-                      value={file.path}
-                      onChange={(event) =>
-                        setWorkspaceFiles((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index ? { ...item, path: event.target.value, updatedAt: new Date().toISOString() } : item,
-                          ),
-                        )
-                      }
-                      className="h-9 w-full rounded-md border px-3 font-mono text-xs outline-none"
-                    />
-                    <textarea
-                      value={file.content}
-                      onChange={(event) =>
-                        setWorkspaceFiles((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? {
-                                  ...item,
-                                  content: event.target.value,
-                                  size: event.target.value.length,
-                                  updatedAt: new Date().toISOString(),
-                                }
-                              : item,
-                          ),
-                        )
-                      }
-                      className="mt-2 min-h-24 w-full rounded-md border p-3 font-mono text-xs leading-5 outline-none"
-                    />
+                {workspaceFiles.length ? (
+                  workspaceFiles.map((file, index) => (
+                    <div key={`${file.path}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                      <input
+                        value={file.path}
+                        onChange={(event) =>
+                          setWorkspaceFiles((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, path: event.target.value, updatedAt: new Date().toISOString() } : item,
+                            ),
+                          )
+                        }
+                        className="h-9 w-full rounded-md border px-3 font-mono text-xs outline-none"
+                      />
+                      <textarea
+                        value={file.content}
+                        onChange={(event) =>
+                          setWorkspaceFiles((current) =>
+                            current.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? {
+                                    ...item,
+                                    content: event.target.value,
+                                    size: event.target.value.length,
+                                    updatedAt: new Date().toISOString(),
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="mt-2 min-h-24 w-full rounded-md border p-3 font-mono text-xs leading-5 outline-none"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
+                    No workspace files are attached. Upload a skill package in Builder or add a file here before running context-dependent commands.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             <div>
               <h2 className="text-sm font-semibold text-neutral-950">Permission approval</h2>
               <div className="mt-3 flex flex-col gap-3">
-                {skill.permissions.map((permission) => {
+                {permissions.map((permission) => {
                   const isDenied = denied.includes(permission.key);
                   return (
                     <button
@@ -228,7 +307,7 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
               disabled={isRunning}
               className="h-11 w-full rounded-md border border-neutral-950 bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-wait disabled:opacity-60"
             >
-              {isRunning ? "Streaming sandbox..." : "Run live sandbox"}
+              {isRunning ? "Streaming run..." : executionMode === "real-shell" ? "Run real shell sandbox" : "Run virtual provider route"}
             </button>
           </div>
         </Panel>
@@ -240,43 +319,51 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
               <p className="mt-1 font-mono text-sm text-neutral-500">{run.id}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <ButtonLink href={`/traces/${run.id}`} variant="secondary">Open saved trace</ButtonLink>
-              <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">JSON</ButtonLink>
-              <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">Workspace zip</ButtonLink>
+              {run.status !== "pending" ? <ButtonLink href={`/traces/${run.id}`} variant="secondary">Open saved trace</ButtonLink> : null}
+              {run.status !== "pending" ? <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">JSON</ButtonLink> : null}
+              {run.status !== "pending" ? <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">Workspace zip</ButtonLink> : null}
             </div>
           </div>
           <div className="grid gap-4 border-b border-neutral-200 p-5 sm:grid-cols-3">
             <RunMetric label="status" value={run.status} />
             <RunMetric label="latency" value={`${run.latencyMs}ms`} />
-            <RunMetric label="provider" value={run.provider ?? provider} />
+            <RunMetric label="mode" value={run.sandbox?.executionMode ?? executionMode} />
           </div>
           <div className="max-h-[520px] overflow-auto p-5">
             <div className="flex flex-col gap-3">
-              {run.events.map((event) => (
-                <div key={`${event.order}-${event.title}`} className="rounded-xl border border-neutral-200 bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="grid size-7 place-items-center rounded-full bg-neutral-950 font-mono text-xs text-white">
-                        {event.order}
-                      </span>
-                      <span className="font-medium text-neutral-950">{event.title}</span>
+              {run.events.length ? (
+                run.events.map((event) => (
+                  <div key={`${event.order}-${event.title}`} className="rounded-xl border border-neutral-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-7 place-items-center rounded-full bg-neutral-950 font-mono text-xs text-white">
+                          {event.order}
+                        </span>
+                        <span className="font-medium text-neutral-950">{event.title}</span>
+                      </div>
+                      <Badge tone={event.status === "blocked" || event.status === "failed" ? "red" : event.status === "warning" ? "amber" : "green"}>
+                        {event.status}
+                      </Badge>
                     </div>
-                    <Badge tone={event.status === "blocked" || event.status === "failed" ? "red" : event.status === "warning" ? "amber" : "green"}>
-                      {event.status}
-                    </Badge>
+                    <p className="mt-3 text-sm leading-6 text-neutral-600">{event.detail}</p>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-neutral-600">{event.detail}</p>
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-5 text-sm text-neutral-600">
+                  No trace events yet. Start a run to create a persisted execution trace.
                 </div>
-              ))}
+              )}
             </div>
           </div>
           <div className="border-t border-neutral-200 bg-neutral-50 p-5">
             <h3 className="text-sm font-semibold text-neutral-950">Output</h3>
-            <p className="mt-2 text-sm leading-6 text-neutral-700">{run.output}</p>
+            <div className="mt-2">
+              <MessageResponse>{run.output || "No output yet."}</MessageResponse>
+            </div>
           </div>
           {run.artifacts?.length ? (
             <div className="border-t border-neutral-200 p-5">
-              <h3 className="text-sm font-semibold text-neutral-950">Workspace artifact diff</h3>
+              <h3 className="text-sm font-semibold text-neutral-950">Artifacts</h3>
               <div className="mt-3 flex flex-col gap-3">
                 {run.artifacts.map((artifact) => (
                   <div key={artifact.path} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
@@ -284,13 +371,8 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun?:
                       <span className="font-mono text-sm text-neutral-950">{artifact.path}</span>
                       <Badge tone={artifact.kind === "created" ? "green" : "blue"}>{artifact.kind}</Badge>
                     </div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <pre className="max-h-52 overflow-auto rounded-md border border-neutral-200 bg-white p-3 text-xs leading-5 text-neutral-600">
-                        {artifact.before ?? "(new file)"}
-                      </pre>
-                      <pre className="max-h-52 overflow-auto rounded-md border border-neutral-200 bg-white p-3 text-xs leading-5 text-neutral-900">
-                        {artifact.after}
-                      </pre>
+                    <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-white p-3">
+                      <MessageResponse>{artifact.after}</MessageResponse>
                     </div>
                   </div>
                 ))}

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { findSkill } from "@/lib/repository";
 import { streamLiveSandboxRun } from "@/lib/live-sandbox";
-import type { SandboxProvider, WorkspaceFile } from "@/lib/types";
+import { streamRealShellSandboxRun } from "@/lib/real-shell-sandbox";
+import type { ExecutionMode, SandboxProvider, WorkspaceFile } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,9 @@ export async function POST(request: Request) {
     input?: string;
     deniedPermissions?: string[];
     provider?: SandboxProvider;
+    executionMode?: ExecutionMode;
+    command?: string;
+    networkAllowlist?: string[];
     workspaceFiles?: WorkspaceFile[];
     replayOf?: string;
   };
@@ -24,14 +28,25 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-      for await (const payload of streamLiveSandboxRun(
-        skill,
-        body.input ?? "Run skill.",
-        body.deniedPermissions ?? [],
-        body.provider ?? "openai",
-        body.workspaceFiles ?? [],
-        body.replayOf,
-      )) {
+      const payloads =
+        body.executionMode === "virtual-agent"
+          ? streamLiveSandboxRun(
+              skill,
+              body.input ?? "Run skill.",
+              body.deniedPermissions ?? [],
+              body.provider ?? "openai",
+              body.workspaceFiles ?? [],
+              body.replayOf,
+            )
+          : streamRealShellSandboxRun(skill, {
+              input: body.input ?? "Run skill.",
+              deniedPermissions: body.deniedPermissions ?? [],
+              workspaceFiles: body.workspaceFiles ?? [],
+              command: body.command,
+              networkAllowlist: body.networkAllowlist ?? [],
+              replayOf: body.replayOf,
+            });
+      for await (const payload of payloads) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
       }
       controller.close();

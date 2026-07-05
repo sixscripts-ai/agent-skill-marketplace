@@ -1,16 +1,14 @@
+import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { MessageResponse } from "@/components/ai-elements/message";
 import { CodeBlock } from "@/components/code-block";
 import { Badge, ButtonLink, Panel } from "@/components/ui";
-import { skills } from "@/lib/data";
-import { buildMockRun } from "@/lib/runner";
-import { findRun, saveRun } from "@/lib/repository";
+import { findRun } from "@/lib/repository";
 
 export default async function TracePage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
-  const persisted = await findRun(runId);
-  const skill = skills.find((item) => runId.startsWith(item.slug)) ?? skills[0];
-  const run = persisted ?? buildMockRun(skill.slug, "Replayed trace from persisted run identifier.");
-  if (!persisted) await saveRun(run);
+  const run = await findRun(runId);
+  if (!run) notFound();
 
   return (
     <AppShell>
@@ -61,6 +59,9 @@ export default async function TracePage({ params }: { params: Promise<{ runId: s
                 <Meta label="Status" value={run.status} />
                 <Meta label="Provider" value={run.provider ?? "virtual"} />
                 <Meta label="Model" value={run.model ?? "sandbox-model"} />
+                {run.sandbox?.command ? <Meta label="Command" value={run.sandbox.command} /> : null}
+                {run.sandbox?.exitCode !== undefined ? <Meta label="Exit code" value={String(run.sandbox.exitCode)} /> : null}
+                {run.sandbox?.networkPolicy ? <Meta label="Network" value={run.sandbox.networkPolicy} /> : null}
                 {run.replayOf ? <Meta label="Replay of" value={run.replayOf} /> : null}
                 <Meta label="Latency" value={`${run.latencyMs}ms`} />
                 <Meta label="Estimated cost" value={`$${run.estimatedCost}`} />
@@ -86,9 +87,9 @@ export default async function TracePage({ params }: { params: Promise<{ runId: s
                   {run.artifacts.map((artifact) => (
                     <div key={artifact.path} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                       <div className="font-mono text-xs text-neutral-950">{artifact.path}</div>
-                      <pre className="mt-2 max-h-40 overflow-auto rounded border border-neutral-200 bg-neutral-50 p-3 text-xs leading-5 text-neutral-800">
-                        {artifact.after}
-                      </pre>
+                      <div className="mt-2 max-h-40 overflow-auto rounded border border-neutral-200 bg-neutral-50 p-3">
+                        <MessageResponse>{artifact.after}</MessageResponse>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -96,7 +97,9 @@ export default async function TracePage({ params }: { params: Promise<{ runId: s
             ) : null}
             <Panel className="p-5">
               <h2 className="font-semibold text-neutral-950">Output</h2>
-              <p className="mt-3 text-sm leading-6 text-neutral-600">{run.output}</p>
+              <div className="mt-3">
+                <MessageResponse>{run.output || "No output saved."}</MessageResponse>
+              </div>
             </Panel>
             <Panel className="p-5">
               <h2 className="font-semibold text-neutral-950">JSON preview</h2>

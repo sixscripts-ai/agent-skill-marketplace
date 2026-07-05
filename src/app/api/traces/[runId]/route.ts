@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { skills } from "@/lib/data";
-import { buildMockRun } from "@/lib/runner";
-import { findRun, saveRun } from "@/lib/repository";
+import { findRun } from "@/lib/repository";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
@@ -13,13 +11,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ run
       exportFormat: "agent-skill-trace.v2",
     });
   }
-  const skill = skills.find((item) => runId.startsWith(item.slug)) ?? skills[0];
-  const run = buildMockRun(skill.slug, "Exported trace replay from API route.");
-  await saveRun(run);
-
-  return NextResponse.json({
-    ...run,
-    requestedRunId: runId,
-    exportFormat: "agent-skill-trace.v2",
-  });
+  return NextResponse.json({ error: "Trace not found", requestedRunId: runId }, { status: 404 });
 }

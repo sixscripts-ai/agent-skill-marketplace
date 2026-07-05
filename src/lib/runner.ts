@@ -24,7 +24,7 @@ function categoryOutput(skill: Skill, input: string) {
   return `Research brief generated for "${subject}". The skill ranked primary sources first, marked two claims as uncertain, and exported a concise decision memo artifact. Recommended next step: verify the low-confidence source before publishing.`;
 }
 
-export function buildMockRun(skillSlug: string, input: string, deniedPermissions: string[] = []): SkillRun {
+export function buildFixtureRun(skillSlug: string, input: string, deniedPermissions: string[] = []): SkillRun {
   const skill = getSkill(skillSlug) ?? getSkill("agent-observer");
   if (!skill) {
     throw new Error("No seeded skill is available.");
@@ -55,7 +55,7 @@ export function buildMockRun(skillSlug: string, input: string, deniedPermissions
       order: skill.permissions.length + 2,
       type: "tool",
       title: "read_file",
-      detail: "Inspected the mocked SKILL.md package and run manifest.",
+      detail: "Inspected the SKILL.md package fixture and run manifest.",
       status: "complete",
       metadata: { durationMs: 112 },
     },
@@ -71,7 +71,7 @@ export function buildMockRun(skillSlug: string, input: string, deniedPermissions
       order: skill.permissions.length + 4,
       type: "warning",
       title: "Dangerous action blocked",
-      detail: "The sandbox blocked a destructive shell-like action during simulation.",
+      detail: "The fixture runner blocked a destructive shell-like action.",
       status: "warning",
       metadata: { command: "rm -rf ./workspace" },
     },
@@ -93,7 +93,7 @@ export function buildMockRun(skillSlug: string, input: string, deniedPermissions
     input,
     status: hasDenied ? "failed" : "complete",
     output: hasDenied
-      ? `Run blocked for "${input}". One or more required permissions were denied, so the mock sandbox stopped before artifact export. The trace still records approved steps, denied permissions, and the blocked action.`
+      ? `Run blocked for "${input}". One or more required permissions were denied, so the fixture runner stopped before artifact export. The trace still records approved steps, denied permissions, and the blocked action.`
       : categoryOutput(skill, input),
     latencyMs: 920 + skill.installCount % 700,
     estimatedCost: Number((0.012 + skill.rating / 1000).toFixed(4)),

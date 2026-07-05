@@ -24,6 +24,8 @@ export type TraceEventType =
 
 export type SandboxProvider = "openai" | "gemini" | "groq" | "openrouter" | "local";
 
+export type ExecutionMode = "real-shell" | "virtual-agent";
+
 export type WorkspaceFile = {
   path: string;
   content: string;
@@ -36,6 +38,20 @@ export type SandboxArtifact = {
   before?: string;
   after: string;
   kind: "created" | "modified" | "report";
+};
+
+export type SandboxRunMetadata = {
+  executionMode?: ExecutionMode;
+  sandboxName?: string;
+  sandboxStatus?: string;
+  command?: string;
+  exitCode?: number;
+  networkPolicy?: string;
+  stdoutBytes?: number;
+  stderrBytes?: number;
+  cpuMs?: number;
+  networkIngressBytes?: number;
+  networkEgressBytes?: number;
 };
 
 export type SkillPermission = {
@@ -117,12 +133,13 @@ export type SkillRun = {
   skillName: string;
   version: string;
   input: string;
-  status: "complete" | "failed";
+  status: "pending" | "running" | "complete" | "failed";
   output: string;
   latencyMs: number;
   estimatedCost: number;
   provider?: SandboxProvider;
   model?: string;
+  sandbox?: SandboxRunMetadata;
   replayOf?: string;
   workspaceFiles?: WorkspaceFile[];
   artifacts?: SandboxArtifact[];

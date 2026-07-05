@@ -20,7 +20,7 @@ export default async function InstallPage({ params }: { params: Promise<{ skillI
             <div>
               <h1 className="text-3xl font-semibold text-neutral-950">Install {skill.name}</h1>
               <p className="mt-3 text-sm leading-6 text-neutral-600">
-                Export platform-specific instructions, config snippets, and a mock package manifest.
+                Export platform-specific instructions, config snippets, and a package manifest.
               </p>
             </div>
             <ButtonLink href={`/api/packages/${skill.slug}`} variant="secondary">Download package</ButtonLink>
