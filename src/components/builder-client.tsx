@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { buildMockRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
-import type { ParsedSkillImport, SkillDraftInput } from "@/lib/types";
+import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
 
@@ -51,6 +51,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [isSaving, setIsSaving] = useState(false);
   const [importResult, setImportResult] = useState<ParsedSkillImport | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [packageUploadId, setPackageUploadId] = useState(initialDraft?.packageUploadId ?? "");
+  const [packageFiles, setPackageFiles] = useState<SkillPackageFile[]>([]);
+  const [uploadError, setUploadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
 
   const issues = useMemo(() => {
     const next: string[] = [];
@@ -89,15 +94,37 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     setSummary(parsed.description);
     setSelectedPermissions(parsed.permissions);
     setSelectedTargets(parsed.compatibilityTargets);
+    if (parsed.packageUploadId) setPackageUploadId(parsed.packageUploadId);
+    if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
   }
 
   async function uploadSkillFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    setUploadedFileName(file.name);
-    setSkillMd(text);
-    await importSkill(text);
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    setUploadError("");
+    const form = new FormData();
+    for (const file of files) {
+      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+      form.append("files", file, relativePath);
+    }
+    const response = await fetch("/api/skills/upload", { method: "POST", body: form });
+    const payload = (await response.json()) as ParsedSkillImport & { error?: string };
+    if (!response.ok) {
+      setUploadError(payload.error ?? "Upload failed.");
+      event.target.value = "";
+      return;
+    }
+    setUploadedFileName(files.length === 1 ? files[0].name : `${files.length} files`);
+    setImportResult(payload);
+    setPackageUploadId(payload.packageUploadId ?? "");
+    setPackageFiles(payload.packageFiles ?? []);
+    setSkillMd(payload.primarySkillMd ?? payload.suggestedSkillMd);
+    setName(payload.name);
+    setSlug(payload.slug);
+    setCategory(payload.category);
+    setSummary(payload.description);
+    setSelectedPermissions(payload.permissions);
+    setSelectedTargets(payload.compatibilityTargets);
     event.target.value = "";
   }
 
@@ -113,6 +140,8 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   }
 
   async function publishSkill() {
+    setSaveError("");
+    setSavedUrls(null);
     setIsSaving(true);
     const response = await fetch("/api/skills", {
       method: "POST",
@@ -126,9 +155,16 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         permissions: selectedPermissions,
         compatibilityTargets: selectedTargets,
         visibility,
+        packageUploadId: packageUploadId || undefined,
       }),
     });
-    if (response.ok) setPublishedSlug(slug);
+    const payload = (await response.json()) as { skill?: { slug: string }; urls?: typeof savedUrls; error?: string };
+    if (response.ok && payload.skill && payload.urls) {
+      setPublishedSlug(payload.skill.slug);
+      setSavedUrls(payload.urls);
+    } else {
+      setSaveError(payload.error ?? "Skill save failed.");
+    }
     setIsSaving(false);
   }
 
@@ -185,18 +221,57 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               toggle={(value) => toggle(value, selectedTargets, setSelectedTargets)}
             />
           </div>
-          <label className="mt-6 block rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white">
-            <span className="font-semibold text-neutral-950">Upload SKILL.md</span>
-            <span className="mt-1 block text-xs leading-5 text-neutral-500">
-              Select a markdown skill file to parse, validate, and prepare for publishing.
-            </span>
-            <input accept=".md,.markdown,text/markdown,text/plain" type="file" onChange={uploadSkillFile} className="mt-3 block w-full text-xs" />
-          </label>
+          <div className="mt-6 rounded-md border border-neutral-200 bg-neutral-50 p-4">
+            <div className="font-semibold text-neutral-950">Upload Skill Package</div>
+            <p className="mt-1 text-xs leading-5 text-neutral-500">
+              Upload `.md`, `.skill`, `.zip`, or a folder with docs, scripts, references, assets, and config.
+            </p>
+            <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
+              <span className="font-semibold text-neutral-950">File / zip</span>
+              <span className="mt-1 block text-xs leading-5 text-neutral-500">Accepts `.md`, `.skill`, and `.zip` packages.</span>
+              <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} className="mt-3 block w-full text-xs" />
+            </label>
+            <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
+              <span className="font-semibold text-neutral-950">Folder</span>
+              <span className="mt-1 block text-xs leading-5 text-neutral-500">Preserves nested docs, references, scripts, configs, and assets.</span>
+              <input
+                type="file"
+                multiple
+                onChange={uploadSkillFile}
+                className="mt-3 block w-full text-xs"
+                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+              />
+            </label>
+          </div>
+          {uploadError ? (
+            <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">{uploadError}</div>
+          ) : null}
           {uploadedFileName ? (
             <div className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
               Uploaded: <span className="font-mono text-neutral-950">{uploadedFileName}</span>
+              {packageUploadId ? <div className="mt-1 font-mono text-neutral-500">Package: {packageUploadId}</div> : null}
             </div>
           ) : null}
+          {packageFiles.length ? (
+            <div className="mt-3 rounded-md border border-neutral-200 bg-white p-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Package preview</div>
+              <div className="mt-3 max-h-44 overflow-auto rounded-md border border-neutral-200">
+                {packageFiles.map((file) => (
+                  <div key={file.path} className="grid grid-cols-[1fr_76px_72px] gap-2 border-b border-neutral-100 px-3 py-2 text-xs last:border-b-0">
+                    <span className="truncate font-mono text-neutral-950">{file.path}</span>
+                    <span className="text-neutral-500">{file.role}</span>
+                    <span className="text-right text-neutral-500">{file.size.toLocaleString()} B</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <label className="mt-6 block rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white">
+            <span className="font-semibold text-neutral-950">Paste SKILL.md</span>
+            <span className="mt-1 block text-xs leading-5 text-neutral-500">
+              Use the editor, then parse and suggest edits before publishing.
+            </span>
+          </label>
           <button
             onClick={() => importSkill()}
             className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
@@ -263,7 +338,21 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               {publishedSlug ? (
                 <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
                   Saved. View it at /skills/{publishedSlug} or find it in the marketplace.
+                  {savedUrls ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
+                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
+                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>
+                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.edit}>Edit</a>
+                      {visibility === "public" ? (
+                        <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.marketplace}>Marketplace</a>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
+              ) : null}
+              {saveError ? (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">{saveError}</div>
               ) : null}
             </div>
           </Panel>

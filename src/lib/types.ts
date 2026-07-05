@@ -99,6 +99,7 @@ export type Skill = {
   evalSuites: EvaluationSuite[];
   installTargets: InstallTarget[];
   reviews: { rating: number; comment: string; user: string }[];
+  packages?: SkillPackage[];
 };
 
 export type SkillTraceEvent = {
@@ -147,6 +148,33 @@ export type PackageExport = {
   filename: string;
 };
 
+export type SkillPackageFileRole = "skill_md" | "readme" | "script" | "asset" | "reference" | "config" | "doc" | "example" | "other";
+
+export type SkillPackageFile = {
+  path: string;
+  blobUrl?: string;
+  content?: string;
+  mimeType: string;
+  size: number;
+  role: SkillPackageFileRole;
+};
+
+export type SkillPackage = {
+  id: string;
+  skillSlug?: string;
+  version?: string;
+  ownerId: string;
+  uploadSource: "md" | "skill" | "zip" | "folder" | "paste";
+  originalFilename: string;
+  blobPrefix: string;
+  manifest: Record<string, unknown>;
+  fileCount: number;
+  totalBytes: number;
+  importStatus: "parsed" | "ready" | "failed";
+  files: SkillPackageFile[];
+  createdAt: string;
+};
+
 export type MarketplaceState = {
   users: MarketplaceUser[];
   skills: Skill[];
@@ -163,6 +191,7 @@ export type SkillDraftInput = {
   permissions: PermissionKey[];
   compatibilityTargets: CompatibilityTarget[];
   visibility: "public" | "private" | "unlisted";
+  packageUploadId?: string;
 };
 
 export type ParsedSkillImport = {
@@ -175,4 +204,7 @@ export type ParsedSkillImport = {
   issues: string[];
   suggestions: string[];
   suggestedSkillMd: string;
+  primarySkillMd?: string;
+  packageUploadId?: string;
+  packageFiles?: SkillPackageFile[];
 };

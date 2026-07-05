@@ -3,6 +3,7 @@ import { latestVersion } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { findSkill, savePackageExport } from "@/lib/repository";
 import { createZip } from "@/lib/zip";
+import type { Skill } from "@/lib/types";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ skillId: string }> }) {
   const { skillId } = await params;
@@ -29,7 +30,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ski
       `# ${item.platform} install\n\n\`\`\`bash\n${item.installCommand}\n\`\`\`\n\n\`\`\`json\n${item.configSnippet}\n\`\`\`\n\n${item.notes}\n`,
     ]),
   );
+  const uploadedFiles = await uploadedPackageZipFiles(skill);
+  const generatedPaths = new Set(["SKILL.md", "README.md", "skill.json", "examples/demo-inputs.json", "install/cli.md", ...Object.keys(installDocs)]);
   const zip = createZip([
+    ...uploadedFiles.filter((file) => !generatedPaths.has(file.path)),
     { path: "SKILL.md", content: version.skillMd },
     { path: "README.md", content: version.readme },
     { path: "skill.json", content: JSON.stringify(manifest, null, 2) },
@@ -47,4 +51,28 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ski
       "content-disposition": `attachment; filename="${record.filename}"`,
     },
   });
+}
+
+async function uploadedPackageZipFiles(skill: Skill) {
+  const latestPackage = skill.packages?.[0];
+  if (!latestPackage) return [];
+  const files = [];
+  for (const file of latestPackage.files) {
+    if (file.content !== undefined) {
+      files.push({ path: file.path, content: decodeStoredPackageContent(file.content) });
+      continue;
+    }
+    if (file.blobUrl) {
+      const response = await fetch(file.blobUrl);
+      if (response.ok) {
+        files.push({ path: file.path, content: new Uint8Array(await response.arrayBuffer()) });
+      }
+    }
+  }
+  return files;
+}
+
+function decodeStoredPackageContent(content: string) {
+  const match = content.match(/^data:[^;]+;base64,(.+)$/);
+  return match ? Uint8Array.from(Buffer.from(match[1], "base64")) : content;
 }

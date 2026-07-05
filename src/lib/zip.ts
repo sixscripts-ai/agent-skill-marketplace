@@ -1,6 +1,6 @@
 type ZipFile = {
   path: string;
-  content: string;
+  content: string | Uint8Array;
 };
 
 const encoder = new TextEncoder();
@@ -40,7 +40,7 @@ export function createZip(files: ZipFile[]) {
 
   for (const file of files) {
     const pathBytes = encoder.encode(file.path);
-    const bytes = encoder.encode(file.content);
+    const bytes = typeof file.content === "string" ? encoder.encode(file.content) : file.content;
     const crc = crc32(bytes);
     const offset = output.length;
     records.push({ pathBytes, bytes, crc, offset });
