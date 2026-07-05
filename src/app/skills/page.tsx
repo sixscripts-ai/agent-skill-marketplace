@@ -5,6 +5,8 @@ import { latestVersion } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { listVisibleSkills } from "@/lib/repository";
 
+export const dynamic = "force-dynamic";
+
 export default async function MySkillsPage() {
   const user = await getCurrentUser();
   const skills = await listVisibleSkills(user);
