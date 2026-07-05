@@ -74,10 +74,10 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel className="p-5"><Metric label="published skills" value={skills.length} /></Panel>
-        <Panel className="p-5"><Metric label="install targets" value={compatibilityTargets.length} /></Panel>
-        <Panel className="p-5"><Metric label="average eval" value="91%" /></Panel>
-        <Panel className="p-5"><Metric label="sandbox mode" value="SSE" /></Panel>
+        <Panel className="p-4"><Metric label="published skills" value={skills.length} /></Panel>
+        <Panel className="p-4"><Metric label="install targets" value={compatibilityTargets.length} /></Panel>
+        <Panel className="p-4"><Metric label="average eval" value="91%" /></Panel>
+        <Panel className="p-4"><Metric label="sandbox mode" value="SSE" /></Panel>
       </div>
 
       <Panel className="p-4">
@@ -87,6 +87,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               <button
                 key={item}
                 onClick={() => setPill(item)}
+                aria-pressed={pill === item}
                 data-testid={`marketplace-pill-${item.toLowerCase().replaceAll(" ", "-")}`}
                 className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                   pill === item
@@ -103,8 +104,9 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               data-testid="marketplace-search"
+              aria-label="Search skills"
               placeholder="Search skills, authors, use cases"
-              className="h-11 rounded-md border px-3 text-sm outline-none"
+              className="h-11 rounded-md border px-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
             />
             <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
             <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
@@ -114,8 +116,8 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
         </div>
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
-        <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
+        <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.length ? (
             filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />)
           ) : (
@@ -124,12 +126,25 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               <p className="mt-2 text-sm leading-6 text-neutral-600">
                 Clear search, switch filters back to All, or create a new skill if the marketplace does not have this workflow yet.
               </p>
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setCategory("All");
+                  setTarget("All");
+                  setPermission("All");
+                  setTrust("All");
+                  setPill("All");
+                }}
+                className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100"
+              >
+                Clear all filters
+              </button>
             </Panel>
           )}
         </section>
 
-        <aside className="flex flex-col gap-6">
-          <Panel className="p-5">
+        <aside className="flex flex-col gap-4">
+          <Panel className="p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-medium text-neutral-500">Selected skill</div>
@@ -141,7 +156,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
             <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
               Selected skill preview. Use this panel to decide whether to run, inspect, or install the first matching result.
             </p>
-            <div className="mt-5 grid grid-cols-3 gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+            <div className="mt-4 grid grid-cols-3 gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-3">
               <MiniMetric label="rating" value={selected.rating.toFixed(1)} />
               <MiniMetric label="runs" value={selected.installCount.toLocaleString()} />
               <MiniMetric label="version" value={selected.currentVersion} />
@@ -157,7 +172,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               <ButtonLink href={`/skills/${selected.slug}/run`}>Run Skill</ButtonLink>
               <ButtonLink href={`/install/${selected.slug}`} variant="secondary">Install</ButtonLink>
             </div>
-            <div className="mt-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
               <div className="mb-3 flex gap-2">
                 {["Claude", "Codex", "VS Code", "OpenCode"].map((item) => (
                   <Badge key={item}>{item}</Badge>
@@ -173,7 +188,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-4">
             <h2 className="font-semibold text-neutral-950">Category trend</h2>
             <div className="mt-4 flex flex-col gap-3">
               {topCategories.map((item) => (

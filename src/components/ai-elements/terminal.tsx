@@ -204,7 +204,7 @@ export const TerminalContent = ({
   return (
     <div
       className={cn(
-        "max-h-96 overflow-auto p-4 font-mono text-sm leading-relaxed",
+        "max-h-96 overflow-auto p-4 font-mono text-[13px] leading-snug",
         className
       )}
       ref={containerRef}
@@ -247,7 +247,7 @@ export const Terminal = ({
     <TerminalContext.Provider value={contextValue}>
       <div
         className={cn(
-          "flex flex-col overflow-hidden rounded-lg border bg-zinc-950 text-zinc-100",
+          "flex flex-col overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 text-zinc-100",
           className
         )}
         {...props}

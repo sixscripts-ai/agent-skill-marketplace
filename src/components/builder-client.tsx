@@ -2,11 +2,11 @@
 
 import { useMemo, useState, useEffect, type ChangeEvent } from "react";
 import { useCompletion } from "@ai-sdk/react";
-import { buildFixtureRun } from "@/lib/runner";
+import { executeSkillRunStream } from "@/lib/runner";
 import { Send, Upload, Sparkles } from "lucide-react";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { parseSkillMarkdown } from "@/lib/skill-import";
-import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
+import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile, SkillRun } from "@/lib/types";
 import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { SafeMessageResponse } from "./safe-message-response";
 import { Badge, Panel } from "./ui";
@@ -66,6 +66,8 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [uploadError, setUploadError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
+  const [testRun, setTestRun] = useState<SkillRun | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
 
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const { completion, complete, isLoading: isGenerating } = useCompletion({
@@ -100,7 +102,46 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     return next;
   }, [name, selectedPermissions.length, selectedTargets.length, skillMd, slug, summary]);
 
-  const testRun = buildFixtureRun("agent-observer", testInput);
+  async function runTest() {
+    const prompt = testInput.trim();
+    if (!prompt || isTesting) return;
+    setIsTesting(true);
+    setTestRun(null);
+
+    await executeSkillRunStream({
+      skillSlug: "agent-observer",
+      input: prompt,
+      deniedPermissions: [],
+      onRun: (payloadRun) => setTestRun(payloadRun),
+      onEvent: (event) => {
+        setTestRun((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            events: [...current.events.filter((e) => e.order !== event.order), event].sort(
+              (a, b) => a.order - b.order,
+            ),
+          };
+        });
+      },
+      onOutput: (output) => {
+        setTestRun((current) => current ? { ...current, output } : null);
+      },
+      onComplete: (payloadRun) => setTestRun(payloadRun),
+      onError: (message) => {
+        setTestRun((current) => {
+          if (!current) return null;
+          return {
+            ...current,
+            status: "failed",
+            output: message,
+          };
+        });
+      },
+    });
+
+    setIsTesting(false);
+  }
 
   function toggle(value: string, selected: string[], setter: (value: string[]) => void) {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
@@ -265,8 +306,8 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         ]}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-        <Panel className="p-5">
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+        <Panel className="p-4">
           <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
             {["Upload", "Format", "Validate", "Publish"].map((step) => (
               <div key={step} className="rounded bg-white px-2 py-2">{step}</div>
@@ -313,7 +354,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 value={visibility}
                 onChange={(event) => setVisibility(event.target.value as "public" | "private" | "unlisted")}
                 data-testid="builder-visibility"
-                className="mt-2 h-10 w-full rounded-md border px-3 text-sm"
+                className="mt-2 h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-[13px] outline-none transition-all focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
               >
                 <option value="public">public</option>
                 <option value="private">private</option>
@@ -397,13 +438,13 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </button>
         </Panel>
 
-        <Panel className="min-w-0 p-5">
+        <Panel className="min-w-0 p-4">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-base font-semibold text-neutral-950">SKILL.md editor</h2>
             <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
           </div>
           
-          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
               <Sparkles className="size-4" />
               AI Skill Copilot
@@ -431,7 +472,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           </div>
 
-          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none shadow-sm focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
+          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
             <Editor
               value={skillMd}
               onValueChange={(code) => setSkillMd(code)}
@@ -456,7 +497,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         </Panel>
 
         <div className="flex flex-col gap-6 lg:col-span-2 2xl:col-span-1">
-          <Panel className="p-5">
+          <Panel className="p-4">
             <h2 className="font-semibold text-neutral-950">Validation</h2>
             <div className="mt-4 flex flex-col gap-2">
               {issues.length ? (
@@ -521,9 +562,9 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-4">
             <h2 className="font-semibold text-neutral-950">Live marketplace preview</h2>
-            <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="font-semibold text-neutral-950">{name}</h3>
@@ -535,21 +576,38 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-4">
             <h2 className="font-semibold text-neutral-950">Test skill</h2>
-            <input
-              value={testInput}
-              onChange={(event) => setTestInput(event.target.value)}
-              data-testid="builder-test-input"
-              className="mt-4 h-10 w-full rounded-md border px-3 text-sm outline-none"
-            />
-            <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-              <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">test output</div>
-              <p className="mt-2 text-sm leading-6 text-neutral-600">{testRun.output}</p>
+            <div className="mt-4 flex gap-2">
+              <input
+                value={testInput}
+                onChange={(event) => setTestInput(event.target.value)}
+                data-testid="builder-test-input"
+                className="h-10 flex-1 rounded-md border px-3 text-sm outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isTesting) runTest();
+                }}
+              />
+              <button
+                onClick={runTest}
+                disabled={isTesting || !testInput.trim()}
+                className="flex h-10 items-center justify-center rounded-md bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+              >
+                {isTesting ? "Testing..." : "Run test"}
+              </button>
+            </div>
+            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">test output</div>
+                {testRun?.status && <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge>}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-neutral-600 min-h-6">
+                {testRun?.output || (isTesting ? "Streaming..." : "Enter a test prompt to preview output.")}
+              </p>
             </div>
           </Panel>
 
-          <Panel className="p-5">
+          <Panel className="p-4">
             <h2 className="font-semibold text-neutral-950">README excerpt</h2>
             <div className="mt-3">
               <CodeBlock
@@ -594,8 +652,8 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         data-testid={testId}
-        className={`mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none ${
-          error ? "border-red-300 bg-red-50" : "border-neutral-200"
+        className={`mt-2 h-9 w-full rounded-md border px-3 text-[13px] outline-none transition-all ${
+          error ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-neutral-200 bg-white focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
         }`}
       />
       {helper ? <span className={`mt-1 block text-xs ${error ? "text-red-700" : "text-neutral-500"}`}>{helper}</span> : null}

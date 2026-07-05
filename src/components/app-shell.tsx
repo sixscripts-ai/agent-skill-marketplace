@@ -142,13 +142,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               }}
               pressed={contrastMode}
             />
-            <div className="ml-1 grid size-8 place-items-center rounded-full bg-gradient-to-br from-neutral-700 to-neutral-950 text-xs font-semibold text-white ring-1 ring-neutral-700">
+            <div className="ml-1 grid size-8 place-items-center rounded-full bg-neutral-800 text-xs font-semibold text-white ring-1 ring-neutral-700">
               {initials}
             </div>
           </div>
         </div>
         {notificationsOpen ? (
-          <div className="absolute right-4 top-14 w-80 rounded-xl border border-neutral-800 bg-neutral-950 p-4 shadow-xl">
+          <div className="absolute right-4 top-14 w-80 rounded-md border border-neutral-800 bg-neutral-950 p-4 ">
             <div className="text-sm font-semibold text-white">Notifications</div>
             <p className="mt-2 text-sm leading-5 text-neutral-400">
               No unread alerts. Run traces, upload warnings, and package export issues will appear here.
@@ -156,7 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         ) : null}
         {contrastMode ? (
-          <div className="absolute right-4 top-14 w-80 rounded-xl border border-neutral-800 bg-neutral-950 p-4 shadow-xl">
+          <div className="absolute right-4 top-14 w-80 rounded-md border border-neutral-800 bg-neutral-950 p-4 ">
             <div className="text-sm font-semibold text-white">Display mode</div>
             <p className="mt-2 text-sm leading-5 text-neutral-400">
               Monochrome Pro is active. A full persisted theme switch can be added after design tokens are expanded.
@@ -193,7 +193,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           ))}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <div className="rounded-md border border-neutral-800 bg-neutral-900 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-white">System Status</div>
@@ -202,7 +202,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="size-2 rounded-full bg-green-500" />
             </div>
           </div>
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+          <div className="rounded-md border border-neutral-800 bg-neutral-950 p-4">
             <div className="text-sm font-semibold text-white">{user?.name ?? "Ashton Aschenbrener"}</div>
             <div className="mt-1 text-xs text-neutral-500">{workspaceName}</div>
           </div>

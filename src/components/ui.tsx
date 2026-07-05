@@ -59,13 +59,13 @@ export function Panel({
   variant?: "default" | "floating" | "toolbar" | "subtle";
 }) {
   const variants = {
-    default: "border border-neutral-200 bg-white shadow-sm",
-    floating: "border border-neutral-200 bg-white shadow-sm",
-    toolbar: "border border-neutral-200 bg-white shadow-sm",
+    default: "border border-neutral-200 bg-white ",
+    floating: "border border-neutral-200 bg-white ",
+    toolbar: "border border-neutral-200 bg-white ",
     subtle: "border border-neutral-200 bg-neutral-50",
   };
 
-  return <section className={`rounded-xl ${variants[variant]} ${className}`}>{children}</section>;
+  return <section className={`rounded-md ${variants[variant]} ${className}`}>{children}</section>;
 }
 
 export function Metric({ label, value }: { label: string; value: string | number }) {

@@ -47,6 +47,7 @@ import type {
   WorkspaceFile,
 } from "@/lib/types";
 import { Badge, ButtonLink, Panel } from "./ui";
+import { executeSkillRunStream } from "@/lib/runner";
 
 const RUNTIME_SHELL_PERMISSION: SkillPermission = {
   key: "shell",
@@ -174,64 +175,48 @@ export function RunnerClient({
     if (!prompt || isRunning) return;
     setInput(prompt);
     setIsRunning(true);
-    const response = await fetch("/api/runs/stream", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        skillSlug: skill.slug,
-        input: prompt,
-        deniedPermissions: denied,
-        provider,
-        executionMode,
-        command,
-        networkAllowlist: networkAllowlist
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        workspaceFiles,
-        replayOf: initialRun.status === "pending" ? undefined : initialRun.id,
-      }),
+    
+    await executeSkillRunStream({
+      skillSlug: skill.slug,
+      input: prompt,
+      deniedPermissions: denied,
+      provider,
+      executionMode,
+      command,
+      networkAllowlist: networkAllowlist
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      workspaceFiles,
+      replayOf: initialRun.status === "pending" ? undefined : initialRun.id,
+      onRun: (payloadRun) => {
+        setRun(payloadRun);
+        setWorkspaceFiles(payloadRun.workspaceFiles ?? workspaceFiles);
+      },
+      onEvent: (event) => {
+        setRun((current) => ({
+          ...current,
+          events: [...current.events.filter((e) => e.order !== event.order), event].sort(
+            (a, b) => a.order - b.order,
+          ),
+        }));
+      },
+      onOutput: (output) => {
+        setRun((current) => ({ ...current, output }));
+      },
+      onComplete: (payloadRun) => {
+        setRun(payloadRun);
+        setWorkspaceFiles(payloadRun.workspaceFiles ?? workspaceFiles);
+      },
+      onError: (message) => {
+        setRun((current) => ({
+          ...current,
+          status: "failed",
+          output: message,
+        }));
+      },
     });
 
-    if (!response.ok || !response.body) {
-      const message = await response.text().catch(() => "Run stream failed to start. No run was created.");
-      setRun((current) => ({
-        ...current,
-        status: "failed",
-        output: message || "Run stream failed to start. No run was created.",
-      }));
-      setIsRunning(false);
-      return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split("\n\n");
-      buffer = frames.pop() ?? "";
-      for (const frame of frames) {
-        const line = frame.split("\n").find((item) => item.startsWith("data: "));
-        if (!line) continue;
-        const payload = JSON.parse(line.slice(6)) as RunStreamPayload;
-        if (payload.kind === "run" || payload.kind === "complete") {
-          setRun(payload.run);
-          setWorkspaceFiles(payload.run.workspaceFiles ?? workspaceFiles);
-        } else if (payload.kind === "event") {
-          setRun((current) => ({
-            ...current,
-            events: [...current.events.filter((event) => event.order !== payload.event.order), payload.event].sort(
-              (a, b) => a.order - b.order,
-            ),
-          }));
-        } else if (payload.kind === "output") {
-          setRun((current) => ({ ...current, output: payload.output }));
-        }
-      }
-    }
     setIsRunning(false);
   }
 

@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
-      <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-md border border-neutral-200 bg-white p-8 ">
         <h1 className="mb-2 text-2xl font-bold text-neutral-900">Admin Login</h1>
         <p className="mb-6 text-sm text-neutral-500">Sign in to manage the marketplace.</p>
 

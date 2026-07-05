@@ -28,7 +28,7 @@ export function DependencyGraph({ skill }: { skill: Skill }) {
           {groups.map((group) => {
             const count = graph.nodes.filter((node) => node.type === group).length;
             return (
-              <div key={group} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+              <div key={group} className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
                 <div className="text-lg font-semibold text-neutral-950">{count}</div>
                 <div className="mt-1 text-xs uppercase tracking-[0.16em] text-neutral-500">{group}</div>
               </div>
@@ -44,7 +44,7 @@ export function DependencyGraph({ skill }: { skill: Skill }) {
                 <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">{group}</h2>
                 <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {nodes.map((node) => (
-                    <div key={node.id} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <div key={node.id} className="rounded-md border border-neutral-200 bg-neutral-50 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-medium text-neutral-950">{node.label}</span>
                         <Badge tone={node.risk === "high" ? "red" : node.risk === "medium" ? "amber" : node.type === "skill" ? "green" : "blue"}>
@@ -64,7 +64,7 @@ export function DependencyGraph({ skill }: { skill: Skill }) {
         <h2 className="font-semibold text-neutral-950">Edges</h2>
         <div className="mt-4 flex flex-col gap-3">
           {graph.edges.map((edge) => (
-            <div key={`${edge.from}-${edge.to}-${edge.label}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+            <div key={`${edge.from}-${edge.to}-${edge.label}`} className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
               <div className="font-mono text-xs text-neutral-500">{edge.from}</div>
               <div className="my-2 text-sm font-medium text-neutral-950">{"->"} {edge.label}</div>
               <div className="font-mono text-xs text-neutral-500">{edge.to}</div>

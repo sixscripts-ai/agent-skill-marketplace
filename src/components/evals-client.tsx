@@ -132,7 +132,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
               <h3 className="text-sm font-semibold text-neutral-950">Score trend</h3>
               <div className="mt-4 flex flex-col gap-3">
                 {suite.results.map((result) => (
-                  <div key={`${result.version}-${result.createdAt}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div key={`${result.version}-${result.createdAt}`} className="rounded-md border border-neutral-200 bg-neutral-50 p-4">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-neutral-950">{result.version}</span>
                       <Badge tone={result.regressions ? "amber" : "green"}>
