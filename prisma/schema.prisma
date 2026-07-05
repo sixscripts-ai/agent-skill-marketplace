@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String?  @unique
+  name      String
+  email     String   @unique
+  role      String   @default("author")
+  skills    Skill[]
+  reviews   Review[]
+  createdAt DateTime @default(now())
+}
+
+model Skill {
+  id             String             @id @default(cuid())
+  slug           String             @unique
+  name           String
+  summary        String
+  category       String
+  trustLevel     String
+  installCount   Int                @default(0)
+  rating         Float              @default(0)
+  authorId       String
+  ownerId        String?
+  visibility     String             @default("public")
+  author         User               @relation(fields: [authorId], references: [id])
+  currentVersion String
+  versions       SkillVersion[]
+  permissions    SkillPermission[]
+  runs           SkillRun[]
+  evalSuites     EvaluationSuite[]
+  installTargets InstallTarget[]
+  reviews        Review[]
+  packageExports PackageExport[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model SkillVersion {
+  id                   String            @id @default(cuid())
+  skillId              String
+  skill                Skill             @relation(fields: [skillId], references: [id])
+  version              String
+  skillMd              String
+  readme               String
+  changelog            String
+  compatibilityTargets String[]
+  permissions          SkillPermission[]
+  runs                 SkillRun[]
+  createdAt            DateTime          @default(now())
+
+  @@unique([skillId, version])
+}
+
+model SkillPermission {
+  id             String        @id @default(cuid())
+  skillId        String
+  skill          Skill         @relation(fields: [skillId], references: [id])
+  skillVersionId String?
+  skillVersion   SkillVersion? @relation(fields: [skillVersionId], references: [id])
+  key            String
+  reason         String
+  risk           String
+}
+
+model SkillRun {
+  id             String            @id @default(cuid())
+  skillId        String
+  skill          Skill             @relation(fields: [skillId], references: [id])
+  skillVersionId String
+  skillVersion   SkillVersion      @relation(fields: [skillVersionId], references: [id])
+  input          String
+  status         String
+  output         String
+  latencyMs      Int
+  estimatedCost  Float
+  provider        String            @default("virtual")
+  model           String            @default("sandbox-model")
+  replayOf        String?
+  workspaceFiles  Json?
+  artifacts       Json?
+  events         SkillTraceEvent[]
+  createdAt      DateTime          @default(now())
+}
+
+model SkillTraceEvent {
+  id        String   @id @default(cuid())
+  runId     String
+  run       SkillRun @relation(fields: [runId], references: [id])
+  order     Int
+  type      String
+  title     String
+  detail    String
+  status    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model EvaluationSuite {
+  id        String             @id @default(cuid())
+  skillId   String
+  skill     Skill              @relation(fields: [skillId], references: [id])
+  name      String
+  cases     EvaluationCase[]
+  results   EvaluationResult[]
+  createdAt DateTime           @default(now())
+}
+
+model EvaluationCase {
+  id            String          @id @default(cuid())
+  suiteId       String
+  suite         EvaluationSuite @relation(fields: [suiteId], references: [id])
+  input         String
+  expected      String
+  assertionType String
+  status        String  @default("pass")
+  modelOutput   String?
+}
+
+model EvaluationResult {
+  id          String          @id @default(cuid())
+  suiteId     String
+  suite       EvaluationSuite @relation(fields: [suiteId], references: [id])
+  version     String
+  score       Int
+  passed      Int
+  failed      Int
+  regressions Int
+  modelOutput String?
+  createdAt   DateTime        @default(now())
+}
+
+model InstallTarget {
+  id            String @id @default(cuid())
+  skillId       String
+  skill         Skill  @relation(fields: [skillId], references: [id])
+  platform      String
+  installCommand String
+  configSnippet String
+  packageFormat String
+  notes         String
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  skillId   String
+  skill     Skill    @relation(fields: [skillId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model PackageExport {
+  id        String   @id @default(cuid())
+  skillId   String
+  skill     Skill    @relation(fields: [skillId], references: [id])
+  userId    String
+  version   String
+  target    String
+  filename  String
+  createdAt DateTime @default(now())
+}
