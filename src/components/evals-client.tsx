@@ -118,7 +118,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
           <div className="grid gap-0 lg:grid-cols-[1fr_420px]">
             <div className="p-5">
               <h3 className="text-sm font-semibold text-neutral-950">Cases</h3>
-              <div className="mt-4 overflow-hidden rounded-lg border border-neutral-200">
+              <div className="mt-4 overflow-hidden rounded-md border border-neutral-200">
                 {suite.cases.map((item) => (
                     <div key={`${item.input}-${item.assertionType}`} className="grid gap-3 border-b border-neutral-200 bg-white p-4 last:border-b-0 md:grid-cols-[1fr_1fr_120px]">
                     <div className="text-sm text-neutral-700">{item.input}</div>

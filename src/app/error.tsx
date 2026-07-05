@@ -15,7 +15,7 @@ export default function GlobalError({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl border border-neutral-200 bg-white text-2xl ">
+      <div className="grid size-16 place-items-center rounded-md border border-neutral-200 bg-white text-2xl ">
         ⚠️
       </div>
       <div>
