@@ -129,6 +129,7 @@ export type SkillTraceEvent = {
 
 export type SkillRun = {
   id: string;
+  ownerId?: string;
   skillSlug: string;
   skillName: string;
   version: string;

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:security": "node --test --experimental-strip-types tests/security.test.mjs",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate"
   },

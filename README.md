@@ -30,6 +30,23 @@ pnpm dev
 
 Then open `http://localhost:3000`.
 
+## Vercel Deployment
+
+Production Vercel deployments require durable storage and real auth. The app fails fast instead of falling back to disposable `/tmp` JSON storage or the local demo admin account.
+
+Required production environment variables:
+
+- `DATABASE_URL`: Postgres connection string used by Prisma for skills, runs, packages, traces, and ownership data.
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token used for uploaded skill package files.
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`: Clerk auth keys. Without Clerk, protected API routes return unauthenticated responses on Vercel.
+
+Optional production environment variables:
+
+- `ENABLE_REAL_SANDBOX=true`: Enables real shell execution through Vercel Sandbox. Leave unset to use the virtual provider route.
+- `VERCEL_OIDC_TOKEN`, or `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, and `VERCEL_PROJECT_ID`: Sandbox authentication for real shell execution, depending on runtime context.
+- `NEXT_PUBLIC_APP_URL`: Public deployment URL, used for provider metadata.
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `GROQ_API_KEY`, `GROQ_BASE_URL`, `GROQ_MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`: Live provider configuration. Without provider keys, the virtual runner uses deterministic local behavior.
+
 ## Notes
 
-The MVP intentionally uses seeded in-app data and a deterministic mock sandbox runner. Real isolated execution, real auth, and persisted Postgres writes are intended production follow-ups.
+The local MVP can use seeded in-app data and a deterministic mock sandbox runner. Production deployments should use Clerk, Postgres, Vercel Blob, and optionally Vercel Sandbox for real isolated execution.

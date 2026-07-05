@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
+import { requireCurrentUser } from "@/lib/auth";
+import { securityErrorResponse } from "@/lib/api-errors";
 import { findRun } from "@/lib/repository";
 import { createZip } from "@/lib/zip";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ runId: string }> }) {
+  let user;
+  try {
+    user = await requireCurrentUser();
+  } catch (error) {
+    return securityErrorResponse(error) ?? NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+  }
   const { runId } = await params;
-  const run = await findRun(runId);
+  const run = await findRun(runId, user);
   if (!run) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }

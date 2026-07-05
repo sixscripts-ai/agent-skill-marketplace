@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/auth";
+import { securityErrorResponse } from "@/lib/api-errors";
 import { createSkillPackage } from "@/lib/repository";
 import { processSkillUpload } from "@/lib/skill-package";
 
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const files = form.getAll("files").filter((item): item is File => item instanceof File);
-    const user = await getCurrentUser();
+    const user = await requireCurrentUser();
     const processed = await processSkillUpload(files, user);
     const record = await createSkillPackage({
       owner: user,
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
       package: record,
     });
   } catch (error) {
+    const securityResponse = securityErrorResponse(error);
+    if (securityResponse) return securityResponse;
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Skill upload failed." },
       { status: 400 },

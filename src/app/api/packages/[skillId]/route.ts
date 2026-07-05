@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { latestVersion } from "@/lib/data";
-import { getCurrentUser } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/auth";
+import { securityErrorResponse } from "@/lib/api-errors";
 import { findSkill, savePackageExport } from "@/lib/repository";
 import { createZip } from "@/lib/zip";
 import type { Skill } from "@/lib/types";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ skillId: string }> }) {
+  let user;
+  try {
+    user = await requireCurrentUser();
+  } catch (error) {
+    return securityErrorResponse(error) ?? NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+  }
   const { skillId } = await params;
-  const user = await getCurrentUser();
   const skill = await findSkill(skillId, user);
   if (!skill) {
     return NextResponse.json({ error: "Skill not found" }, { status: 404 });

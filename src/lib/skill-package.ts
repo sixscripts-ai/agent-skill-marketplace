@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { put } from "@vercel/blob";
+import { assertBlobStorageConfigured } from "./deployment-config.js";
 import { parseSkillMarkdown } from "./skill-import";
 import type { MarketplaceUser, ParsedSkillImport, SkillPackage, SkillPackageFile, SkillPackageFileRole } from "./types";
 
@@ -39,6 +40,8 @@ export type ProcessedSkillUpload = ParsedSkillImport & {
 };
 
 export async function processSkillUpload(files: File[], owner: MarketplaceUser): Promise<ProcessedSkillUpload> {
+  assertBlobStorageConfigured();
+
   if (!files.length) throw new Error("Upload at least one .md, .skill, .zip, or folder file.");
   const originalFilename = files.length === 1 ? files[0].name : "uploaded-folder";
   const totalUploadBytes = files.reduce((sum, file) => sum + file.size, 0);

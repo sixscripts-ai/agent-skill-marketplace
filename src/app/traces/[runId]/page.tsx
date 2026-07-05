@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { MessageResponse } from "@/components/ai-elements/message";
+import { SafeMessageResponse } from "@/components/safe-message-response";
 import { CodeBlock } from "@/components/code-block";
 import { Badge, ButtonLink, Panel } from "@/components/ui";
+import { getCurrentUser } from "@/lib/auth";
 import { findRun } from "@/lib/repository";
 
 export default async function TracePage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
-  const run = await findRun(runId);
+  const run = await findRun(runId, await getCurrentUser());
   if (!run) notFound();
 
   return (
@@ -88,7 +89,7 @@ export default async function TracePage({ params }: { params: Promise<{ runId: s
                     <div key={artifact.path} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                       <div className="font-mono text-xs text-neutral-950">{artifact.path}</div>
                       <div className="mt-2 max-h-40 overflow-auto rounded border border-neutral-200 bg-neutral-50 p-3">
-                        <MessageResponse>{artifact.after}</MessageResponse>
+                        <SafeMessageResponse>{artifact.after}</SafeMessageResponse>
                       </div>
                     </div>
                   ))}
@@ -98,7 +99,7 @@ export default async function TracePage({ params }: { params: Promise<{ runId: s
             <Panel className="p-5">
               <h2 className="font-semibold text-neutral-950">Output</h2>
               <div className="mt-3">
-                <MessageResponse>{run.output || "No output saved."}</MessageResponse>
+                <SafeMessageResponse>{run.output || "No output saved."}</SafeMessageResponse>
               </div>
             </Panel>
             <Panel className="p-5">

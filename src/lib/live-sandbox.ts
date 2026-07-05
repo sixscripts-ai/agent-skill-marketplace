@@ -1,7 +1,7 @@
 import { latestVersion } from "./data";
 import { getProvider, getProviderRuntime } from "./providers";
 import { appendRunEvent, saveRun } from "./repository";
-import type { SandboxArtifact, SandboxProvider, Skill, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
+import type { MarketplaceUser, SandboxArtifact, SandboxProvider, Skill, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -14,6 +14,7 @@ function runId(skill: Skill, input: string) {
 
 export function createInitialLiveRun(
   skill: Skill,
+  owner: MarketplaceUser,
   input: string,
   providerId: SandboxProvider = "openai",
   workspaceFiles: WorkspaceFile[] = [],
@@ -24,6 +25,7 @@ export function createInitialLiveRun(
   const runtime = getProviderRuntime(provider.id);
   return {
     id: runId(skill, input),
+    ownerId: owner.id,
     skillSlug: skill.slug,
     skillName: skill.name,
     version: version.version,
@@ -44,6 +46,7 @@ export function createInitialLiveRun(
 
 export async function* streamLiveSandboxRun(
   skill: Skill,
+  owner: MarketplaceUser,
   input: string,
   deniedPermissions: string[] = [],
   providerId: SandboxProvider = "openai",
@@ -52,9 +55,9 @@ export async function* streamLiveSandboxRun(
 ) {
   const provider = getProvider(providerId);
   const runtime = getProviderRuntime(provider.id);
-  const run = createInitialLiveRun(skill, input, provider.id, workspaceFiles, replayOf);
+  const run = createInitialLiveRun(skill, owner, input, provider.id, workspaceFiles, replayOf);
   const collectedEvents: SkillTraceEvent[] = [];
-  await saveRun(run);
+  await saveRun(run, owner);
   yield { kind: "run", run };
 
   let order = 1;
@@ -201,7 +204,7 @@ export async function* streamLiveSandboxRun(
     artifacts,
     events: collectedEvents,
   };
-  await saveRun(complete);
+  await saveRun(complete, owner);
   yield { kind: "complete", run: complete };
 }
 

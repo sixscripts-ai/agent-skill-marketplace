@@ -1,4 +1,5 @@
 import { latestVersion } from "./data";
+import { isSafeCommandPath, quoteShellArg } from "./sandbox-security";
 import type { Skill, SkillRun, WorkspaceFile } from "./types";
 
 const TEXT_ROLES = new Set(["skill_md", "readme", "script", "reference", "config", "doc", "example", "other"]);
@@ -57,16 +58,18 @@ export function detectRunnableCommands(skill: Skill, workspaceFiles: WorkspaceFi
       if (parsed.scripts?.test) commands.push("npm test");
       if (parsed.scripts?.build) commands.push("npm run build");
       if (parsed.scripts?.start) commands.push("npm start");
-      if (parsed.main) commands.push(`node ${parsed.main}`);
+      if (parsed.main && isSafeCommandPath(parsed.main)) commands.push(`node ${quoteShellArg(parsed.main)}`);
     } catch {
       // Invalid package.json should not block manual command entry.
     }
   }
 
   for (const file of files) {
-    if (file.path.endsWith(".sh")) commands.push(`bash ${file.path}`);
-    if (file.path.endsWith(".mjs") || file.path.endsWith(".js")) commands.push(`node ${file.path}`);
-    if (file.path.endsWith(".py")) commands.push(`python3 ${file.path}`);
+    if (!isSafeCommandPath(file.path)) continue;
+    const quotedPath = quoteShellArg(file.path);
+    if (file.path.endsWith(".sh")) commands.push(`bash ${quotedPath}`);
+    if (file.path.endsWith(".mjs") || file.path.endsWith(".js")) commands.push(`node ${quotedPath}`);
+    if (file.path.endsWith(".py")) commands.push(`python3 ${quotedPath}`);
   }
 
   return [...new Set(commands)].slice(0, 8);

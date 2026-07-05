@@ -74,6 +74,7 @@ model SkillPermission {
 
 model SkillRun {
   id             String            @id @default(cuid())
+  ownerId        String?
   skillId        String
   skill          Skill             @relation(fields: [skillId], references: [id])
   skillVersionId String
@@ -90,6 +91,8 @@ model SkillRun {
   artifacts       Json?
   events         SkillTraceEvent[]
   createdAt      DateTime          @default(now())
+
+  @@index([ownerId])
 }
 
 model SkillTraceEvent {

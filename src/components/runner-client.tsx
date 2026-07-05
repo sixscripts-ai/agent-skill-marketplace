@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageResponse } from "@/components/ai-elements/message";
+import { SafeMessageResponse } from "@/components/safe-message-response";
 import { sandboxProviders } from "@/lib/providers";
 import { detectRunnableCommands } from "@/lib/run-state";
 import type { ExecutionMode, PermissionKey, SandboxProvider, Skill, SkillPermission, SkillRun, SkillTraceEvent, WorkspaceFile } from "@/lib/types";
@@ -19,7 +19,7 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
   const [input, setInput] = useState(initialRun.input || "Run this skill against the uploaded package and produce artifacts.");
   const [denied, setDenied] = useState<string[]>([]);
   const [provider, setProvider] = useState<SandboxProvider>(initialRun.provider ?? "openai");
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>("real-shell");
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>(initialRun.sandbox?.executionMode ?? "virtual-agent");
   const [command, setCommand] = useState(initialRun.sandbox?.command ?? initialCommands[0] ?? "");
   const [networkAllowlist, setNetworkAllowlist] = useState("registry.npmjs.org,github.com");
   const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>(initialWorkspace);
@@ -154,8 +154,8 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
                   onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
                   className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                 >
-                  <option value="real-shell">Real shell sandbox</option>
                   <option value="virtual-agent">Virtual provider route</option>
+                  <option value="real-shell">Real shell sandbox</option>
                 </select>
               </label>
 
@@ -358,7 +358,7 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
           <div className="border-t border-neutral-200 bg-neutral-50 p-5">
             <h3 className="text-sm font-semibold text-neutral-950">Output</h3>
             <div className="mt-2">
-              <MessageResponse>{run.output || "No output yet."}</MessageResponse>
+              <SafeMessageResponse>{run.output || "No output yet."}</SafeMessageResponse>
             </div>
           </div>
           {run.artifacts?.length ? (
@@ -372,7 +372,7 @@ export function RunnerClient({ skill, initialRun }: { skill: Skill; initialRun: 
                       <Badge tone={artifact.kind === "created" ? "green" : "blue"}>{artifact.kind}</Badge>
                     </div>
                     <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-white p-3">
-                      <MessageResponse>{artifact.after}</MessageResponse>
+                      <SafeMessageResponse>{artifact.after}</SafeMessageResponse>
                     </div>
                   </div>
                 ))}

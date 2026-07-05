@@ -1,8 +1,10 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
-import { demoUser } from "./auth";
+import { demoUser, isAuthenticatedUser } from "./auth";
+import { AuthorizationError, canReadOwnedRun, canWriteOwnedResource } from "./access-control";
 import { getSkill, latestVersion, skills as seededSkills } from "./data";
+import { assertDurableDatabaseConfigured, isDatabaseConfigured, isVercelDeployment } from "./deployment-config.js";
 import { parseSkillMarkdown } from "./skill-import";
 import { prisma } from "./prisma";
 import type {
@@ -19,11 +21,13 @@ import type {
   SkillTraceEvent,
 } from "./types";
 
-const dataDir = process.env.VERCEL
+assertDurableDatabaseConfigured();
+
+const dataDir = isVercelDeployment()
   ? path.join(os.tmpdir(), "agent-skill-marketplace")
   : path.join(process.cwd(), ".local-data");
 const dataFile = path.join(dataDir, "marketplace.json");
-const hasDatabase = Boolean(process.env.DATABASE_URL);
+const hasDatabase = isDatabaseConfigured();
 let seedPromise: Promise<void> | null = null;
 
 const initialState: MarketplaceState = {
@@ -37,9 +41,13 @@ async function readState(): Promise<MarketplaceState> {
   try {
     const raw = await readFile(dataFile, "utf8");
     const parsed = JSON.parse(raw) as MarketplaceState;
+    const parsedSkills = parsed.skills?.length ? parsed.skills : [];
+    const parsedSkillSlugs = new Set(parsedSkills.map((skill) => skill.slug));
     return {
       users: parsed.users?.length ? parsed.users : [demoUser],
-      skills: parsed.skills?.length ? parsed.skills : seededSkills,
+      skills: parsedSkills.length
+        ? [...parsedSkills, ...seededSkills.filter((skill) => !parsedSkillSlugs.has(skill.slug))]
+        : seededSkills,
       runs: parsed.runs ?? [],
       packageExports: parsed.packageExports ?? [],
     };
@@ -273,7 +281,7 @@ export async function listVisibleSkills(user: MarketplaceUser = demoUser) {
   }
 
   await ensureSeeded();
-  await upsertUser(user);
+  if (isAuthenticatedUser(user)) await upsertUser(user);
   const rows = await prisma.skill.findMany({
     where: user.role === "admin" ? {} : { OR: [{ visibility: { not: "private" } }, { ownerId: user.id }] },
     include: skillInclude,
@@ -304,7 +312,7 @@ export async function findSkill(slug: string, user: MarketplaceUser = demoUser) 
   }
 
   await ensureSeeded();
-  await upsertUser(user);
+  if (isAuthenticatedUser(user)) await upsertUser(user);
   const row = await prisma.skill.findFirst({
     where: {
       AND: [
@@ -327,21 +335,30 @@ export async function listRuns() {
   return rows.map(toRun);
 }
 
-export async function findRun(runId: string) {
-  if (!hasDatabase) return (await readState()).runs.find((run) => run.id === runId);
-  const row = await prisma.skillRun.findUnique({
-    where: { id: runId },
+export async function findRun(runId: string, user: MarketplaceUser = demoUser) {
+  if (!hasDatabase) {
+    const run = (await readState()).runs.find((item) => item.id === runId);
+    return run && canReadOwnedRun(run.ownerId, user) ? run : undefined;
+  }
+  const row = await prisma.skillRun.findFirst({
+    where: {
+      id: runId,
+      ...(user.role === "admin" ? {} : { ownerId: user.id }),
+    },
     include: { skill: true, skillVersion: true, events: { orderBy: { order: "asc" } } },
   });
   return row ? toRun(row as any) : undefined;
 }
 
-export async function findLatestRunForSkill(skillSlug: string) {
+export async function findLatestRunForSkill(skillSlug: string, user: MarketplaceUser = demoUser) {
   if (!hasDatabase) {
-    return (await readState()).runs.find((run) => run.skillSlug === skillSlug);
+    return (await readState()).runs.find((run) => run.skillSlug === skillSlug && canReadOwnedRun(run.ownerId, user));
   }
   const row = await prisma.skillRun.findFirst({
-    where: { skill: { slug: skillSlug } },
+    where: {
+      skill: { slug: skillSlug },
+      ...(user.role === "admin" ? {} : { ownerId: user.id }),
+    },
     include: { skill: true, skillVersion: true, events: { orderBy: { order: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
@@ -351,6 +368,7 @@ export async function findLatestRunForSkill(skillSlug: string) {
 function toRun(row: any): SkillRun {
   return {
     id: row.id,
+    ownerId: row.ownerId ?? undefined,
     skillSlug: row.skill.slug,
     skillName: row.skill.name,
     version: row.skillVersion.version,
@@ -376,52 +394,55 @@ function toRun(row: any): SkillRun {
   };
 }
 
-export async function saveRun(run: SkillRun) {
+export async function saveRun(run: SkillRun, user: MarketplaceUser = demoUser) {
+  const ownedRun = { ...run, ownerId: user.id };
   if (!hasDatabase) {
     const state = await readState();
-    state.runs = [run, ...state.runs.filter((item) => item.id !== run.id)].slice(0, 200);
+    state.runs = [ownedRun, ...state.runs.filter((item) => item.id !== ownedRun.id)].slice(0, 200);
     await writeState(state);
-    return run;
+    return ownedRun;
   }
 
   await ensureSeeded();
   const skill = await prisma.skill.findUnique({
-    where: { slug: run.skillSlug },
-    include: { versions: { where: { version: run.version }, take: 1 } },
+    where: { slug: ownedRun.skillSlug },
+    include: { versions: { where: { version: ownedRun.version }, take: 1 } },
   });
-  if (!skill || !skill.versions[0]) return run;
+  if (!skill || !skill.versions[0]) return ownedRun;
   await prisma.skillRun.upsert({
-    where: { id: run.id },
+    where: { id: ownedRun.id },
     create: {
-      id: run.id,
+      id: ownedRun.id,
+      ownerId: ownedRun.ownerId,
       skillId: skill.id,
       skillVersionId: skill.versions[0].id,
-      input: run.input,
-      status: run.status,
-      output: run.output,
-      latencyMs: run.latencyMs,
-      estimatedCost: run.estimatedCost,
-      provider: run.provider ?? "virtual",
-      model: run.model ?? "sandbox-model",
-      replayOf: run.replayOf,
-      workspaceFiles: run.workspaceFiles ?? [],
-      artifacts: run.artifacts ?? [],
-      events: { create: run.events.map((event) => eventToCreate(event)) },
-      createdAt: new Date(run.createdAt),
+      input: ownedRun.input,
+      status: ownedRun.status,
+      output: ownedRun.output,
+      latencyMs: ownedRun.latencyMs,
+      estimatedCost: ownedRun.estimatedCost,
+      provider: ownedRun.provider ?? "virtual",
+      model: ownedRun.model ?? "sandbox-model",
+      replayOf: ownedRun.replayOf,
+      workspaceFiles: ownedRun.workspaceFiles ?? [],
+      artifacts: ownedRun.artifacts ?? [],
+      events: { create: ownedRun.events.map((event) => eventToCreate(event)) },
+      createdAt: new Date(ownedRun.createdAt),
     },
     update: {
-      status: run.status,
-      output: run.output,
-      latencyMs: run.latencyMs,
-      estimatedCost: run.estimatedCost,
-      provider: run.provider ?? "virtual",
-      model: run.model ?? "sandbox-model",
-      replayOf: run.replayOf,
-      workspaceFiles: run.workspaceFiles ?? [],
-      artifacts: run.artifacts ?? [],
+      ownerId: ownedRun.ownerId,
+      status: ownedRun.status,
+      output: ownedRun.output,
+      latencyMs: ownedRun.latencyMs,
+      estimatedCost: ownedRun.estimatedCost,
+      provider: ownedRun.provider ?? "virtual",
+      model: ownedRun.model ?? "sandbox-model",
+      replayOf: ownedRun.replayOf,
+      workspaceFiles: ownedRun.workspaceFiles ?? [],
+      artifacts: ownedRun.artifacts ?? [],
     },
   });
-  return run;
+  return ownedRun;
 }
 
 export async function appendRunEvent(runId: string, event: SkillTraceEvent, output?: string, status?: SkillRun["status"]) {
@@ -468,6 +489,9 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
   await ensureSeeded();
   const author = await upsertUser(user);
   const existing = await prisma.skill.findUnique({ where: { slug: input.slug } });
+  if (existing && !canWriteOwnedResource(existing.ownerId, user)) {
+    throw new AuthorizationError("Only the owner or an admin can update this skill.");
+  }
   const version = existing ? bumpPatch(existing.currentVersion) : "v0.1.0";
   const installTargets = buildInstallTargets(input.slug, input.name, input.compatibilityTargets);
   const parsed = parseSkillMarkdown(input.skillMd);
@@ -563,6 +587,9 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
 async function createOrUpdateSkillFile(input: SkillDraftInput, user: MarketplaceUser = demoUser) {
   const state = await readState();
   const existing = state.skills.find((skill) => skill.slug === input.slug);
+  if (existing && !canWriteOwnedResource(existing.ownerId, user)) {
+    throw new AuthorizationError("Only the owner or an admin can update this skill.");
+  }
   const version = existing ? bumpPatch(existing.currentVersion) : "v0.1.0";
   const installTargets = buildInstallTargets(input.slug, input.name, input.compatibilityTargets);
   const parsed = parseSkillMarkdown(input.skillMd);
@@ -639,11 +666,12 @@ export async function forkSkill(skillSlug: string, user: MarketplaceUser = demoU
   );
 }
 
-export async function addEvalCase(skillSlug: string, suiteName: string, input: string, expected: string, assertionType: string) {
+export async function addEvalCase(skillSlug: string, suiteName: string, input: string, expected: string, assertionType: string, user: MarketplaceUser = demoUser) {
   if (!hasDatabase) {
     const state = await readState();
     const skill = state.skills.find((item) => item.slug === skillSlug);
     if (!skill) throw new Error("Skill not found");
+    if (!canWriteOwnedResource(skill.ownerId, user)) throw new AuthorizationError("Only the owner or an admin can edit evaluations.");
     let suite = skill.evalSuites.find((item) => item.name === suiteName);
     if (!suite) {
       suite = { name: suiteName, cases: [], results: [] };
@@ -656,6 +684,7 @@ export async function addEvalCase(skillSlug: string, suiteName: string, input: s
 
   const skill = await prisma.skill.findUnique({ where: { slug: skillSlug } });
   if (!skill) throw new Error("Skill not found");
+  if (!canWriteOwnedResource(skill.ownerId, user)) throw new AuthorizationError("Only the owner or an admin can edit evaluations.");
   const suite = await prisma.evaluationSuite.upsert({
     where: { id: `${skill.id}:${suiteName}` },
     create: { id: `${skill.id}:${suiteName}`, skillId: skill.id, name: suiteName },
@@ -685,11 +714,12 @@ export async function addEvalCase(skillSlug: string, suiteName: string, input: s
   };
 }
 
-export async function runEvalSuite(skillSlug: string, suiteName: string) {
+export async function runEvalSuite(skillSlug: string, suiteName: string, user: MarketplaceUser = demoUser) {
   if (!hasDatabase) {
     const state = await readState();
     const skill = state.skills.find((item) => item.slug === skillSlug);
     if (!skill) throw new Error("Skill not found");
+    if (!canWriteOwnedResource(skill.ownerId, user)) throw new AuthorizationError("Only the owner or an admin can run evaluations.");
     const suite = skill.evalSuites.find((item) => item.name === suiteName) ?? skill.evalSuites[0];
     if (!suite) throw new Error("Suite not found");
     const failed = suite.cases.filter((item) => item.status === "fail").length;
@@ -713,6 +743,7 @@ export async function runEvalSuite(skillSlug: string, suiteName: string) {
     include: { evalSuites: { include: { cases: true, results: true } } },
   });
   if (!skill) throw new Error("Skill not found");
+  if (!canWriteOwnedResource(skill.ownerId, user)) throw new AuthorizationError("Only the owner or an admin can run evaluations.");
   const suite = skill.evalSuites.find((item) => item.name === suiteName) ?? skill.evalSuites[0];
   if (!suite) throw new Error("Suite not found");
   const failed = suite.cases.filter((item) => item.status === "fail").length;

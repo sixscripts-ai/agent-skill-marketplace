@@ -1,7 +1,8 @@
 import { Sandbox, type NetworkPolicy } from "@vercel/sandbox";
 import { latestVersion } from "./data";
 import { appendRunEvent, saveRun } from "./repository";
-import type { SandboxArtifact, Skill, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
+import { normalizeNetworkAllowlist, sanitizeSandboxPath } from "./sandbox-security";
+import type { MarketplaceUser, SandboxArtifact, Skill, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
 
 const COMMAND_TIMEOUT_MS = 60_000;
 const MAX_OUTPUT_BYTES = 200_000;
@@ -9,6 +10,7 @@ const MAX_ARTIFACT_BYTES = 200_000;
 const MAX_ARTIFACTS = 20;
 
 type RealShellOptions = {
+  owner: MarketplaceUser;
   input: string;
   command?: string;
   deniedPermissions?: string[];
@@ -34,6 +36,7 @@ function createRealShellRun(skill: Skill, options: RealShellOptions, command: st
   const version = latestVersion(skill);
   return {
     id: runId(skill, options.input),
+    ownerId: options.owner.id,
     skillSlug: skill.slug,
     skillName: skill.name,
     version: version.version,
@@ -50,7 +53,7 @@ function createRealShellRun(skill: Skill, options: RealShellOptions, command: st
     sandbox: {
       executionMode: "real-shell",
       command,
-      networkPolicy: networkPolicyLabel(options.networkAllowlist ?? []),
+      networkPolicy: networkPolicyLabel(normalizeNetworkAllowlist(options.networkAllowlist ?? [])),
     },
     events: [],
     createdAt: new Date().toISOString(),
@@ -70,7 +73,9 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
     return { kind: "event" as const, event };
   };
 
-  await saveRun(run);
+  const allowlist = normalizeNetworkAllowlist(options.networkAllowlist ?? []);
+
+  await saveRun(run, options.owner);
   yield { kind: "run", run };
 
   const denied = new Set(options.deniedPermissions ?? []);
@@ -109,7 +114,7 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
     };
     yield await pushEvent(event, "failed");
     const complete = completeRun(run, output, "failed", collectedEvents, []);
-    await saveRun(complete);
+    await saveRun(complete, options.owner);
     yield { kind: "complete", run: complete };
     return;
   }
@@ -125,7 +130,7 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
     };
     yield await pushEvent(event, "failed");
     const complete = completeRun(run, output, "failed", collectedEvents, []);
-    await saveRun(complete);
+    await saveRun(complete, options.owner);
     yield { kind: "complete", run: complete };
     return;
   }
@@ -142,14 +147,14 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
     };
     yield await pushEvent(event, "failed");
     const complete = completeRun(run, output, "failed", collectedEvents, []);
-    await saveRun(complete);
+    await saveRun(complete, options.owner);
     yield { kind: "complete", run: complete };
     return;
   }
 
   let sandbox: Awaited<ReturnType<typeof Sandbox.create>> | undefined;
   try {
-    const networkPolicy = buildNetworkPolicy(denied.has("network") ? [] : options.networkAllowlist ?? []);
+    const networkPolicy = buildNetworkPolicy(denied.has("network") ? [] : allowlist);
     sandbox = await Sandbox.create({
       runtime: "node24",
       timeout: COMMAND_TIMEOUT_MS + 30_000,
@@ -164,7 +169,7 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
       ...run.sandbox,
       sandboxName: sandbox.name,
       sandboxStatus: sandbox.status,
-      networkPolicy: networkPolicyLabel(options.networkAllowlist ?? [], denied.has("network")),
+      networkPolicy: networkPolicyLabel(allowlist, denied.has("network")),
     };
 
     yield await pushEvent({
@@ -248,7 +253,7 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
 
     const complete = completeRun(run, output || "Command completed without stdout or stderr.", result.exitCode === 0 ? "complete" : "failed", collectedEvents, artifacts);
     complete.sandbox = run.sandbox;
-    await saveRun(complete);
+    await saveRun(complete, options.owner);
     yield { kind: "complete", run: complete };
   } catch (error) {
     output = output || setupErrorMessage(error);
@@ -261,7 +266,7 @@ export async function* streamRealShellSandboxRun(skill: Skill, options: RealShel
     };
     yield await pushEvent(event, "failed");
     const complete = completeRun(run, output, "failed", collectedEvents, []);
-    await saveRun(complete);
+    await saveRun(complete, options.owner);
     yield { kind: "complete", run: complete };
   } finally {
     if (sandbox) {
@@ -308,14 +313,14 @@ async function collectSandboxFiles(skill: Skill, workspaceFiles: WorkspaceFile[]
   const files = new Map<string, { path: string; content: string | Uint8Array; mode?: number }>();
 
   for (const file of packageFiles) {
-    const path = safeSandboxPath(file.path);
+    const path = sanitizeSandboxPath(file.path);
     const content = await packageFileContent(file.content, file.blobUrl);
     if (content === undefined) continue;
     files.set(path, { path, content, mode: executableMode(path) });
   }
 
   for (const file of workspaceFiles) {
-    const path = safeSandboxPath(file.path);
+    const path = sanitizeSandboxPath(file.path);
     files.set(path, { path, content: file.content, mode: executableMode(path) });
   }
 
@@ -344,7 +349,7 @@ async function collectArtifacts(sandbox: Awaited<ReturnType<typeof Sandbox.creat
   const paths = (await result.stdout()).split("\n").map((line) => line.trim()).filter(Boolean).slice(0, MAX_ARTIFACTS);
   const artifacts: SandboxArtifact[] = [];
   for (const path of paths) {
-    const safePath = safeSandboxPath(path);
+    const safePath = sanitizeSandboxPath(path);
     const buffer = await sandbox.readFileToBuffer({ path: safePath, cwd: "/vercel/sandbox" });
     if (!buffer || buffer.byteLength > MAX_ARTIFACT_BYTES) continue;
     artifacts.push({ path: safePath, kind: "created", after: buffer.toString("utf8") });
@@ -352,27 +357,12 @@ async function collectArtifacts(sandbox: Awaited<ReturnType<typeof Sandbox.creat
   return artifacts;
 }
 
-function safeSandboxPath(input: string) {
-  const normalized = input.replaceAll("\\", "/").replace(/^\/+/, "");
-  const segments = normalized.split("/").filter(Boolean);
-  if (
-    !segments.length ||
-    segments.some((segment) => segment === ".." || segment.includes("\0")) ||
-    normalized.startsWith("../") ||
-    normalized.includes("/../")
-  ) {
-    throw new Error(`Unsafe sandbox path rejected: ${input}`);
-  }
-  return segments.join("/");
-}
-
 function executableMode(path: string) {
   return /\.(sh|js|mjs|ts|py)$/.test(path.toLowerCase()) ? 0o755 : undefined;
 }
 
 function buildNetworkPolicy(allowlist: string[]): NetworkPolicy {
-  const clean = allowlist.map((item) => item.trim()).filter(Boolean).slice(0, 20);
-  return clean.length ? { allow: clean } : "deny-all";
+  return allowlist.length ? { allow: allowlist } : "deny-all";
 }
 
 function networkPolicyLabel(allowlist: string[], denied = false) {

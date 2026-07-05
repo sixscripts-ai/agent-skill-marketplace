@@ -14,11 +14,12 @@ export default async function SkillRunPage({
 }) {
   const { slug } = await params;
   const { replay } = await searchParams;
-  const skill = await findSkill(slug, await getCurrentUser());
+  const user = await getCurrentUser();
+  const skill = await findSkill(slug, user);
   if (!skill) notFound();
-  const replayedRun = replay ? await findRun(replay) : undefined;
+  const replayedRun = replay ? await findRun(replay, user) : undefined;
   if (replay && !replayedRun) notFound();
-  const latestRun = replayedRun ? undefined : await findLatestRunForSkill(skill.slug);
+  const latestRun = replayedRun ? undefined : await findLatestRunForSkill(skill.slug, user);
   const initialRun = replayedRun ?? latestRun ?? createPendingRun(skill, workspaceFilesFromSkillPackages(skill));
 
   return (
