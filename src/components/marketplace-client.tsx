@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { categories, compatibilityTargets, permissionKeys } from "@/lib/data";
 import type { CompatibilityTarget, Skill } from "@/lib/types";
 import { ActionGuide } from "./feature-walkthrough";
@@ -9,13 +9,17 @@ import { Badge, ButtonLink, Metric, Panel } from "./ui";
 
 const filterPills = ["All", "Popular", "New", "Top Rated", "Verified"];
 
-export function MarketplaceClient({ skills }: { skills: Skill[] }) {
-  const [query, setQuery] = useState("");
+export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?: string; skills: Skill[] }) {
+  const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState("All");
   const [target, setTarget] = useState("All");
   const [permission, setPermission] = useState("All");
   const [trust, setTrust] = useState("All");
   const [pill, setPill] = useState("All");
+
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   const filtered = useMemo(() => {
     const normalized = query.toLowerCase();
@@ -53,7 +57,7 @@ export function MarketplaceClient({ skills }: { skills: Skill[] }) {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">Marketplace</h1>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Discover, run, and install secure, reusable agent skills.
+            Choose a skill, inspect what it can touch, then run or install it when the trace makes sense.
           </p>
         </div>
         <ButtonLink href="/builder">New Skill</ButtonLink>

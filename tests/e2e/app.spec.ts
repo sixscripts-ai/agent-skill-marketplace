@@ -8,6 +8,8 @@ const routes = [
   "/skills/agent-observer/evals",
   "/builder",
   "/ai-elements",
+  "/docs",
+  "/api-docs",
   "/install/agent-observer",
   "/cli",
 ];
@@ -38,6 +40,15 @@ test("marketplace search, empty state, and navigation hooks work", async ({ page
   await page.getByTestId("marketplace-search").fill("");
   await page.getByTestId("marketplace-category").selectOption("Research");
   await expect(page.getByTestId("skill-card").first()).toBeVisible();
+});
+
+test("global topbar search opens filtered marketplace", async ({ page, isMobile }) => {
+  test.skip(isMobile, "topbar search is hidden behind the compact mobile navigation");
+  await page.goto("/marketplace");
+  await page.getByLabel("Global search").fill("research");
+  await page.getByRole("button", { name: "enter" }).click();
+  await expect(page).toHaveURL(/\/marketplace\?search=research/);
+  await expect(page.getByTestId("marketplace-search")).toHaveValue("research");
 });
 
 test("sandbox explains the flow and exposes primary controls", async ({ page }) => {

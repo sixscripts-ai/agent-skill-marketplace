@@ -4,12 +4,17 @@ import { listMarketplaceSkills } from "@/lib/repository";
 
 export const dynamic = "force-dynamic";
 
-export default async function MarketplacePage() {
+export default async function MarketplacePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ search?: string }>;
+}) {
   const skills = await listMarketplaceSkills();
+  const params = await searchParams;
 
   return (
     <AppShell>
-      <MarketplaceClient skills={skills} />
+      <MarketplaceClient initialQuery={params?.search ?? ""} skills={skills} />
     </AppShell>
   );
 }

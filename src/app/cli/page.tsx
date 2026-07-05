@@ -9,8 +9,8 @@ export default function CliPage() {
         <Panel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-white">Agent Skill CLI</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              <h1 className="text-3xl font-semibold text-neutral-950">Agent Skill CLI</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
                 Download a portable Node CLI that installs skill packages and starts live browser-sandbox runs against this marketplace.
               </p>
             </div>
@@ -18,7 +18,7 @@ export default function CliPage() {
           </div>
         </Panel>
         <Panel className="p-5">
-          <h2 className="font-semibold text-white">Usage</h2>
+          <h2 className="font-semibold text-neutral-950">Usage</h2>
           <div className="mt-4">
             <CodeBlock
               code={`unzip agent-skill-cli.zip\nchmod +x bin/agent-skill.mjs\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install agent-observer\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run agent-observer`}

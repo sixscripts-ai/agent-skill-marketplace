@@ -3,8 +3,10 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { buildFixtureRun } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys } from "@/lib/data";
+import { parseSkillMarkdown } from "@/lib/skill-import";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile } from "@/lib/types";
 import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
+import { SafeMessageResponse } from "./safe-message-response";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
 
@@ -62,8 +64,10 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     const next: string[] = [];
     const lowerSkillMd = skillMd.toLowerCase();
     if (name.trim().length < 4) next.push("Name must be at least 4 characters.");
+    if (name.trim().length > 64) next.push("Name must be 64 characters or less.");
     if (!/^[a-z0-9-]+$/.test(slug)) next.push("Slug must use lowercase letters, numbers, and hyphens.");
     if (summary.trim().length < 40) next.push("Summary should explain the skill in at least 40 characters.");
+    if (summary.trim().length > 1024) next.push("Summary must be 1024 characters or less.");
     if (!skillMd.trim().startsWith("---")) next.push("SKILL.md needs YAML frontmatter with name and description.");
     if (!/^description:\s*.+$/im.test(skillMd)) next.push("SKILL.md frontmatter needs a description field.");
     if (!skillMd.includes("# ")) next.push("SKILL.md needs a top-level heading.");
@@ -82,12 +86,29 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   }
 
   async function importSkill(nextSkillMd = skillMd) {
+    setUploadError("");
     const response = await fetch("/api/skills/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ skillMd: nextSkillMd }),
     });
-    const parsed = (await response.json()) as ParsedSkillImport;
+    const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
+    const localParsed = parseSkillMarkdown(nextSkillMd);
+    const parsed =
+      response.ok && payload
+        ? payload
+        : {
+            ...localParsed,
+            suggestions: [
+              ...localParsed.suggestions,
+              response.status === 401
+                ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now."
+                : "The server parser was unavailable, so local formatting suggestions are shown.",
+            ],
+          };
+    if (!response.ok) {
+      setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
+    }
     setImportResult(parsed);
     setName(parsed.name);
     setSlug(parsed.slug);
@@ -175,7 +196,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Skill Builder</h1>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Create, validate, test, and publish a portable SKILL.md package.
+            Upload or write a SKILL.md package, repair the format, validate permissions, then publish when it is ready.
           </p>
         </div>
         <button
@@ -223,7 +244,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         ]}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[320px_1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
         <Panel className="p-5">
           <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
             {["Upload", "Format", "Validate", "Publish"].map((step) => (
@@ -232,10 +253,39 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </div>
           <h2 className="mt-5 text-base font-semibold text-neutral-950">Metadata</h2>
           <div className="mt-5 flex flex-col gap-4">
-            <Field label="Name" testId="builder-name" value={name} onChange={setName} />
-            <Field label="Slug" testId="builder-slug" value={slug} onChange={setSlug} />
-            <Field label="Category" testId="builder-category" value={category} onChange={setCategory} />
-            <Field label="Summary" testId="builder-summary" value={summary} onChange={setSummary} />
+            <Field
+              error={name.trim().length > 64 || name.trim().length < 4}
+              helper="4-64 characters. This becomes the marketplace card title."
+              label="Name"
+              maxLength={64}
+              testId="builder-name"
+              value={name}
+              onChange={setName}
+            />
+            <Field
+              error={!/^[a-z0-9-]+$/.test(slug)}
+              helper="Lowercase letters, numbers, and hyphens only."
+              label="Slug"
+              testId="builder-slug"
+              value={slug}
+              onChange={setSlug}
+            />
+            <Field
+              helper="Use a short grouping such as Research, Reliability, Security, or Automation."
+              label="Category"
+              testId="builder-category"
+              value={category}
+              onChange={setCategory}
+            />
+            <Field
+              error={summary.trim().length > 1024 || summary.trim().length < 40}
+              helper="40-1024 characters. Explain what the skill does and when to use it."
+              label="Summary"
+              maxLength={1024}
+              testId="builder-summary"
+              value={summary}
+              onChange={setSummary}
+            />
             <label className="block text-sm font-medium text-neutral-700">
               Visibility
               <select
@@ -325,7 +375,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </button>
         </Panel>
 
-        <Panel className="p-5">
+        <Panel className="min-w-0 p-5">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-base font-semibold text-neutral-950">SKILL.md editor</h2>
             <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
@@ -336,9 +386,15 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             data-testid="builder-skill-md"
             className="mt-4 min-h-[620px] w-full rounded-md border p-4 font-mono text-sm leading-6 outline-none"
           />
+          <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
+            <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-white p-4">
+              <SafeMessageResponse>{skillMd}</SafeMessageResponse>
+            </div>
+          </details>
         </Panel>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-span-2 2xl:col-span-1">
           <Panel className="p-5">
             <h2 className="font-semibold text-neutral-950">Validation</h2>
             <div className="mt-4 flex flex-col gap-2">
@@ -405,7 +461,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </Panel>
 
           <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">Marketplace preview</h2>
+            <h2 className="font-semibold text-neutral-950">Live marketplace preview</h2>
             <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -446,16 +502,42 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   );
 }
 
-function Field({ label, testId, value, onChange }: { label: string; testId: string; value: string; onChange: (value: string) => void }) {
+function Field({
+  error = false,
+  helper,
+  label,
+  maxLength,
+  testId,
+  value,
+  onChange,
+}: {
+  error?: boolean;
+  helper?: string;
+  label: string;
+  maxLength?: number;
+  testId: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="block text-sm font-medium text-neutral-700">
-      {label}
+      <span className="flex items-center justify-between gap-3">
+        <span>{label}</span>
+        {maxLength ? (
+          <span className={`font-mono text-xs ${value.length > maxLength ? "text-red-600" : "text-neutral-500"}`}>
+            {value.length}/{maxLength}
+          </span>
+        ) : null}
+      </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         data-testid={testId}
-        className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+        className={`mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none ${
+          error ? "border-red-300 bg-red-50" : "border-neutral-200"
+        }`}
       />
+      {helper ? <span className={`mt-1 block text-xs ${error ? "text-red-700" : "text-neutral-500"}`}>{helper}</span> : null}
     </label>
   );
 }
