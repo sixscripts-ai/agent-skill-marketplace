@@ -1,16 +1,42 @@
 import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createXai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || "",
+});
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
+});
+
+const xai = createXai({
+  apiKey: process.env.XAI_API_KEY || "",
+});
+
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json();
+    const { prompt, model: requestedModel } = await req.json();
 
     if (!prompt) {
       return new Response("Missing prompt", { status: 400 });
+    }
+
+    let aiModel;
+    if (requestedModel === "claude-3-5-sonnet-20240620") {
+      aiModel = anthropic("claude-3-5-sonnet-20240620");
+    } else if (requestedModel?.startsWith("gemini-")) {
+      aiModel = google(requestedModel);
+    } else if (requestedModel?.startsWith("grok-")) {
+      aiModel = xai(requestedModel);
+    } else {
+      aiModel = openai(requestedModel || "gpt-4o-mini");
     }
 
     const systemPrompt = `You are an expert AI Agent Skill creator.
@@ -28,7 +54,7 @@ The SKILL.md MUST adhere to the following structure exactly:
 Output NOTHING but the raw markdown text. Do not wrap in backticks like \`\`\`markdown. Just output the raw content starting with ---.`;
 
     const result = streamText({
-      model: openai("gpt-4o-mini"),
+      model: aiModel,
       system: systemPrompt,
       prompt: prompt,
     });

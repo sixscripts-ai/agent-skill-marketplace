@@ -47,6 +47,7 @@ const sections = [
     title: "Workspace",
     items: [
       { href: "/builder", label: "Builder", icon: "B" },
+      { href: "/builder/eve", label: "Eve Builder", icon: "E" },
       { href: "/ai-elements", label: "AI Elements", icon: "A" },
       { href: "/skills/agent-observer/evals", label: "Evaluations", icon: "E" },
       { href: "/skills/agent-observer/run", label: "Run & Traces", icon: "T" },

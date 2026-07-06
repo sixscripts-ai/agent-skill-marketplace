@@ -71,9 +71,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [isTesting, setIsTesting] = useState(false);
   const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
 
+  const [copilotModel, setCopilotModel] = useState("gpt-4o-mini");
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const { completion, complete, isLoading: isGenerating } = useCompletion({
     api: "/api/skills/generate",
+    body: { model: copilotModel },
     onFinish: (prompt, result) => {
       importSkill(result);
     },
@@ -486,11 +488,24 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </div>
           
           <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
-              <Sparkles className="size-4" />
-              AI Skill Copilot
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                <Sparkles className="size-4" />
+                AI Skill Copilot
+              </div>
+              <select
+                value={copilotModel}
+                onChange={(e) => setCopilotModel(e.target.value)}
+                className="h-8 rounded-md border border-blue-200 bg-white px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                <option value="grok-2-latest">Grok 2</option>
+              </select>
             </div>
-            <p className="mt-1 text-sm text-blue-800">Describe the skill you want to build and the AI will draft the markdown for you.</p>
+            <p className="mt-2 text-sm text-blue-800">Describe the skill you want to build and the AI will draft the markdown for you.</p>
             <div className="mt-3 flex gap-2">
               <input
                 value={copilotPrompt}
