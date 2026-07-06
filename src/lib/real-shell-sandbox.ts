@@ -312,9 +312,15 @@ async function collectSandboxFiles(skill: Skill, workspaceFiles: WorkspaceFile[]
   const packageFiles = skill.packages?.flatMap((pkg) => pkg.files) ?? [];
   const files = new Map<string, { path: string; content: string | Uint8Array; mode?: number }>();
 
-  for (const file of packageFiles) {
-    const path = sanitizeSandboxPath(file.path);
-    const content = await packageFileContent(file.content, file.blobUrl);
+  const resolvedPackageFiles = await Promise.all(
+    packageFiles.map(async (file) => {
+      const path = sanitizeSandboxPath(file.path);
+      const content = await packageFileContent(file.content, file.blobUrl);
+      return { path, content };
+    })
+  );
+
+  for (const { path, content } of resolvedPackageFiles) {
     if (content === undefined) continue;
     files.set(path, { path, content, mode: executableMode(path) });
   }
