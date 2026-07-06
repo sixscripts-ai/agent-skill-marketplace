@@ -113,8 +113,21 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Firecrawl Layout Tokens (Volt Green Edition) */
+  --color-heat-100: #ccff00;
+  --color-heat-200: #b3e600;
+  --color-accent-white: #ffffff;
+  --color-accent-black: #262626;
+  --color-border-faint: #ededed;
+  --color-border-muted: #e8e8e8;
+  --color-border-loud: #e6e6e6;
+  --color-background-base: #f9f9f9;
+  --color-background-lighter: #fbfbfb;
+  --color-black-alpha-4: rgba(0,0,0,0.04);
+  --color-black-alpha-48: rgba(38,38,38,0.48);
+  --color-black-alpha-64: rgba(38,38,38,0.64);
 
   /* Sidebar tokens for shadcn Sidebar component */
   --color-sidebar: var(--sidebar);

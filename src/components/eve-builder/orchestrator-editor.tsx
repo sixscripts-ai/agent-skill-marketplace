@@ -33,17 +33,17 @@ export function OrchestratorEditor({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full relative">
       {/* Ask AI Toolbar */}
       <div className="flex gap-2">
-        <div className="relative flex-1">
+        <div className="relative flex-1 group">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Sparkles className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+            <Sparkles className="h-4 w-4 text-[#8ca300]" aria-hidden="true" />
           </div>
           <input
             type="text"
-            className="block w-full rounded-md border border-white/10 bg-black/50 py-2 pl-10 pr-3 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
-            placeholder="Ask AI to refine these instructions (e.g. 'Add a goal to verify links')"
+            className="block w-full rounded-xl border border-border-faint bg-background-base py-2.5 pl-9 pr-3 text-sm text-accent-black placeholder-black-alpha-48 focus:border-heat-100 focus:bg-accent-white focus:outline-none focus:ring-1 focus:ring-heat-100 transition-all duration-200"
+            placeholder="Ask Copilot to refine these instructions..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -57,28 +57,28 @@ export function OrchestratorEditor({
         <button
           onClick={handleAskCopilot}
           disabled={isLoading || !prompt.trim()}
-          className="inline-flex items-center justify-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-black shadow-sm hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-neutral-900 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center justify-center rounded-xl bg-accent-black px-5 py-2.5 text-sm font-semibold text-accent-white shadow-sm hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-accent-black focus:ring-offset-2 focus:ring-offset-white disabled:opacity-50 transition-colors"
         >
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : null}
-          Ask Copilot
+          Generate
         </button>
       </div>
 
-      {/* Markdown Editor */}
-      <div className="relative">
+      {/* Editor Container */}
+      <div className="relative flex-1 min-h-[300px] border border-border-faint rounded-xl overflow-hidden bg-background-base flex flex-col">
         <textarea
           value={state.instructions}
           onChange={(e) => updateState({ instructions: e.target.value })}
-          className="min-h-[400px] w-full rounded-md border border-white/10 bg-black/50 p-4 font-mono text-sm text-neutral-300 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+          className="flex-1 w-full p-5 font-mono text-[13px] text-accent-black leading-relaxed bg-transparent resize-none focus:outline-none focus:ring-1 focus:ring-heat-100/50"
           spellCheck={false}
         />
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-black/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
-              <p className="text-sm text-neutral-300">AI Copilot is thinking...</p>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#8ca300]" />
+              <p className="text-sm font-medium text-accent-black">Copilot is thinking...</p>
             </div>
           </div>
         )}
