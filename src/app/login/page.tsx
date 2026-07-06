@@ -3,9 +3,11 @@
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 
+type LoginState = { error?: string } | null;
+
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(
-    async (prevState: any, formData: FormData) => {
+    async (prevState: LoginState, formData: FormData) => {
       return await login(formData);
     },
     null
