@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get("session")?.value;
   
   // Define public paths that don't require authentication
-  const publicPaths = ["/login", "/api/health"];
+  const publicPaths = ["/login", "/api/health", "/manifest.webmanifest"];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
   if (!session && !isPublicPath) {

@@ -14,7 +14,7 @@ export function SkillCard({ skill, onSelect, isSelected }: { skill: Skill; onSel
 
   return (
     <Panel
-      className={`group flex min-h-[310px] flex-col p-4 transition duration-150 hover:border-neutral-400 ${isSelected ? "border-neutral-950" : ""}`}
+      className={`group flex min-h-[310px] flex-col p-4 transition duration-150 hover:border-border-strong ${isSelected ? "border-brand" : ""}`}
     >
       <div
         data-testid="skill-card"
@@ -28,7 +28,7 @@ export function SkillCard({ skill, onSelect, isSelected }: { skill: Skill; onSel
       >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-md border border-neutral-200 bg-neutral-100 font-mono text-sm font-semibold text-neutral-900">
+          <div className="grid size-10 shrink-0 place-items-center rounded-md border border-brand-border bg-brand-soft font-mono text-sm font-semibold text-brand">
             {skill.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -47,7 +47,7 @@ export function SkillCard({ skill, onSelect, isSelected }: { skill: Skill; onSel
           <Badge key={permission.key}>{permissionLabels[permission.key] ?? permission.key}</Badge>
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3 text-[13px]">
+      <div className="mt-4 grid grid-cols-3 gap-3 rounded-md border border-border bg-heat-4 px-3 py-3 text-[13px]">
         <div>
           <div className="font-semibold text-neutral-950">{skill.currentVersion}</div>
           <div className="text-xs text-neutral-500">version</div>

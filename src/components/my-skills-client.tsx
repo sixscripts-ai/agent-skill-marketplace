@@ -53,13 +53,13 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
           <input 
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="h-10 rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950" 
+            className="h-10 rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand" 
             placeholder="Search my skills" 
           />
           <select 
             value={status}
             onChange={e => setStatus(e.target.value)}
-            className="h-10 rounded-md border border-neutral-300 px-3 text-sm text-neutral-700 outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+            className="h-10 rounded-md border border-neutral-300 px-3 text-sm text-neutral-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand"
           >
             <option value="all">All statuses</option>
             <option value="published">Published</option>
@@ -68,7 +68,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
           <select 
             value={sort}
             onChange={e => setSort(e.target.value)}
-            className="h-10 rounded-md border border-neutral-300 px-3 text-sm text-neutral-700 outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+            className="h-10 rounded-md border border-neutral-300 px-3 text-sm text-neutral-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand"
           >
             <option value="updated">Sort by updated</option>
             <option value="runs">Sort by runs</option>

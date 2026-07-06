@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link href="/marketplace" />}>
-                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-sidebar-border bg-sidebar-primary text-sidebar-primary-foreground">
+                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-brand-border bg-brand text-brand-foreground shadow-[0_0_12px_var(--brand-glow)]">
                   <Sparkles className="size-4" aria-hidden="true" />
                 </span>
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg">
-                <span className="flex size-2 shrink-0 rounded-full bg-green-500" />
+                <span className="flex size-2 shrink-0 rounded-full bg-brand shadow-[0_0_8px_var(--brand-glow)]" />
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate text-xs font-semibold">System Status</span>
                   <span className="truncate text-[10px] text-sidebar-foreground/50">
@@ -188,7 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   isActivePath(pathname, item.href)
-                    ? "bg-white/10 text-white"
+                    ? "bg-brand text-brand-foreground shadow-[0_0_12px_var(--brand-glow)]"
                     : "text-neutral-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -227,7 +227,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={() => setNotificationsOpen((v) => !v)}
               pressed={notificationsOpen}
             />
-            <div className="ml-1 grid size-8 place-items-center rounded-full bg-neutral-800 text-xs font-semibold text-white ring-1 ring-neutral-700">
+            <div className="ml-1 grid size-8 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border">
               {initials}
             </div>
           </div>
@@ -252,7 +252,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
                 className={`rounded-md border px-3 py-2 text-sm font-medium ${
                   isActivePath(pathname, item.href)
-                    ? "border-white bg-white text-neutral-950"
+                    ? "border-brand-border bg-brand text-brand-foreground"
                     : "border-sidebar-border bg-sidebar-accent text-neutral-300"
                 }`}
               >

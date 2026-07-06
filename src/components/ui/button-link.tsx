@@ -21,6 +21,7 @@ function ButtonLink({
 
   return (
     <Button
+      nativeButton={false}
       variant={mappedVariant}
       render={<Link href={href} data-testid={testId} />}
       className={className}

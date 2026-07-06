@@ -113,7 +113,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                 data-testid={`marketplace-pill-${item.toLowerCase().replaceAll(" ", "-")}`}
                 className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                   pill === item
-                    ? "border-neutral-950 bg-neutral-950 text-white"
+                    ? "border-brand bg-brand text-brand-foreground"
                     : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-100"
                 }`}
               >
@@ -128,7 +128,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               data-testid="marketplace-search"
               aria-label="Search skills"
               placeholder="Search skills, authors, use cases"
-              className="h-11 rounded-md border px-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+              className="h-11 rounded-md border px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
             />
             <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
             <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
@@ -158,7 +158,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                   setTrust("All");
                   setPill("All");
                 }}
-                className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100"
+                className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50"
               >
                 Clear all filters
               </button>
@@ -221,7 +221,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                     <span className="font-mono text-neutral-500">{item.count}</span>
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-neutral-100">
-                    <div className="h-2 rounded-full bg-neutral-950" style={{ width: `${Math.max(12, item.count * 22)}%` }} />
+                    <div className="h-2 rounded-full bg-brand" style={{ width: `${Math.max(12, item.count * 22)}%` }} />
                   </div>
                 </div>
               ))}
@@ -255,7 +255,7 @@ function Filter({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         data-testid={testId}
-        className="h-11 w-full rounded-md border px-3 text-sm text-neutral-700 outline-none"
+        className="h-11 w-full rounded-md border px-3 text-sm text-neutral-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand"
       >
         {values.map((item) => (
           <option key={item} value={item}>{labels?.[item] ?? item}</option>
