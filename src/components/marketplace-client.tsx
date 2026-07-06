@@ -24,7 +24,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
 
   const filtered = useMemo(() => {
     const normalized = query.toLowerCase();
-    return skills.filter((skill) => {
+    const result = skills.filter((skill) => {
       const matchesQuery =
         !normalized ||
         skill.name.toLowerCase().includes(normalized) ||
