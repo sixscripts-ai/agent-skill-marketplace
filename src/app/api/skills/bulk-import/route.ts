@@ -1,6 +1,48 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
+interface SkillVersionInput {
+  version: string;
+  skillMd: string;
+  readme: string;
+  changelog: string;
+  compatibilityTargets: unknown;
+}
+
+interface SkillPermissionInput {
+  key: string;
+  reason: string;
+  risk: string;
+}
+
+interface InstallTargetInput {
+  platform: string;
+  installCommand: string;
+  configSnippet: string;
+  packageFormat: string;
+  notes: string;
+}
+
+interface EvaluationCaseInput {
+  input: string;
+  expected: string;
+  assertionType: string;
+}
+
+interface EvaluationResultInput {
+  version: string;
+  score: number;
+  passed: number;
+  failed: number;
+  regressions: number;
+}
+
+interface EvaluationSuiteInput {
+  name: string;
+  cases: EvaluationCaseInput[];
+  results: EvaluationResultInput[];
+}
+
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
@@ -45,7 +87,7 @@ export async function POST(req: Request) {
           currentVersion: skill.currentVersion,
           author: { connect: { id: user.id } },
           versions: {
-            create: skill.versions.map((v: any) => ({
+            create: skill.versions.map((v: SkillVersionInput) => ({
               version: v.version,
               skillMd: v.skillMd,
               readme: v.readme,
@@ -54,14 +96,14 @@ export async function POST(req: Request) {
             })),
           },
           permissions: {
-            create: skill.permissions?.map((p: any) => ({
+            create: skill.permissions?.map((p: SkillPermissionInput) => ({
               key: p.key,
               reason: p.reason,
               risk: p.risk,
             })) || [],
           },
           installTargets: {
-            create: skill.installTargets?.map((t: any) => ({
+            create: skill.installTargets?.map((t: InstallTargetInput) => ({
               platform: t.platform,
               installCommand: t.installCommand,
               configSnippet: t.configSnippet,
@@ -70,17 +112,17 @@ export async function POST(req: Request) {
             })) || [],
           },
           evalSuites: {
-            create: skill.evalSuites?.map((suite: any) => ({
+            create: skill.evalSuites?.map((suite: EvaluationSuiteInput) => ({
               name: suite.name,
               cases: {
-                create: suite.cases.map((c: any) => ({
+                create: suite.cases.map((c: EvaluationCaseInput) => ({
                   input: c.input,
                   expected: c.expected,
                   assertionType: c.assertionType,
                 })),
               },
               results: {
-                create: suite.results.map((r: any) => ({
+                create: suite.results.map((r: EvaluationResultInput) => ({
                   version: r.version,
                   score: r.score,
                   passed: r.passed,
