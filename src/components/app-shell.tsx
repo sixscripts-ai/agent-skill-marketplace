@@ -264,7 +264,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* ─── Page Content ─── */}
         <main className="workspace min-h-[calc(100vh-3.5rem)]">
-          <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>

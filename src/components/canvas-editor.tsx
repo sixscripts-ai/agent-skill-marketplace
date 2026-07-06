@@ -239,9 +239,10 @@ export function CanvasEditor() {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
-          className="bg-neutral-100"
+          colorMode="dark"
+          className="bg-neutral-950"
         >
-          <Background color="#d4d4d4" gap={16} />
+          <Background color="#333" gap={16} />
           <Controls className="rounded-none border border-neutral-900 shadow-[2px_2px_0_0_rgba(0,0,0,1)]" />
           <MiniMap className="rounded-none border border-neutral-900" nodeColor="#0a0a0a" maskColor="rgba(240, 240, 240, 0.6)" />
           

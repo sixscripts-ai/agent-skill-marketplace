@@ -55,6 +55,7 @@
   --heat-40: rgba(206, 255, 0, 0.400);
   --heat-100: #CEFF00;
   --heat-200: #b8e600;
+  --heat-800: #668000;
   --brand: var(--heat-100);
   --brand-foreground: #000000;
   --brand-soft: var(--heat-12);
@@ -116,6 +117,7 @@
     --heat-40: rgba(206, 255, 0, 0.420);
     --heat-100: #CEFF00;
     --heat-200: #b8e600;
+    --heat-800: #668000;
     --brand: var(--heat-100);
     --brand-foreground: #000000;
     --brand-soft: var(--heat-12);
@@ -155,6 +157,7 @@
   --color-heat-40: var(--heat-40);
   --color-heat-100: var(--heat-100);
   --color-heat-200: var(--heat-200);
+  --color-heat-800: var(--heat-800);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);

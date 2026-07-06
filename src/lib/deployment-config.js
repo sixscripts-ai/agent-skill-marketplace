@@ -3,6 +3,9 @@ export function isVercelDeployment(env = process.env) {
 }
 
 export function requiresDurableStorage(env = process.env) {
+  if (env.NEXT_PHASE === "phase-production-build" || env.NEXT_PHASE?.includes("build")) {
+    return false;
+  }
   return isVercelDeployment(env) && env.NODE_ENV === "production";
 }
 

@@ -35,9 +35,8 @@ export function isAuthenticatedUser(user: MarketplaceUser) {
   return user.id !== anonymousUser.id;
 }
 
-import { cookies } from "next/headers";
-
 export async function getOptionalUser(): Promise<MarketplaceUser | undefined> {
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
   

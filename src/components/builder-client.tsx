@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState, useEffect, type ChangeEvent } from "react";
-import { useCompletion } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { executeSkillRunStream } from "@/lib/runner";
-import { Send, Upload, Sparkles } from "lucide-react";
+import { Send, Upload, Sparkles, Settings } from "lucide-react";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { parseSkillMarkdown } from "@/lib/skill-import";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile, SkillRun } from "@/lib/types";
@@ -11,12 +12,10 @@ import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { SafeMessageResponse } from "./safe-message-response";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
-import { CanvasEditor } from "./canvas-editor";
-import Editor from "react-simple-code-editor";
-import Prism from "prismjs";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-yaml";
-import "prismjs/themes/prism.css";
+import { ApiSettingsModal, type ApiKeys } from "./api-settings-modal";
+import dynamic from 'next/dynamic';
+const CanvasEditor = dynamic(() => import('./canvas-editor').then(mod => mod.CanvasEditor), { ssr: false });
+const MarkdownEditor = dynamic(() => import('./markdown-editor'), { ssr: false });
 
 const starterSkill = `---
 name: Incident Postmortem Assistant
@@ -71,21 +70,50 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [isTesting, setIsTesting] = useState(false);
   const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
 
-  const [copilotModel, setCopilotModel] = useState("gpt-4o-mini");
-  const [copilotPrompt, setCopilotPrompt] = useState("");
-  const { completion, complete, isLoading: isGenerating } = useCompletion({
-    api: "/api/skills/generate",
-    body: { model: copilotModel },
-    onFinish: (prompt, result) => {
-      importSkill(result);
-    },
+  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-flash");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/skills/generate",
+      body: {
+        model: copilotModel,
+      },
+      headers: {
+        "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
+      },
+    }),
   });
 
+  const isGenerating = status === 'streaming' || status === 'submitted';
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isGenerating) return;
+    sendMessage({ text: input });
+    setInput('');
+  };
+
   useEffect(() => {
-    if (isGenerating && completion) {
-      setSkillMd(completion);
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.parts) {
+      for (const part of lastMessage.parts) {
+        if (part.type === "tool-update_skill_markdown") {
+          const args = part.input as { markdown?: string };
+          if (args?.markdown) {
+            if (skillMd !== args.markdown) {
+              setSkillMd(args.markdown);
+              importSkill(args.markdown);
+            }
+          }
+        }
+      }
     }
-  }, [completion, isGenerating]);
+  }, [messages, skillMd]);
 
   const issues = useMemo(() => {
     const next: string[] = [];
@@ -265,14 +293,23 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             Upload or write a SKILL.md package, repair the format, validate permissions, then publish when it is ready.
           </p>
         </div>
-        <button
-          onClick={publishSkill}
-          data-testid="builder-publish"
-          className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={issues.length > 0 || isSaving}
-        >
-          {isSaving ? "Saving..." : "Publish version"}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center gap-2 h-10 rounded-md border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50 shadow-sm"
+          >
+            <Settings className="w-4 h-4" />
+            API Keys
+          </button>
+          <button
+            onClick={publishSkill}
+            data-testid="builder-publish"
+            className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={issues.length > 0 || isSaving}
+          >
+            {isSaving ? "Saving..." : "Publish version"}
+          </button>
+        </div>
       </div>
 
       <ActionGuide
@@ -487,8 +524,8 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           </div>
           
-          <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-center justify-between gap-4">
+          <div className="mt-4 flex flex-col rounded-md border border-blue-200 bg-blue-50 overflow-hidden">
+            <div className="flex items-center justify-between gap-4 p-4 border-b border-blue-100 bg-blue-50/50">
               <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
                 <Sparkles className="size-4" />
                 AI Skill Copilot
@@ -498,49 +535,73 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 onChange={(e) => setCopilotModel(e.target.value)}
                 className="h-8 rounded-md border border-blue-200 bg-white px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               >
-                <option value="gpt-4o-mini">GPT-4o Mini</option>
-                <option value="gpt-4o">GPT-4o</option>
-                <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                <option value="xai/grok-2-latest">Grok 2</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
                 <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                 <option value="grok-2-latest">Grok 2</option>
               </select>
             </div>
-            <p className="mt-2 text-sm text-blue-800">Describe the skill you want to build and the AI will draft the markdown for you.</p>
-            <div className="mt-3 flex gap-2">
+            
+            <div className="flex-1 max-h-[400px] min-h-[150px] overflow-y-auto p-4 flex flex-col gap-3">
+              {messages.length === 0 ? (
+                <p className="text-sm text-blue-800 opacity-70">Describe the skill you want to build or how you want to modify it, and the AI will chat with you and update the code automatically.</p>
+              ) : (
+                messages.map(m => (
+                  <div key={m.id} className={`flex flex-col max-w-[90%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}>
+                    <div className={`px-3 py-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-blue-200 text-blue-950 rounded-bl-sm'}`}>
+                      {m.parts.map((part, i) => {
+                        if (part.type === 'text') {
+                          return <div key={i}>{part.text}</div>;
+                        }
+                        if (part.type === 'tool-update_skill_markdown') {
+                          return (
+                            <div key={part.toolCallId} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
+                              <Settings className="size-3 animate-spin-slow" />
+                              Updating skill editor...
+                            </div>
+                          );
+                        }
+                        if (part.type.startsWith('tool-')) {
+                          return (
+                            <div key={i} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
+                              <Settings className="size-3 animate-spin-slow" />
+                              Running tool...
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-blue-100 flex gap-2 items-center">
               <input
-                value={copilotPrompt}
-                onChange={(e) => setCopilotPrompt(e.target.value)}
-                placeholder="e.g. A skill that helps debug Postgres connection limits..."
-                className="h-10 flex-1 rounded-md border border-blue-200 bg-white px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && copilotPrompt && !isGenerating) {
-                    complete(copilotPrompt);
-                  }
-                }}
+                value={input}
+                onChange={handleInputChange}
+                placeholder="e.g. Add a workflow step for checking API keys..."
+                className="h-10 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+                disabled={isGenerating}
               />
               <button
-                onClick={() => complete(copilotPrompt)}
-                disabled={!copilotPrompt || isGenerating}
-                className="flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                type="submit"
+                disabled={!input || isGenerating}
+                className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
-                {isGenerating ? "Drafting..." : "Generate Draft"}
+                <Send className="size-4" />
               </button>
-            </div>
+            </form>
           </div>
 
           <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
             {viewMode === "markdown" ? (
-              <Editor
+              <MarkdownEditor
                 value={skillMd}
                 onValueChange={(code) => setSkillMd(code)}
-                highlight={(code) => Prism.highlight(code, Prism.languages.markdown, "markdown")}
-                padding={16}
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                  fontSize: 14,
-                  lineHeight: "1.5",
-                  minHeight: "620px",
-                }}
                 textareaId="builder-skill-md"
                 textareaClassName="focus:outline-none"
               />

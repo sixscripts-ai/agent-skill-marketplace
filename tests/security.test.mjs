@@ -4,11 +4,12 @@ import test from "node:test";
 import { canReadOwnedRun, canWriteOwnedResource } from "../src/lib/access-control.ts";
 import { fallbackUserForAuthState } from "../src/lib/auth.ts";
 import {
-  allowLocalDemoAuth,
+  allowLocalSeedAuth,
   assertBlobStorageConfigured,
   assertDurableDatabaseConfigured,
   requiresDurableStorage,
 } from "../src/lib/deployment-config.js";
+import { processSkillUpload } from "../src/lib/skill-package.ts";
 import {
   isSafeCommandPath,
   normalizeNetworkAllowlist,
@@ -30,7 +31,7 @@ test("Vercel deployments do not fall back to demo admin auth", () => {
   const env = { VERCEL: "1", NODE_ENV: "production" };
   const fallback = fallbackUserForAuthState(false, env);
   assert.equal(fallback.id, "anonymous-user");
-  assert.equal(allowLocalDemoAuth(env), false);
+  assert.equal(allowLocalSeedAuth(env), false);
 });
 
 test("Vercel production requires durable database and blob configuration", () => {
@@ -47,6 +48,48 @@ test("Vercel production requires durable database and blob configuration", () =>
   assert.throws(() => assertBlobStorageConfigured(missing), /BLOB_READ_WRITE_TOKEN is required/);
   assert.doesNotThrow(() => assertDurableDatabaseConfigured(configured));
   assert.doesNotThrow(() => assertBlobStorageConfigured(configured));
+});
+
+test("local development does not require durable providers", () => {
+  const devEnv = { NODE_ENV: "development", VERCEL: "1" };
+  const localEnv = { NODE_ENV: "production" }; // Not Vercel
+  
+  assert.equal(requiresDurableStorage(devEnv), false);
+  assert.equal(requiresDurableStorage(localEnv), false);
+  
+  assert.doesNotThrow(() => assertDurableDatabaseConfigured(devEnv));
+  assert.doesNotThrow(() => assertBlobStorageConfigured(devEnv));
+});
+
+test("repeated package uploads do not collide in Blob storage paths", async () => {
+  const envSnapshot = { ...process.env };
+  // Bypass blob check since we are not testing actual uploading
+  process.env.NODE_ENV = "test";
+  delete process.env.VERCEL;
+
+  try {
+    const owner = { id: "user-test", name: "Test", email: "test@example.com", role: "author" };
+    const contentString = "---\nname: my-skill\ndescription: desc\n---\nbody";
+    const file = {
+      name: "SKILL.md",
+      size: contentString.length,
+      type: "text/markdown",
+      arrayBuffer: async () => new TextEncoder().encode(contentString).buffer
+    };
+    
+    // Cast file as any to satisfy typescript type checking in the test if needed,
+    // but this is an mjs file so types don't strictly block execution.
+    const result1 = await processSkillUpload([file], owner);
+    await new Promise(r => setTimeout(r, 2));
+    const result2 = await processSkillUpload([file], owner);
+    
+    assert.equal(result1.slug, "my-skill");
+    assert.equal(result2.slug, "my-skill");
+    assert.notEqual(result1.blobPrefix, result2.blobPrefix);
+    assert.match(result1.blobPrefix, /skills\/user-test\/my-skill\/\d+/);
+  } finally {
+    process.env = envSnapshot;
+  }
 });
 
 test("run ownership blocks cross-user reads and ownerless legacy reads", () => {

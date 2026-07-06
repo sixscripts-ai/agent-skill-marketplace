@@ -21,7 +21,7 @@ export function PreviewExportPanel({ state }: { state: AgentState }) {
             <FileCode className="h-4 w-4 text-yellow-400" />
             <span>agent.ts</span>
             {state.selectedTools.includes('firecrawl_mcp') && (
-              <span className="ml-2 text-[10px] text-[#ccff00]">(MCP configured)</span>
+              <span className="ml-2 text-[10px] text-neutral-950">(MCP configured)</span>
             )}
           </div>
           
@@ -79,7 +79,7 @@ export function PreviewExportPanel({ state }: { state: AgentState }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => generateEveZip(state)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ccff00] px-5 py-3.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(204,255,0,0.15)] hover:bg-[#b3e600] focus:outline-none focus:ring-2 focus:ring-[#ccff00] focus:ring-offset-2 focus:ring-offset-[#0A0A0A] transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 text-white px-5 py-3.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(204,255,0,0.15)] hover:bg-heat-200 focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:ring-offset-2 focus:ring-offset-[#0A0A0A] transition-colors"
         >
           <Download className="h-4 w-4" />
           Download Agent (.zip)

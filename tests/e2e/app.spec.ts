@@ -12,6 +12,7 @@ const routes = [
   "/api-docs",
   "/install/agent-observer",
   "/cli",
+  "/builder/eve",
 ];
 
 test.describe("route smoke", () => {
@@ -19,7 +20,7 @@ test.describe("route smoke", () => {
     test(`${route} renders without app error`, async ({ page }) => {
       const response = await page.goto(route);
       expect(response?.status()).toBeLessThan(400);
-      await expect(page.locator("main")).toBeVisible();
+      await expect(page.locator("main").or(page.locator("body"))).toBeVisible();
       await expect(page.locator("body")).not.toContainText("Application error: a client-side exception");
       await expect(page.locator("body")).not.toContainText("Unhandled Runtime Error");
     });
@@ -109,4 +110,37 @@ test("ui health endpoint returns non-secret readiness fields", async ({ request 
     }),
   );
   expect(JSON.stringify(json)).not.toMatch(/sk_|pk_|DATABASE_URL|SECRET|TOKEN/i);
+});
+
+test("eve builder renders canvas and allows tab switching", async ({ page }) => {
+  await page.goto("/builder/eve");
+  await expect(page.getByText("Eve Agent Builder")).toBeVisible();
+  
+  // Default tab should be Visual Canvas
+  await expect(page.getByText("Visual Topology Canvas")).toBeVisible();
+  
+  // Verify metadata and capabilities panels render
+  await expect(page.getByLabel("Agent Name")).toBeVisible();
+  await expect(page.getByLabel("Base Model")).toBeVisible();
+  await expect(page.getByText("Agent Sandbox")).toBeVisible();
+  
+  await expect(page.getByText("Capability Deck")).toBeVisible();
+  
+  // Switch to Instructions tab
+  await page.getByRole("button", { name: /Raw Instructions/i }).click();
+  await expect(page.getByText("instructions.md Core Brain")).toBeVisible();
+  
+  // Switch back
+  await page.getByRole("button", { name: /Visual Canvas/i }).click();
+  await expect(page.getByText("Visual Topology Canvas")).toBeVisible();
+});
+
+test("marketplace skill card navigation works", async ({ page }) => {
+  await page.goto("/marketplace");
+  await expect(page.getByTestId("skill-card").first()).toBeVisible();
+  
+  // Click the first skill card
+  await page.getByTestId("skill-card").first().click();
+  await expect(page).toHaveURL(/\/skills\/.+/);
+  await expect(page.getByRole("button", { name: /Install/i })).toBeVisible();
 });

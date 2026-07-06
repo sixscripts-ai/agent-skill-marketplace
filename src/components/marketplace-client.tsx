@@ -139,15 +139,18 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
         </div>
       </Panel>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-        <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.length ? (
             filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} onSelect={setSelectedSlug} isSelected={skill.slug === selectedSlug} />)
           ) : (
-            <Panel className="p-6 md:col-span-2 2xl:col-span-3">
-              <h2 className="font-semibold text-neutral-950">No skills match those filters.</h2>
-              <p className="mt-2 text-sm leading-6 text-neutral-600">
-                Clear search, switch filters back to All, or create a new skill if the marketplace does not have this workflow yet.
+            <Panel className="flex min-h-[400px] flex-col items-center justify-center p-6 text-center sm:col-span-2 lg:col-span-3">
+              <div className="mb-4 grid size-12 place-items-center rounded-full bg-neutral-100">
+                <span className="text-xl">🔍</span>
+              </div>
+              <h2 className="text-lg font-semibold text-neutral-950">No skills found</h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-600">
+                We couldn't find any skills matching your filters. Try clearing your search or adjusting the criteria.
               </p>
               <button
                 onClick={() => {
@@ -158,7 +161,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                   setTrust("All");
                   setPill("All");
                 }}
-                className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50"
+                className="mt-6 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
               >
                 Clear all filters
               </button>
