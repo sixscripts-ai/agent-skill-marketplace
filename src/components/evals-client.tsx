@@ -37,7 +37,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel className="p-6" variant="floating">
+      <Panel className="p-6">
         <h1 className="text-3xl font-semibold text-neutral-950">{skill.name} Evaluations</h1>
         <p className="mt-3 text-sm leading-6 text-neutral-600">
           Create saved test cases, run suites against the current version, and track regression results.
@@ -79,7 +79,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
         ]}
       />
 
-      <Panel className="p-5" variant="floating">
+      <Panel className="p-5">
         <h2 className="font-semibold text-neutral-950">Create a saved test</h2>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           Example: input a denied-permission scenario, then expect the skill to explain the block and preserve trace evidence.
@@ -100,7 +100,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
       </Panel>
 
       {suites.map((suite) => (
-        <Panel key={suite.name} className="overflow-hidden" variant="floating">
+        <Panel key={suite.name} className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
             <div>
               <h2 className="font-semibold text-neutral-950">{suite.name}</h2>

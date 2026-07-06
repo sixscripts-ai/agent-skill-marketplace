@@ -2,11 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BookOpen, Code2, Moon, Search, Sparkles } from "lucide-react";
+import { Bell, BookOpen, Code2, Search, Sparkles } from "lucide-react";
 import { useState, useEffect, type FormEvent } from "react";
 import type { ReactNode } from "react";
 import { getUserAction } from "@/app/actions";
 import type { MarketplaceUser } from "@/lib/types";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 const topNav = [
   { href: "/marketplace", label: "Marketplace" },
@@ -50,7 +67,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [contrastMode, setContrastMode] = useState(false);
   const [user, setUser] = useState<MarketplaceUser | null>(null);
 
   useEffect(() => {
@@ -76,38 +92,114 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar fixed inset-x-0 top-0 z-40 h-16">
-        <div className="flex h-full items-center gap-4 px-4 lg:px-6">
-          <Link href="/marketplace" className="flex min-w-0 items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-md border border-neutral-700 bg-white text-neutral-950">
-              <Sparkles className="size-4" aria-hidden="true" />
-            </span>
-            <span className="hidden min-w-0 sm:block">
-              <span className="block truncate text-sm font-semibold text-white">Agent Skill Marketplace</span>
-              <span className="block truncate text-xs text-neutral-400">secure skills, traced runs</span>
-            </span>
-          </Link>
+    <SidebarProvider>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" render={<Link href="/marketplace" />}>
+                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-sidebar-border bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Sparkles className="size-4" aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-sm font-semibold">Agent Skills</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">
+                    secure skills, traced runs
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+
+        <SidebarContent>
+          {sections.map((section) => (
+            <SidebarGroup key={section.title}>
+              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        render={<Link href={item.href} />}
+                        isActive={isActivePath(pathname, item.href)}
+                        tooltip={item.label}
+                      >
+                        <span className="grid size-5 shrink-0 place-items-center rounded border border-sidebar-border bg-sidebar font-mono text-[10px]">
+                          {item.icon}
+                        </span>
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+
+        <SidebarSeparator />
+
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg">
+                <span className="flex size-2 shrink-0 rounded-full bg-green-500" />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-xs font-semibold">System Status</span>
+                  <span className="truncate text-[10px] text-sidebar-foreground/50">
+                    Sandbox routes operational
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border">
+                  {initials}
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-sm font-semibold">
+                    {user?.name ?? "Ashton Aschenbrener"}
+                  </span>
+                  <span className="truncate text-xs text-sidebar-foreground/50">
+                    {workspaceName}
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset>
+        {/* ─── Top Bar ─── */}
+        <header className="topbar sticky inset-x-0 top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-6">
+          <SidebarTrigger className="-ml-1 text-topbar-muted hover:text-topbar-text" />
+
           <nav className="hidden items-center gap-1 lg:flex">
             {topNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   isActivePath(pathname, item.href)
-                    ? "bg-neutral-900 text-white"
-                    : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
+                    ? "bg-white/10 text-white"
+                    : "text-neutral-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
+
           <form
             onSubmit={submitSearch}
             role="search"
-            className="ml-auto hidden w-full max-w-md items-center rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 md:flex"
+            className="ml-auto hidden w-full max-w-md items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 md:flex"
           >
             <Search className="mr-2 size-4 text-neutral-500" aria-hidden="true" />
             <input
@@ -115,123 +207,68 @@ export function AppShell({ children }: { children: ReactNode }) {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search skills, traces, packages"
-              className="h-6 flex-1 border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-neutral-500"
+              className="h-5 flex-1 border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-neutral-500"
             />
-            <button className="ml-2 rounded border border-neutral-800 px-2 py-1 font-mono text-[10px] text-neutral-400" type="submit">
+            <button
+              className="ml-2 rounded border border-white/10 px-2 py-0.5 font-mono text-[10px] text-neutral-400"
+              type="submit"
+            >
               enter
             </button>
           </form>
+
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <TopButton href="/docs" icon={<BookOpen className="size-4" aria-hidden="true" />} label="Docs" />
             <TopButton href="/api-docs" icon={<Code2 className="size-4" aria-hidden="true" />} label="API" />
             <IconButton
               label="Notifications"
               icon={<Bell className="size-4" aria-hidden="true" />}
-              onClick={() => {
-                setNotificationsOpen((value) => !value);
-                setContrastMode(false);
-              }}
+              onClick={() => setNotificationsOpen((v) => !v)}
               pressed={notificationsOpen}
-            />
-            <IconButton
-              label="Toggle high contrast preview"
-              icon={<Moon className="size-4" aria-hidden="true" />}
-              onClick={() => {
-                setContrastMode((value) => !value);
-                setNotificationsOpen(false);
-              }}
-              pressed={contrastMode}
             />
             <div className="ml-1 grid size-8 place-items-center rounded-full bg-neutral-800 text-xs font-semibold text-white ring-1 ring-neutral-700">
               {initials}
             </div>
           </div>
-        </div>
-        {notificationsOpen ? (
-          <div className="absolute right-4 top-14 w-80 rounded-md border border-neutral-800 bg-neutral-950 p-4 ">
-            <div className="text-sm font-semibold text-white">Notifications</div>
-            <p className="mt-2 text-sm leading-5 text-neutral-400">
-              No unread alerts. Run traces, upload warnings, and package export issues will appear here.
-            </p>
-          </div>
-        ) : null}
-        {contrastMode ? (
-          <div className="absolute right-4 top-14 w-80 rounded-md border border-neutral-800 bg-neutral-950 p-4 ">
-            <div className="text-sm font-semibold text-white">Display mode</div>
-            <p className="mt-2 text-sm leading-5 text-neutral-400">
-              Monochrome Pro is active. A full persisted theme switch can be added after design tokens are expanded.
-            </p>
-          </div>
-        ) : null}
-      </header>
 
-      <aside className="sidebar fixed bottom-0 left-0 top-16 z-30 hidden w-72 overflow-y-auto p-4 lg:block">
-        <div className="flex flex-col gap-6">
-          {sections.map((section) => (
-            <div key={section.title}>
-              <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-                {section.title}
-              </div>
-              <div className="flex flex-col gap-1">
-                {section.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                      isActivePath(pathname, item.href)
-                        ? "bg-neutral-800 text-white"
-                        : "text-neutral-300 hover:bg-neutral-900 hover:text-white"
-                    }`}
-                  >
-                    <span className="grid size-6 place-items-center rounded border border-neutral-700 bg-neutral-950 font-mono text-[11px] text-neutral-300">
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+          {notificationsOpen ? (
+            <div className="absolute right-4 top-12 w-80 rounded-md border border-white/10 bg-neutral-950 p-4">
+              <div className="text-sm font-semibold text-white">Notifications</div>
+              <p className="mt-2 text-sm leading-5 text-neutral-400">
+                No unread alerts. Run traces, upload warnings, and package export issues will appear here.
+              </p>
             </div>
-          ))}
-          <div className="rounded-md border border-neutral-800 bg-neutral-900 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-white">System Status</div>
-                <div className="mt-1 text-xs text-neutral-400">Sandbox routes operational</div>
-              </div>
-              <span className="size-2 rounded-full bg-green-500" />
-            </div>
-          </div>
-          <div className="rounded-md border border-neutral-800 bg-neutral-950 p-4">
-            <div className="text-sm font-semibold text-white">{user?.name ?? "Ashton Aschenbrener"}</div>
-            <div className="mt-1 text-xs text-neutral-500">{workspaceName}</div>
+          ) : null}
+        </header>
+
+        {/* ─── Mobile Nav ─── */}
+        <div className="border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
+          <div className="flex gap-2 overflow-x-auto">
+            {topNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
+                className={`rounded-md border px-3 py-2 text-sm font-medium ${
+                  isActivePath(pathname, item.href)
+                    ? "border-white bg-white text-neutral-950"
+                    : "border-sidebar-border bg-sidebar-accent text-neutral-300"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
-      </aside>
 
-      <div className="border-b border-neutral-800 bg-neutral-950 px-4 py-3 lg:hidden">
-        <div className="mt-16 flex gap-2 overflow-x-auto">
-          {topNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
-              className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                isActivePath(pathname, item.href)
-                  ? "border-white bg-white text-neutral-950"
-                  : "border-neutral-800 bg-neutral-900 text-neutral-300"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <main className="workspace min-h-screen pt-16 lg:pl-72">
-        <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
-      </main>
-    </div>
+        {/* ─── Page Content ─── */}
+        <main className="workspace min-h-[calc(100vh-3.5rem)]">
+          <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {children}
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
@@ -239,7 +276,7 @@ function TopButton({ href, icon, label }: { href: string; icon: ReactNode; label
   return (
     <Link
       href={href}
-      className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-neutral-400 transition hover:bg-neutral-900 hover:text-white sm:inline-flex"
+      className="hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-neutral-400 transition hover:bg-white/5 hover:text-white sm:inline-flex"
     >
       {icon}
       {label}
@@ -263,8 +300,8 @@ function IconButton({
       aria-label={label}
       aria-pressed={pressed}
       onClick={onClick}
-      className={`grid size-8 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-900 hover:text-white ${
-        pressed ? "bg-neutral-900 text-white" : ""
+      className={`grid size-8 place-items-center rounded-md text-neutral-400 transition hover:bg-white/5 hover:text-white ${
+        pressed ? "bg-white/10 text-white" : ""
       }`}
       type="button"
     >

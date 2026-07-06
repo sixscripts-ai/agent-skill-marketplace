@@ -17,10 +17,17 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
   const [trust, setTrust] = useState("All");
   const [pill, setPill] = useState("All");
   const [sort, setSort] = useState("runs");
+  const [selectedSlug, setSelectedSlug] = useState("");
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
+
+  useEffect(() => {
+    if (!selectedSlug && skills.length) {
+      setSelectedSlug(skills[0].slug);
+    }
+  }, [selectedSlug, skills]);
 
   const filtered = useMemo(() => {
     const normalized = query.toLowerCase();
@@ -60,7 +67,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
     });
   }, [category, permission, pill, query, target, trust, sort, skills]);
 
-  const selected = filtered[0] ?? skills[0];
+  const selected = skills.find((s) => s.slug === selectedSlug) ?? skills[0];
   const topCategories = categories.slice(0, 5).map((item) => ({
     name: item,
     count: skills.filter((skill) => skill.category === item).length,
@@ -135,7 +142,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
         <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.length ? (
-            filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />)
+            filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} onSelect={setSelectedSlug} isSelected={skill.slug === selectedSlug} />)
           ) : (
             <Panel className="p-6 md:col-span-2 2xl:col-span-3">
               <h2 className="font-semibold text-neutral-950">No skills match those filters.</h2>

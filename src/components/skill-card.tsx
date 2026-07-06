@@ -9,14 +9,23 @@ function trustTone(trust: Skill["trustLevel"]) {
   return "amber" as const;
 }
 
-export function SkillCard({ skill }: { skill: Skill }) {
+export function SkillCard({ skill, onSelect, isSelected }: { skill: Skill; onSelect?: (slug: string) => void; isSelected?: boolean }) {
   const latestScore = skill.evalSuites[0]?.results[0]?.score ?? 0;
 
   return (
     <Panel
-      className="group flex min-h-[310px] flex-col p-4 transition duration-150 hover:border-neutral-400"
+      className={`group flex min-h-[310px] flex-col p-4 transition duration-150 hover:border-neutral-400 ${isSelected ? "border-neutral-950" : ""}`}
     >
-      <div data-testid="skill-card" data-skill-slug={skill.slug} className="contents">
+      <div
+        data-testid="skill-card"
+        data-skill-slug={skill.slug}
+        data-selected={isSelected ? "true" : undefined}
+        className="contents"
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelect?.(skill.slug)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(skill.slug); } }}
+      >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-md border border-neutral-200 bg-neutral-100 font-mono text-sm font-semibold text-neutral-900">

@@ -44,10 +44,46 @@ const nodeTypes: NodeTypes = {
   actionSubAgent: ActionSubAgentNode,
 };
 
+const nodeTypeLabels: Record<string, { label: string; fields: { key: string; label: string; type: "text" | "textarea" | "select"; options?: { value: string; label: string }[] }[] }> = {
+  mcpMounter: {
+    label: "🔌 MCP Mounter",
+    fields: [
+      { key: "serverId", label: "Server ID", type: "text" },
+      { key: "transport", label: "Transport", type: "select", options: [{ value: "stdio", label: "stdio" }, { value: "http-sse", label: "HTTP SSE" }, { value: "websocket", label: "WebSocket" }] },
+    ],
+  },
+  llmProcessor: {
+    label: "🧠 LLM Processor",
+    fields: [
+      { key: "systemPrompt", label: "System Prompt", type: "textarea" },
+      { key: "model", label: "Model", type: "text" },
+    ],
+  },
+  terminalExecutor: {
+    label: ">_ Terminal Executor",
+    fields: [
+      { key: "command", label: "Command", type: "text" },
+    ],
+  },
+  conditionNode: {
+    label: "⑂ Conditional Edge",
+    fields: [
+      { key: "expression", label: "Expression", type: "text" },
+    ],
+  },
+  actionSubAgent: {
+    label: "⚙️ Action Sub-Agent",
+    fields: [
+      { key: "selectedAgent", label: "Sub-Agent", type: "select", options: [{ value: "playwright-scraper", label: "Playwright Scraper" }, { value: "postgres-exec", label: "Postgres Exec" }] },
+    ],
+  },
+};
+
 export function CanvasEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ ...params, type: "smoothstep" }, eds)),
@@ -84,6 +120,28 @@ export function CanvasEditor() {
     [reactFlowInstance, setNodes],
   );
 
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
+
+  const updateNodeField = useCallback(
+    (nodeId: string, key: string, value: string) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, [key]: value } } : n,
+        ),
+      );
+      setSelectedNode((prev) =>
+        prev && prev.id === nodeId ? { ...prev, data: { ...prev.data, [key]: value } } : prev,
+      );
+    },
+    [setNodes],
+  );
+
   const exportDag = useCallback(() => {
     const dag = {
       nodes: nodes.map(n => ({
@@ -99,9 +157,13 @@ export function CanvasEditor() {
       })),
     };
     
-    // In a real implementation this would save to the DB or download a file
-    console.log("Exported DAG JSON:", JSON.stringify(dag, null, 2));
-    alert("DAG Exported to Console!");
+    const blob = new Blob([JSON.stringify(dag, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dag-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }, [nodes, edges]);
 
   return (
@@ -174,6 +236,7 @@ export function CanvasEditor() {
           onInit={setReactFlowInstance}
           onDrop={onDrop}
           onDragOver={onDragOver}
+          onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
           className="bg-neutral-100"
@@ -192,6 +255,59 @@ export function CanvasEditor() {
           </Panel>
         </ReactFlow>
       </div>
+
+      {/* Node Property Panel */}
+      {selectedNode && selectedNode.type && nodeTypeLabels[selectedNode.type] ? (
+        <>
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={closePanel} />
+          <div className="fixed top-0 right-0 bottom-0 w-[380px] bg-white border-l border-neutral-200 z-50 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] flex flex-col animate-in slide-in-from-right">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+              <h3 className="text-sm font-semibold text-neutral-950">{nodeTypeLabels[selectedNode.type].label}</h3>
+              <button onClick={closePanel} className="grid size-7 place-items-center rounded-md border border-neutral-200 bg-white text-sm text-neutral-500 hover:bg-neutral-100" type="button">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {nodeTypeLabels[selectedNode.type].fields.map((field) => (
+                <label key={field.key} className="block text-sm font-medium text-neutral-700">
+                  {field.label}
+                  {field.type === "textarea" ? (
+                    <textarea
+                      value={String(selectedNode.data[field.key] ?? "")}
+                      onChange={(e) => updateNodeField(selectedNode.id, field.key, e.target.value)}
+                      className="mt-2 w-full h-24 rounded-md border border-neutral-200 p-3 font-mono text-xs outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100 resize-none"
+                    />
+                  ) : field.type === "select" && field.options ? (
+                    <select
+                      value={String(selectedNode.data[field.key] ?? "")}
+                      onChange={(e) => updateNodeField(selectedNode.id, field.key, e.target.value)}
+                      className="mt-2 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
+                    >
+                      <option value="">Select...</option>
+                      {field.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={String(selectedNode.data[field.key] ?? "")}
+                      onChange={(e) => updateNodeField(selectedNode.id, field.key, e.target.value)}
+                      className="mt-2 h-10 w-full rounded-md border border-neutral-200 px-3 font-mono text-xs outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
+                    />
+                  )}
+                </label>
+              ))}
+              <div className="pt-4 border-t border-neutral-200">
+                <button
+                  onClick={closePanel}
+                  className="w-full h-10 rounded-md bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                  type="button"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

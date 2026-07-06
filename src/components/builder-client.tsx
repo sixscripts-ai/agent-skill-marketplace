@@ -425,12 +425,25 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               </div>
             </div>
           ) : null}
-          <label className="mt-6 block rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white">
+          <button
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                if (text.trim()) {
+                  setSkillMd(text);
+                  await importSkill(text);
+                }
+              } catch {
+                document.getElementById("builder-skill-md")?.focus();
+              }
+            }}
+            className="mt-6 block w-full rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-left text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white cursor-pointer"
+          >
             <span className="font-semibold text-neutral-950">Paste SKILL.md</span>
             <span className="mt-1 block text-xs leading-5 text-neutral-500">
-              Use the editor, then parse and suggest edits before publishing.
+              Click to paste from clipboard, then parse and suggest edits before publishing.
             </span>
-          </label>
+          </button>
           <button
             onClick={() => importSkill()}
             data-testid="builder-parse"

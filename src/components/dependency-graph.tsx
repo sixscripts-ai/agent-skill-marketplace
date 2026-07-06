@@ -19,7 +19,7 @@ export function DependencyGraph({ skill }: { skill: Skill }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <Panel className="p-6" variant="floating">
+      <Panel className="p-6">
         <h1 className="text-3xl font-semibold text-neutral-950">{skill.name} Dependency Graph</h1>
         <p className="mt-3 text-sm leading-6 text-neutral-600">
           Map how this skill depends on versions, permissions, virtual tools, providers, workspace files, artifacts, install targets, and evals.
@@ -60,7 +60,7 @@ export function DependencyGraph({ skill }: { skill: Skill }) {
           })}
         </div>
       </Panel>
-      <Panel className="p-5" variant="floating">
+      <Panel className="p-5">
         <h2 className="font-semibold text-neutral-950">Edges</h2>
         <div className="mt-4 flex flex-col gap-3">
           {graph.edges.map((edge) => (

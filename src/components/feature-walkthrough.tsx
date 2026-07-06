@@ -19,7 +19,7 @@ export function ActionGuide({
   steps: ActionStep[];
 }) {
   return (
-    <Panel className="p-4" variant="subtle">
+    <Panel className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
         <Badge tone="blue">quick start</Badge>
