@@ -110,7 +110,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
               onClick={() => runSuite(suite.name)}
               disabled={isRunning}
               data-testid="eval-run-suite"
-              className="rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-md border border-neutral-300 bg-[#39FF14] px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:cursor-wait disabled:opacity-60"
             >
               {isRunning ? "Running..." : "Run suite"}
             </button>
@@ -120,7 +120,7 @@ export function EvalsClient({ skill }: { skill: Skill }) {
               <h3 className="text-sm font-semibold text-neutral-950">Cases</h3>
               <div className="mt-4 overflow-hidden rounded-md border border-neutral-200">
                 {suite.cases.map((item) => (
-                    <div key={`${item.input}-${item.assertionType}`} className="grid gap-3 border-b border-neutral-200 bg-white p-4 last:border-b-0 md:grid-cols-[1fr_1fr_120px]">
+                    <div key={`${item.input}-${item.assertionType}`} className="grid gap-3 border-b border-neutral-200 bg-[#39FF14] p-4 last:border-b-0 md:grid-cols-[1fr_1fr_120px]">
                     <div className="text-sm text-neutral-700">{item.input}</div>
                     <div className="text-sm text-neutral-600">{item.expected}</div>
                     <Badge tone={item.status === "pass" ? "green" : "red"}>{item.status}</Badge>

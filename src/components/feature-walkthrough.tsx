@@ -26,7 +26,7 @@ export function ActionGuide({
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {steps.map((step) => (
-          <div key={`${step.label}-${step.title}`} className="rounded-md border border-neutral-200 bg-white p-3">
+          <div key={`${step.label}-${step.title}`} className="rounded-md border border-neutral-200 bg-[#39FF14] p-3">
             <div className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">{step.label}</div>
             <div className="mt-2 font-semibold text-neutral-950">{step.title}</div>
             <p className="mt-1 text-sm leading-5 text-neutral-600">{step.body}</p>
@@ -74,7 +74,7 @@ export function FeatureWalkthrough({
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {items.map((item) => (
-              <div key={item.title} className="rounded-md border border-neutral-200 bg-white p-4">
+              <div key={item.title} className="rounded-md border border-neutral-200 bg-[#39FF14] p-4">
                 <div className="font-semibold text-neutral-950">{item.title}</div>
                 <p className="mt-2 text-sm leading-6 text-neutral-600">{item.body}</p>
               </div>

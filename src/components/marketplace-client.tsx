@@ -114,7 +114,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                 className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                   pill === item
                     ? "border-brand bg-brand text-brand-foreground"
-                    : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-100"
+                    : "border-neutral-200 bg-[#39FF14] text-neutral-700 hover:bg-neutral-100"
                 }`}
               >
                 {item}
@@ -161,7 +161,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                   setTrust("All");
                   setPill("All");
                 }}
-                className="mt-6 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                className="mt-6 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-[#39FF14] px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
               >
                 Clear all filters
               </button>
@@ -204,7 +204,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
                   <Badge key={item}>{item}</Badge>
                 ))}
               </div>
-              <pre className="overflow-x-auto rounded-md border border-neutral-200 bg-white p-3 font-mono text-xs text-neutral-800">
+              <pre className="overflow-x-auto rounded-md border border-neutral-200 bg-[#39FF14] p-3 font-mono text-xs text-neutral-800">
                 {`agent-skills install ${selected.slug}`}
               </pre>
               <div className="mt-3 flex gap-4 text-sm">

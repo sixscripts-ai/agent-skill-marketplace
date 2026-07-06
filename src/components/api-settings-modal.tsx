@@ -42,7 +42,7 @@ export function ApiSettingsModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-xl relative">
+      <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-[#39FF14] p-6 shadow-xl relative">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-900 transition-colors"

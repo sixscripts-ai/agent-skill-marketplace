@@ -106,7 +106,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
                   const version = latestVersion(skill);
                   const skillStatus = skill.visibility === "private" ? "Draft" : "Published";
                   return (
-                    <tr key={skill.slug} className="bg-white transition hover:bg-neutral-50">
+                    <tr key={skill.slug} className="bg-[#39FF14] transition hover:bg-neutral-50">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="grid size-9 place-items-center rounded-md border border-neutral-200 bg-neutral-100 font-mono text-xs font-semibold text-neutral-950">
@@ -128,7 +128,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
                       <td className="px-5 py-4 text-neutral-600">{version.createdAt}</td>
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
-                          <Link className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100" href={`/builder/${skill.slug}`}>
+                          <Link className="rounded-md border border-neutral-300 bg-[#39FF14] px-3 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100" href={`/builder/${skill.slug}`}>
                             Edit
                           </Link>
                           <Link className="rounded-md border border-neutral-950 bg-neutral-950 px-3 py-2 text-xs font-semibold text-white hover:bg-neutral-800" href={`/skills/${skill.slug}/run`}>

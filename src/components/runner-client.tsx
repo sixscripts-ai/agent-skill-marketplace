@@ -301,7 +301,7 @@ export function RunnerClient({
                 {suggestions.map((suggestion) => (
                   <Suggestion
                     key={suggestion}
-                    className="border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                    className="border-neutral-300 bg-[#39FF14] text-neutral-900 hover:bg-neutral-100"
                     onClick={(value) => setInput(value)}
                     suggestion={suggestion}
                   />
@@ -408,7 +408,7 @@ export function RunnerClient({
                           key={item}
                           onClick={() => setCommand(item)}
                           data-testid="detected-command"
-                          className="rounded-md border border-neutral-300 bg-white px-3 py-2 font-mono text-xs text-neutral-900 transition hover:bg-neutral-100"
+                          className="rounded-md border border-neutral-300 bg-[#39FF14] px-3 py-2 font-mono text-xs text-neutral-900 transition hover:bg-neutral-100"
                           type="button"
                         >
                           {item}
@@ -470,7 +470,7 @@ export function RunnerClient({
                   <Confirmation
                     key={permission.key}
                     approval={{ id: permission.key }}
-                    className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-white"}
+                    className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[#39FF14] text-black"}
                     state="approval-requested"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -484,7 +484,7 @@ export function RunnerClient({
                     </ConfirmationRequest>
                     <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
                       <ConfirmationAction
-                        className="h-10 w-full border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100 sm:w-auto"
+                        className="h-10 w-full border border-neutral-300 bg-[#39FF14] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
                         data-testid={`permission-deny-${permission.key}`}
                         onClick={() => {
                           if (!isDenied) togglePermission(permission.key);
@@ -558,7 +558,7 @@ export function RunnerClient({
                 ) : null}
                 {run.output ? (
                   <Message from="assistant" className="max-w-full">
-                    <MessageContent className="w-full rounded-md border border-neutral-200 bg-white p-4">
+                    <MessageContent className="w-full rounded-md border border-neutral-200 bg-[#39FF14] p-4">
                       <SafeMessageResponse>{run.output}</SafeMessageResponse>
                     </MessageContent>
                   </Message>
@@ -585,7 +585,7 @@ export function RunnerClient({
               <button
                 onClick={addWorkspaceFile}
                 data-testid="add-workspace-file"
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-900 transition hover:bg-neutral-100"
+                className="rounded-md border border-neutral-300 bg-[#39FF14] px-3 py-2 text-xs font-semibold text-neutral-900 transition hover:bg-neutral-100"
                 type="button"
               >
                 Add file
@@ -608,7 +608,7 @@ export function RunnerClient({
               )}
             </div>
             {selectedFile ? (
-              <div className="mt-4 rounded-md border border-neutral-200 bg-white p-3">
+              <div className="mt-4 rounded-md border border-neutral-200 bg-[#39FF14] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="font-mono text-xs font-semibold text-neutral-950">{selectedFile.path}</div>
@@ -698,7 +698,7 @@ export function RunnerClient({
                   <span className="font-mono text-sm text-neutral-950">{artifact.path}</span>
                   <Badge tone={artifact.kind === "created" ? "green" : "blue"}>{artifact.kind}</Badge>
                 </div>
-                <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-white p-3">
+                <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-3">
                   <SafeMessageResponse>{artifact.after}</SafeMessageResponse>
                 </div>
               </div>
@@ -757,7 +757,7 @@ function StatusRow({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded border border-neutral-200 bg-white px-3 py-2">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded border border-neutral-200 bg-[#39FF14] px-3 py-2">
       <span className="shrink-0 text-neutral-500">{label}</span>
       <span className="min-w-0 truncate">
         <Badge tone={tone}>{value}</Badge>
@@ -793,7 +793,7 @@ function WorkspaceFileEditor({
 function TraceTool({ event }: { event: SkillTraceEvent }) {
   const state = eventToolState(event);
   return (
-    <Tool className="mb-3 border-neutral-200 bg-white" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
+    <Tool className="mb-3 border-neutral-200 bg-[#39FF14] text-black" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
       <ToolHeader state={state} title={`${String(event.order).padStart(2, "0")} ${event.title}`} type={eventToolType(event)} />
       <ToolContent>
         <ToolInput

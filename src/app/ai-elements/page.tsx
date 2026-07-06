@@ -174,7 +174,7 @@ export default function AiElementsPage() {
               </div>
               <div className="mt-5 grid gap-4 lg:grid-cols-3">
                 {recommendedBundles.map((bundle, index) => (
-                  <article key={bundle.name} className="rounded-md border border-neutral-200 bg-white p-4">
+                  <article key={bundle.name} className="rounded-md border border-neutral-200 bg-[#39FF14] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="grid size-8 place-items-center rounded-md bg-neutral-950 font-mono text-xs font-semibold text-white">
                         {index + 1}
@@ -199,7 +199,7 @@ export default function AiElementsPage() {
                 {groups.map((group) => (
                   <section key={group.title} className="rounded-md border border-neutral-200 bg-neutral-50 p-4">
                     <h3 className="font-semibold text-neutral-950">{group.title}</h3>
-                    <div className="mt-4 divide-y divide-neutral-200 rounded-md border border-neutral-200 bg-white">
+                    <div className="mt-4 divide-y divide-neutral-200 rounded-md border border-neutral-200 bg-[#39FF14] text-black">
                       {group.items.map(([name, description]) => (
                         <div key={name} className="grid gap-1 px-3 py-3 sm:grid-cols-[150px_1fr]">
                           <code className="font-mono text-xs font-semibold text-neutral-950">{name}</code>

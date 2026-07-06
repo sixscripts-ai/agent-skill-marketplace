@@ -296,7 +296,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         <div className="flex gap-3">
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 h-10 rounded-md border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50 shadow-sm"
+            className="flex items-center gap-2 h-10 rounded-md border border-neutral-200 bg-[#39FF14] px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50 shadow-sm"
           >
             <Settings className="w-4 h-4" />
             API Keys
@@ -351,7 +351,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         <Panel className="p-4">
           <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
             {["Upload", "Format", "Validate", "Publish"].map((step) => (
-              <div key={step} className="rounded bg-white px-2 py-2">{step}</div>
+              <div key={step} className="rounded bg-[#39FF14] px-2 py-2">{step}</div>
             ))}
           </div>
           <h2 className="mt-5 text-base font-semibold text-neutral-950">Metadata</h2>
@@ -395,7 +395,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 value={visibility}
                 onChange={(event) => setVisibility(event.target.value as "public" | "private" | "unlisted")}
                 data-testid="builder-visibility"
-                className="mt-2 h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-[13px] outline-none transition-all focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
+                className="mt-2 h-9 w-full rounded-md border border-neutral-200 bg-[#39FF14] px-3 text-[13px] outline-none transition-all focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
               >
                 <option value="public">public</option>
                 <option value="private">private</option>
@@ -423,12 +423,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             <p className="mt-1 text-xs leading-5 text-neutral-500">
               Upload `.md`, `.skill`, `.zip`, or a folder with docs, scripts, references, assets, and config.
             </p>
-            <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
+            <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
               <span className="font-semibold text-neutral-950">File / zip</span>
               <span className="mt-1 block text-xs leading-5 text-neutral-500">Accepts `.md`, `.skill`, and `.zip` packages.</span>
               <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} data-testid="builder-file-upload" className="mt-3 block w-full text-xs" />
             </label>
-            <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-white p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
+            <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
               <span className="font-semibold text-neutral-950">Folder</span>
               <span className="mt-1 block text-xs leading-5 text-neutral-500">Preserves nested docs, references, scripts, configs, and assets.</span>
               <input
@@ -451,7 +451,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           ) : null}
           {packageFiles.length ? (
-            <div className="mt-3 rounded-md border border-neutral-200 bg-white p-3">
+            <div className="mt-3 rounded-md border border-neutral-200 bg-[#39FF14] p-3">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Package preview</div>
               <div className="mt-3 max-h-44 overflow-auto rounded-md border border-neutral-200">
                 {packageFiles.map((file) => (
@@ -476,7 +476,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 document.getElementById("builder-skill-md")?.focus();
               }
             }}
-            className="mt-6 block w-full rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-left text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-white cursor-pointer"
+            className="mt-6 block w-full rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-left text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-[#39FF14] cursor-pointer"
           >
             <span className="font-semibold text-neutral-950">Paste SKILL.md</span>
             <span className="mt-1 block text-xs leading-5 text-neutral-500">
@@ -486,7 +486,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           <button
             onClick={() => importSkill()}
             data-testid="builder-parse"
-            className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
+            className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-[#39FF14] text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
           >
             Parse / suggest edits
           </button>
@@ -503,7 +503,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                   onClick={() => setViewMode("markdown")}
                   className={`rounded px-3 py-1 text-xs font-semibold transition ${
                     viewMode === "markdown"
-                      ? "bg-white text-neutral-900 shadow-sm"
+                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
                       : "text-neutral-500 hover:text-neutral-900"
                   }`}
                 >
@@ -513,7 +513,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                   onClick={() => setViewMode("canvas")}
                   className={`rounded px-3 py-1 text-xs font-semibold transition ${
                     viewMode === "canvas"
-                      ? "bg-white text-neutral-900 shadow-sm"
+                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
                       : "text-neutral-500 hover:text-neutral-900"
                   }`}
                 >
@@ -533,7 +533,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               <select
                 value={copilotModel}
                 onChange={(e) => setCopilotModel(e.target.value)}
-                className="h-8 rounded-md border border-blue-200 bg-white px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="h-8 rounded-md border border-blue-200 bg-[#39FF14] px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
                 <option value="xai/grok-2-latest">Grok 2</option>
@@ -550,7 +550,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               ) : (
                 messages.map(m => (
                   <div key={m.id} className={`flex flex-col max-w-[90%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}>
-                    <div className={`px-3 py-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-blue-200 text-blue-950 rounded-bl-sm'}`}>
+                    <div className={`px-3 py-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-[#39FF14] border border-blue-200 text-blue-950 rounded-bl-sm'}`}>
                       {m.parts.map((part, i) => {
                         if (part.type === 'text') {
                           return <div key={i}>{part.text}</div>;
@@ -579,12 +579,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               )}
             </div>
 
-            <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-blue-100 flex gap-2 items-center">
+            <form onSubmit={handleSubmit} className="p-3 bg-[#39FF14] border-t border-blue-100 flex gap-2 items-center">
               <input
                 value={input}
                 onChange={handleInputChange}
                 placeholder="e.g. Add a workflow step for checking API keys..."
-                className="h-10 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+                className="h-10 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:bg-[#39FF14] focus:ring-2 focus:ring-blue-100 transition-all"
                 disabled={isGenerating}
               />
               <button
@@ -597,7 +597,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </form>
           </div>
 
-          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
+          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-[#39FF14] text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
             {viewMode === "markdown" ? (
               <MarkdownEditor
                 value={skillMd}
@@ -611,7 +611,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </div>
           <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
-            <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-white p-4">
+            <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-4">
               <SafeMessageResponse>{skillMd}</SafeMessageResponse>
             </div>
           </details>
@@ -667,12 +667,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                   {savedUrls ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <a className="rounded-md border border-neutral-950 bg-neutral-950 px-2 py-1 text-xs font-semibold text-white" href={`${savedUrls.run}?mode=autopilot`}>⚡ Quick Run</a>
-                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
-                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
-                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>
-                      <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.edit}>Edit</a>
+                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
+                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
+                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>
+                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.edit}>Edit</a>
                       {visibility === "public" ? (
-                        <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.marketplace}>Marketplace</a>
+                        <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.marketplace}>Marketplace</a>
                       ) : null}
                     </div>
                   ) : null}
@@ -775,7 +775,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         data-testid={testId}
         className={`mt-2 h-9 w-full rounded-md border px-3 text-[13px] outline-none transition-all ${
-          error ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-neutral-200 bg-white focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
+          error ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-neutral-200 bg-[#39FF14] focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
         }`}
       />
       {helper ? <span className={`mt-1 block text-xs ${error ? "text-red-700" : "text-neutral-500"}`}>{helper}</span> : null}
@@ -808,7 +808,7 @@ function Checklist({
             className={`rounded-md border px-3 py-2 text-xs font-medium transition ${
               selected.includes(value)
                 ? "border-neutral-950 bg-neutral-950 text-white"
-                : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100"
+                : "border-neutral-200 bg-[#39FF14] text-neutral-600 hover:bg-neutral-100"
             }`}
           >
             {labels?.[value] ?? value}

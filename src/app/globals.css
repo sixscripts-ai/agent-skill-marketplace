@@ -5,8 +5,8 @@
 :root {
   --background: #fafafa;
   --foreground: #111827;
-  --card: #ffffff;
-  --card-foreground: #111827;
+  --card: #39FF14;
+  --card-foreground: #000000;
   --panel-subtle: #f5f5f5;
   --border: #e5e5e5;
   --border-strong: #d4d4d8;
@@ -34,8 +34,8 @@
   --secondary-foreground: #111827;
   --accent: #f4f4f5;
   --accent-foreground: #111827;
-  --popover: #ffffff;
-  --popover-foreground: #111827;
+  --popover: #39FF14;
+  --popover-foreground: #000000;
   --input: #d4d4d8;
   --ring: #CEFF00;
   --destructive: #dc2626;
@@ -68,8 +68,8 @@
   :root {
     --background: #09090b;
     --foreground: #fafafa;
-    --card: #111113;
-    --card-foreground: #fafafa;
+    --card: #0a3d00;
+    --card-foreground: #39FF14;
     --panel-subtle: #18181b;
     --border: #27272a;
     --border-strong: #3f3f46;

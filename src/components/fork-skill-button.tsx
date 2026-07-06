@@ -21,7 +21,7 @@ export function ForkSkillButton({ slug }: { slug: string }) {
     <button
       onClick={forkSkill}
       disabled={status === "forking"}
-      className="h-10 rounded-md border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50 disabled:cursor-wait disabled:opacity-60"
+      className="h-10 rounded-md border border-neutral-300 bg-[#39FF14] px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50 disabled:cursor-wait disabled:opacity-60"
     >
       {status === "forking" ? "Forking..." : status === "error" ? "Try fork again" : "Fork / remix"}
     </button>
