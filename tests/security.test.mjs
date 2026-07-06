@@ -4,7 +4,7 @@ import test from "node:test";
 import { canReadOwnedRun, canWriteOwnedResource } from "../src/lib/access-control.ts";
 import { fallbackUserForAuthState } from "../src/lib/auth.ts";
 import {
-  allowLocalDemoAuth,
+  allowLocalSeedAuth,
   assertBlobStorageConfigured,
   assertDurableDatabaseConfigured,
   requiresDurableStorage,
@@ -30,7 +30,7 @@ test("Vercel deployments do not fall back to demo admin auth", () => {
   const env = { VERCEL: "1", NODE_ENV: "production" };
   const fallback = fallbackUserForAuthState(false, env);
   assert.equal(fallback.id, "anonymous-user");
-  assert.equal(allowLocalDemoAuth(env), false);
+  assert.equal(allowLocalSeedAuth(env), false);
 });
 
 test("Vercel production requires durable database and blob configuration", () => {

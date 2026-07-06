@@ -11,6 +11,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://agent-skill-marketplace.vercel.app playwright test",
     "test:security": "node --test --experimental-strip-types tests/security.test.mjs",
+    "test:unit": "tsx --test tests/*.test.ts",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate"
   },
@@ -66,6 +67,7 @@
     "eslint-config-next": "15.5.20",
     "prisma": "^6.1.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5"
   }
 }
