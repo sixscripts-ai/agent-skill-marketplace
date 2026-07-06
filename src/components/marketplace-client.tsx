@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { categories, compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
+import { categories, compatibilityTargets, latestVersion, permissionKeys, permissionLabels } from "@/lib/data";
 import type { CompatibilityTarget, Skill } from "@/lib/types";
 import { ActionGuide } from "./feature-walkthrough";
 import { SkillCard } from "./skill-card";
@@ -16,6 +16,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
   const [permission, setPermission] = useState("All");
   const [trust, setTrust] = useState("All");
   const [pill, setPill] = useState("All");
+  const [sort, setSort] = useState("runs");
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -43,7 +44,21 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
         (pill === "New" && skill.currentVersion.startsWith("v0."));
       return matchesQuery && matchesCategory && matchesTarget && matchesPermission && matchesTrust && matchesPill;
     });
-  }, [category, permission, pill, query, target, trust, skills]);
+
+    // Sort
+    return [...result].sort((a, b) => {
+      if (sort === "runs") {
+        return b.installCount - a.installCount;
+      } else if (sort === "rating") {
+        return b.rating - a.rating;
+      } else {
+        // updated
+        const aDate = new Date(latestVersion(a).createdAt).getTime();
+        const bDate = new Date(latestVersion(b).createdAt).getTime();
+        return bDate - aDate;
+      }
+    });
+  }, [category, permission, pill, query, target, trust, sort, skills]);
 
   const selected = filtered[0] ?? skills[0];
   const topCategories = categories.slice(0, 5).map((item) => ({
@@ -99,7 +114,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               </button>
             ))}
           </div>
-          <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr]">
+          <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_1fr]">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -111,7 +126,8 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
             <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
             <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
             <Filter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} labels={permissionLabels} />
-            <Filter label="Sort" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
+            <Filter label="Trust Level" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
+            <Filter label="Sort By" testId="marketplace-sort" value={sort} onChange={setSort} values={["runs", "rating", "updated"]} labels={{ runs: "Sort by runs", rating: "Sort by rating", updated: "Sort by updated" }} />
           </div>
         </div>
       </Panel>
