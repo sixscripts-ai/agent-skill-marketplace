@@ -14,15 +14,15 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4 text-center">
-      <div className="grid size-16 place-items-center rounded-md border border-neutral-200 bg-white text-2xl ">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-4 text-center">
+      <div className="grid size-16 place-items-center rounded-md border border-brand-border bg-brand-soft text-2xl text-brand">
         ⚠️
       </div>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-neutral-950">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Something went wrong
         </h1>
-        <p className="mt-2 max-w-md text-sm leading-6 text-neutral-600">
+        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
           An unexpected error occurred. You can try again or return to the
           marketplace.
         </p>
@@ -30,19 +30,19 @@ export default function GlobalError({
       <div className="flex gap-3">
         <button
           onClick={reset}
-          className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800"
+          className="h-10 rounded-md border border-brand bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:brightness-110 focus-visible:ring-3 focus-visible:ring-brand/50"
         >
           Try again
         </button>
         <a
           href="/marketplace"
-          className="inline-flex h-10 items-center rounded-md border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100"
+          className="inline-flex h-10 items-center rounded-md border border-border bg-background px-4 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50"
         >
           Go to Marketplace
         </a>
       </div>
       {error.digest ? (
-        <p className="font-mono text-xs text-neutral-400">
+        <p className="font-mono text-xs text-muted-foreground">
           Error ID: {error.digest}
         </p>
       ) : null}

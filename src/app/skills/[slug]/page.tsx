@@ -62,15 +62,15 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
             <h2 className="font-semibold text-neutral-950">Required permissions</h2>
             <div className="mt-4 flex flex-col gap-3">
               {skill.permissions.map((permission) => (
-                <div key={permission.key} className="rounded-md border border-neutral-200 bg-neutral-50 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono text-sm text-neutral-950">{permission.key}</span>
-                    <Badge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
-                      {permission.risk}
-                    </Badge>
+                  <div key={permission.key} className="rounded-md border border-border bg-card p-3 transition hover:border-brand-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-sm text-foreground">{permission.key}</span>
+                      <Badge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
+                        {permission.risk}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm leading-5 text-muted-foreground">{permission.reason}</p>
                   </div>
-                  <p className="mt-2 text-sm leading-5 text-neutral-600">{permission.reason}</p>
-                </div>
               ))}
             </div>
           </Panel>
@@ -97,16 +97,16 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
             <Panel className="p-5">
               <h2 className="font-semibold text-neutral-950">Project links</h2>
               <div className="mt-4 grid gap-3">
-                <Link className="text-sm font-medium text-neutral-950 underline underline-offset-4" href={`/skills/${skill.slug}/versions`}>
+                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/versions`}>
                   Version history and diff
                 </Link>
-                <Link className="text-sm font-medium text-neutral-950 underline underline-offset-4" href={`/skills/${skill.slug}/evals`}>
+                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/evals`}>
                   Evaluation suites
                 </Link>
-                <Link className="text-sm font-medium text-neutral-950 underline underline-offset-4" href={`/skills/${skill.slug}/graph`}>
+                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/graph`}>
                   Dependency graph
                 </Link>
-                <Link className="text-sm font-medium text-neutral-950 underline underline-offset-4" href={`/install/${skill.slug}`}>
+                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/install/${skill.slug}`}>
                   Export install package
                 </Link>
               </div>
