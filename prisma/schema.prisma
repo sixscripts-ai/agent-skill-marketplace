@@ -206,3 +206,30 @@ model SkillPackageFile {
   role      String
   createdAt DateTime     @default(now())
 }
+
+model GraphCheckpoint {
+  id                 String   @id @default(cuid())
+  threadId           String
+  checkpointId       String
+  parentCheckpointId String?
+  checkpoint         Json
+  metadata           Json
+  createdAt          DateTime @default(now())
+
+  @@unique([threadId, checkpointId])
+  @@index([threadId])
+}
+
+model GraphCheckpointWrite {
+  id           String   @id @default(cuid())
+  threadId     String
+  checkpointId String
+  taskId       String
+  idx          Int
+  channel      String
+  value        Json
+  createdAt    DateTime @default(now())
+
+  @@unique([threadId, checkpointId, taskId, idx])
+  @@index([threadId, checkpointId])
+}

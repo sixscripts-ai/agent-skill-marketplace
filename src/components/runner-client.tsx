@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Confirmation,
   ConfirmationAction,
@@ -33,6 +33,7 @@ import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthroug
 import { SafeMessageResponse } from "@/components/safe-message-response";
 import { sandboxProviders } from "@/lib/providers";
 import { detectRunnableCommands } from "@/lib/run-state";
+import type { AutopilotPlan } from "@/lib/autopilot";
 import type { SandboxReadiness } from "@/lib/sandbox-status";
 import type {
   ExecutionMode,
@@ -81,10 +82,12 @@ export function RunnerClient({
   skill,
   initialRun,
   sandboxReadiness,
+  initialMode,
 }: {
   skill: Skill;
   initialRun: SkillRun;
   sandboxReadiness: SandboxReadiness;
+  initialMode?: ExecutionMode;
 }) {
   const initialWorkspace = initialRun.workspaceFiles ?? [];
   const initialCommands = detectRunnableCommands(skill, initialWorkspace);
@@ -93,13 +96,24 @@ export function RunnerClient({
   const [input, setInput] = useState(initialRun.input || "");
   const [denied, setDenied] = useState<string[]>([]);
   const [provider, setProvider] = useState<SandboxProvider>(initialRun.provider ?? "openai");
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>(initialRun.sandbox?.executionMode ?? "virtual-agent");
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>(initialMode ?? initialRun.sandbox?.executionMode ?? "autopilot");
   const [command, setCommand] = useState(initialRun.sandbox?.command ?? initialCommands[0] ?? "");
   const [networkAllowlist, setNetworkAllowlist] = useState("registry.npmjs.org,github.com");
   const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>(initialWorkspace);
   const [selectedFilePath, setSelectedFilePath] = useState(initialSelectedPath);
   const [run, setRun] = useState<SkillRun>(initialRun);
   const [isRunning, setIsRunning] = useState(false);
+  const [autopilotPlan, setAutopilotPlan] = useState<AutopilotPlan | null>(null);
+  const [autoExecuted, setAutoExecuted] = useState(false);
+
+  // Auto-execute when initialMode is autopilot
+  useEffect(() => {
+    if (initialMode === "autopilot" && !autoExecuted && !isRunning) {
+      setAutoExecuted(true);
+      void execute("", "autopilot");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMode]);
 
   const detectedCommands = useMemo(() => detectRunnableCommands(skill, workspaceFiles), [skill, workspaceFiles]);
   const permissions = useMemo(() => {
@@ -170,18 +184,21 @@ export function RunnerClient({
     }
   }
 
-  async function execute(nextInput = input) {
-    const prompt = nextInput.trim();
+  async function execute(nextInput = input, modeOverride?: ExecutionMode) {
+    const activeMode = modeOverride ?? executionMode;
+    const prompt = activeMode === "autopilot" ? (nextInput.trim() || "Run with autopilot.") : nextInput.trim();
     if (!prompt || isRunning) return;
     setInput(prompt);
     setIsRunning(true);
+    setAutopilotPlan(null);
+    if (modeOverride) setExecutionMode(modeOverride);
     
     await executeSkillRunStream({
       skillSlug: skill.slug,
       input: prompt,
-      deniedPermissions: denied,
+      deniedPermissions: activeMode === "autopilot" ? [] : denied,
       provider,
-      executionMode,
+      executionMode: activeMode,
       command,
       networkAllowlist: networkAllowlist
         .split(",")
@@ -189,6 +206,9 @@ export function RunnerClient({
         .filter(Boolean),
       workspaceFiles,
       replayOf: initialRun.status === "pending" ? undefined : initialRun.id,
+      onPlan: (plan) => {
+        setAutopilotPlan(plan);
+      },
       onRun: (payloadRun) => {
         setRun(payloadRun);
         setWorkspaceFiles(payloadRun.workspaceFiles ?? workspaceFiles);
@@ -235,6 +255,15 @@ export function RunnerClient({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={isRunning}
+            onClick={() => void execute("", "autopilot")}
+            data-testid="quick-run"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-neutral-950 px-5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+          >
+            <span className="text-base">⚡</span> Quick Run
+          </button>
           <Badge tone={allApproved ? "green" : "amber"}>{allApproved ? "permissions approved" : "permissions restricted"}</Badge>
           <Badge tone={run.status === "failed" ? "red" : run.status === "running" ? "amber" : "neutral"}>{run.status}</Badge>
         </div>
@@ -321,12 +350,46 @@ export function RunnerClient({
                   data-testid="execution-mode"
                   className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                 >
+                  <option value="autopilot">⚡ Autopilot (recommended)</option>
                   <option value="virtual-agent">Virtual provider route</option>
                   <option value="real-shell">Real shell sandbox</option>
                 </select>
               </label>
 
-              {executionMode === "real-shell" ? (
+              {executionMode === "autopilot" ? (
+                <div className="space-y-3">
+                  <div className="rounded-md border border-neutral-200 bg-neutral-50 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Autopilot Mode</div>
+                    <p className="mt-2 text-sm leading-6 text-neutral-700">
+                      Autopilot analyzes the skill&apos;s packages, detects the best command, auto-approves permissions, and executes immediately inside an isolated sandbox.
+                    </p>
+                    {autopilotPlan && (
+                      <div className="mt-3 space-y-2 border-t border-neutral-200 pt-3">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-semibold text-neutral-950">Mode:</span>
+                          <Badge tone={autopilotPlan.executionMode === "real-shell" ? "amber" : "blue"}>{autopilotPlan.executionMode}</Badge>
+                        </div>
+                        {autopilotPlan.command && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="font-semibold text-neutral-950">Command:</span>
+                            <code className="rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs">{autopilotPlan.command}</code>
+                          </div>
+                        )}
+                        <p className="text-xs leading-5 text-neutral-600">{autopilotPlan.reasoning}</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isRunning}
+                    onClick={() => void execute("", "autopilot")}
+                    data-testid="autopilot-run"
+                    className="h-10 w-full rounded-md bg-neutral-950 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    {isRunning ? "Running…" : "⚡ Run with Autopilot"}
+                  </button>
+                </div>
+              ) : executionMode === "real-shell" ? (
                 <>
                   <label className="block text-sm font-medium text-neutral-700">
                     Approved command

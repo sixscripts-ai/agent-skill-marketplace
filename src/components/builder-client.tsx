@@ -11,6 +11,7 @@ import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { SafeMessageResponse } from "./safe-message-response";
 import { Badge, Panel } from "./ui";
 import { CodeBlock } from "./code-block";
+import { CanvasEditor } from "./canvas-editor";
 import Editor from "react-simple-code-editor";
 import Prism from "prismjs";
 import "prismjs/components/prism-markdown";
@@ -68,6 +69,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
   const [testRun, setTestRun] = useState<SkillRun | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
 
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const { completion, complete, isLoading: isGenerating } = useCompletion({
@@ -440,8 +442,34 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
         <Panel className="min-w-0 p-4">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold text-neutral-950">SKILL.md editor</h2>
-            <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
+            <h2 className="text-base font-semibold text-neutral-950">
+              {viewMode === "markdown" ? "SKILL.md editor" : "AI Elements Canvas"}
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="flex rounded-md border border-neutral-300 bg-neutral-100 p-1">
+                <button
+                  onClick={() => setViewMode("markdown")}
+                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
+                    viewMode === "markdown"
+                      ? "bg-white text-neutral-900 shadow-sm"
+                      : "text-neutral-500 hover:text-neutral-900"
+                  }`}
+                >
+                  Markdown
+                </button>
+                <button
+                  onClick={() => setViewMode("canvas")}
+                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
+                    viewMode === "canvas"
+                      ? "bg-white text-neutral-900 shadow-sm"
+                      : "text-neutral-500 hover:text-neutral-900"
+                  }`}
+                >
+                  Canvas
+                </button>
+              </div>
+              <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
+            </div>
           </div>
           
           <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4">
@@ -473,20 +501,24 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           </div>
 
           <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-white text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
-            <Editor
-              value={skillMd}
-              onValueChange={(code) => setSkillMd(code)}
-              highlight={(code) => Prism.highlight(code, Prism.languages.markdown, "markdown")}
-              padding={16}
-              style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                fontSize: 14,
-                lineHeight: "1.5",
-                minHeight: "620px",
-              }}
-              textareaId="builder-skill-md"
-              textareaClassName="focus:outline-none"
-            />
+            {viewMode === "markdown" ? (
+              <Editor
+                value={skillMd}
+                onValueChange={(code) => setSkillMd(code)}
+                highlight={(code) => Prism.highlight(code, Prism.languages.markdown, "markdown")}
+                padding={16}
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  fontSize: 14,
+                  lineHeight: "1.5",
+                  minHeight: "620px",
+                }}
+                textareaId="builder-skill-md"
+                textareaClassName="focus:outline-none"
+              />
+            ) : (
+              <CanvasEditor />
+            )}
           </div>
           <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
@@ -545,6 +577,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                   Saved. View it at /skills/{publishedSlug} or find it in the marketplace.
                   {savedUrls ? (
                     <div className="mt-3 flex flex-wrap gap-2">
+                      <a className="rounded-md border border-neutral-950 bg-neutral-950 px-2 py-1 text-xs font-semibold text-white" href={`${savedUrls.run}?mode=autopilot`}>⚡ Quick Run</a>
                       <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
                       <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
                       <a className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>

@@ -45,7 +45,8 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
                 <p className="mt-4 max-w-3xl text-base leading-7 text-neutral-600">{skill.summary}</p>
               </div>
               <div className="flex gap-3">
-                <ButtonLink href={`/skills/${skill.slug}/run`}>Run Skill</ButtonLink>
+                <ButtonLink href={`/skills/${skill.slug}/run?mode=autopilot`}>⚡ Quick Run</ButtonLink>
+                <ButtonLink href={`/skills/${skill.slug}/run`} variant="secondary">Run Skill</ButtonLink>
                 <ButtonLink href={`/install/${skill.slug}`} variant="secondary">Install</ButtonLink>
                 <ForkSkillButton slug={skill.slug} />
               </div>

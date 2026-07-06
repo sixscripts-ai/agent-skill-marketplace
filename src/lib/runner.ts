@@ -1,6 +1,8 @@
+import type { AutopilotPlan } from "./autopilot";
 import type { ExecutionMode, SandboxProvider, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
 
 export type RunStreamPayload =
+  | { kind: "plan"; plan: AutopilotPlan }
   | { kind: "run"; run: SkillRun }
   | { kind: "event"; event: SkillTraceEvent }
   | { kind: "output"; output: string }
@@ -17,6 +19,7 @@ export interface ExecuteSkillRunOptions {
   workspaceFiles?: WorkspaceFile[];
   replayOf?: string;
   onRun?: (run: SkillRun) => void;
+  onPlan?: (plan: AutopilotPlan) => void;
   onEvent?: (event: SkillTraceEvent) => void;
   onOutput?: (output: string) => void;
   onError?: (error: string) => void;
@@ -72,7 +75,9 @@ export async function executeSkillRunStream(options: ExecuteSkillRunOptions): Pr
         const line = frame.split("\n").find((item) => item.startsWith("data: "));
         if (!line) continue;
         const payload = JSON.parse(line.slice(6)) as RunStreamPayload;
-        if (payload.kind === "run") {
+        if (payload.kind === "plan") {
+          options.onPlan?.((payload as { kind: "plan"; plan: AutopilotPlan }).plan);
+        } else if (payload.kind === "run") {
           options.onRun?.(payload.run);
         } else if (payload.kind === "event") {
           options.onEvent?.(payload.event);

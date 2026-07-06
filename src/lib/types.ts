@@ -24,7 +24,7 @@ export type TraceEventType =
 
 export type SandboxProvider = "openai" | "gemini" | "groq" | "openrouter" | "local";
 
-export type ExecutionMode = "real-shell" | "virtual-agent";
+export type ExecutionMode = "real-shell" | "virtual-agent" | "autopilot";
 
 export type WorkspaceFile = {
   path: string;

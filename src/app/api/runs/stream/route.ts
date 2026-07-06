@@ -4,6 +4,7 @@ import { securityErrorResponse } from "@/lib/api-errors";
 import { findSkill } from "@/lib/repository";
 import { streamLiveSandboxRun } from "@/lib/live-sandbox";
 import { streamRealShellSandboxRun } from "@/lib/real-shell-sandbox";
+import { streamAutopilotRun } from "@/lib/autopilot";
 import { normalizeNetworkAllowlist } from "@/lib/sandbox-security";
 import type { ExecutionMode, SandboxProvider, WorkspaceFile } from "@/lib/types";
 
@@ -46,25 +47,27 @@ export async function POST(request: Request) {
     async start(controller) {
       const encoder = new TextEncoder();
       const payloads =
-        body.executionMode === "real-shell"
-          ? streamRealShellSandboxRun(skill, {
-              owner: user,
-              input: body.input ?? "Run skill.",
-              deniedPermissions: body.deniedPermissions ?? [],
-              workspaceFiles: body.workspaceFiles ?? [],
-              command: body.command,
-              networkAllowlist,
-              replayOf: body.replayOf,
-            })
-          : streamLiveSandboxRun(
-              skill,
-              user,
-              body.input ?? "Run skill.",
-              body.deniedPermissions ?? [],
-              body.provider ?? "openai",
-              body.workspaceFiles ?? [],
-              body.replayOf,
-            );
+        body.executionMode === "autopilot"
+          ? streamAutopilotRun(skill, user, body.workspaceFiles ?? [])
+          : body.executionMode === "real-shell"
+            ? streamRealShellSandboxRun(skill, {
+                owner: user,
+                input: body.input ?? "Run skill.",
+                deniedPermissions: body.deniedPermissions ?? [],
+                workspaceFiles: body.workspaceFiles ?? [],
+                command: body.command,
+                networkAllowlist,
+                replayOf: body.replayOf,
+              })
+            : streamLiveSandboxRun(
+                skill,
+                user,
+                body.input ?? "Run skill.",
+                body.deniedPermissions ?? [],
+                body.provider ?? "openai",
+                body.workspaceFiles ?? [],
+                body.replayOf,
+              );
       for await (const payload of payloads) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
       }
