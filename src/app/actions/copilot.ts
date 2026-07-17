@@ -20,6 +20,7 @@ export async function generateCopilotRefinement(
   } else if (modelId.startsWith("google/")) {
     const google = createGoogleGenerativeAI({ apiKey: apiKeys.google || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
     aiModel = google(modelId.replace("google/", ""));
+  } else if (modelId.startsWith("xai/")) {
     const xai = createXai({ apiKey: apiKeys.xai || process.env.XAI_API_KEY || "" });
     aiModel = xai(modelId.replace("xai/", ""));
   } else {
