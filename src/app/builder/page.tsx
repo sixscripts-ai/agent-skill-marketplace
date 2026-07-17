@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { BuilderClient } from "@/components/builder-client";
+import { BuilderStudio } from "@/components/builder/builder-ui";
 
 export const metadata: Metadata = {
   title: "Skill Builder",
@@ -12,10 +13,13 @@ export const metadata: Metadata = {
       "Upload, write, validate, and publish portable AI agent skills using the SKILL.md format.",
   },
 };
+
 export default function BuilderPage() {
   return (
-    <AppShell>
-      <BuilderClient />
+    <AppShell mode="wide">
+      <BuilderStudio>
+        <BuilderClient />
+      </BuilderStudio>
     </AppShell>
   );
 }

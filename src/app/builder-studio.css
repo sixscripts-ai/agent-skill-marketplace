@@ -1,0 +1,83 @@
+.builder-studio {
+  --builder-panel: var(--surface-panel, var(--card));
+  --builder-subtle: var(--surface-subtle, var(--muted));
+  color: var(--foreground);
+}
+
+.builder-studio > div {
+  gap: 1.25rem;
+}
+
+.builder-studio h1,
+.builder-studio h2,
+.builder-studio h3,
+.builder-studio label {
+  color: var(--foreground) !important;
+}
+
+.builder-studio p,
+.builder-studio span,
+.builder-studio div {
+  border-color: var(--border);
+}
+
+.builder-studio [class*="bg-[#39FF14]"] {
+  background: var(--builder-panel) !important;
+}
+
+.builder-studio [class*="text-neutral-950"] {
+  color: var(--foreground) !important;
+}
+
+.builder-studio [class*="text-neutral-900"] {
+  color: var(--foreground) !important;
+}
+
+.builder-studio [class*="text-neutral-700"],
+.builder-studio [class*="text-neutral-600"],
+.builder-studio [class*="text-neutral-500"] {
+  color: var(--muted-foreground) !important;
+}
+
+.builder-studio input,
+.builder-studio textarea,
+.builder-studio select {
+  border-color: var(--border) !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.builder-studio input:focus,
+.builder-studio textarea:focus,
+.builder-studio select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+.builder-studio button,
+.builder-studio a {
+  min-height: 2.5rem;
+}
+
+.builder-studio button[data-testid="builder-publish"] {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.builder-studio [class*="grid-cols-[300px_minmax(0,1fr)]"] {
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) !important;
+  align-items: start;
+}
+
+@media (min-width: 1536px) {
+  .builder-studio [class*="2xl:grid-cols-[320px_minmax(0,1fr)_360px]"] {
+    grid-template-columns: 20rem minmax(0, 1fr) 22rem !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .builder-studio [class*="grid-cols-[300px_minmax(0,1fr)]"] {
+    grid-template-columns: 1fr !important;
+  }
+}
