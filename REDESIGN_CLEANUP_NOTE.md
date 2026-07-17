@@ -1,1 +1,0 @@
-Temporary placeholder for the Phase 1 cleanup commit. This file will be removed in the same cleanup sequence if the Git data API is available.
