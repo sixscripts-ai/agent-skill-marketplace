@@ -1,91 +1,153 @@
 import Link from "next/link";
-import { ArrowRight, Code, Database, Globe, LineChart, ShoppingCart, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Blocks,
+  Bot,
+  Braces,
+  CheckCircle2,
+  GitBranch,
+  ShieldCheck,
+  Sparkles,
+  TerminalSquare,
+} from "lucide-react";
 
-const CATEGORIES = [
-  { name: "Ecommerce", icon: ShoppingCart, description: "Manage stores, products, and checkout flows.", color: "text-blue-500" },
-  { name: "Coding", icon: Code, description: "Format, lint, test, and write code automatically.", color: "text-green-500" },
-  { name: "Research", icon: Globe, description: "Search the web, read documentation, and summarize.", color: "text-purple-500" },
-  { name: "Automation", icon: Zap, description: "Connect APIs, run workflows, and schedule tasks.", color: "text-yellow-500" },
-  { name: "Marketing", icon: LineChart, description: "Generate copy, manage campaigns, and track metrics.", color: "text-pink-500" },
-  { name: "Data Analysis", icon: Database, description: "Query databases, build charts, and find insights.", color: "text-cyan-500" },
+const categories = [
+  { name: "Development", description: "Code review, debugging, migration, and delivery workflows.", icon: Braces },
+  { name: "Research", description: "Source-backed discovery, analysis, and synthesis.", icon: Bot },
+  { name: "Automation", description: "Repeatable agent workflows with visible permissions.", icon: GitBranch },
+];
+
+const proof = [
+  { value: "Inspectable", label: "Read the instructions and permissions before running." },
+  { value: "Evaluated", label: "Compare test results and version history." },
+  { value: "Sandboxed", label: "Run skills with explicit execution controls." },
+  { value: "Portable", label: "Install across supported agent environments." },
 ];
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="flex items-center justify-between p-6 border-b border-neutral-800">
-        <div className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <Zap className="h-6 w-6 text-neutral-400" />
-          Agent Skill Marketplace
-        </div>
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <Link href="/marketplace" className="text-neutral-400 hover:text-white transition-colors">
-            Marketplace
+    <div className="public-shell">
+      <header className="public-header">
+        <div className="public-container flex h-16 items-center gap-5">
+          <Link href="/" className="flex items-center gap-3 font-semibold text-foreground">
+            <span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground">
+              <Sparkles className="size-4" aria-hidden="true" />
+            </span>
+            <span>Agent Skill Marketplace</span>
           </Link>
-          <Link href="/docs" className="text-neutral-400 hover:text-white transition-colors">
-            Documentation
-          </Link>
-          <Link href="/builder" className="text-neutral-400 hover:text-white transition-colors">
-            Builder
-          </Link>
+          <nav className="ml-auto hidden items-center gap-6 md:flex" aria-label="Public navigation">
+            <Link className="public-nav-link" href="/marketplace">Marketplace</Link>
+            <Link className="public-nav-link" href="/docs">Docs</Link>
+            <Link className="public-nav-link" href="/cli">CLI</Link>
+          </nav>
+          <Link className="public-secondary ml-auto md:ml-0" href="/sign-in">Sign in</Link>
+          <Link className="public-primary hidden sm:inline-flex" href="/builder">Create a skill</Link>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center py-24 px-6">
-        <div className="max-w-4xl w-full text-center space-y-8">
-          <div className="inline-flex items-center rounded-full border border-neutral-800 bg-neutral-900/50 px-3 py-1 text-sm font-medium text-neutral-300">
-            <span className="flex h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-            Public Beta Now Live
+      <main>
+        <section className="public-container public-hero">
+          <div className="public-kicker">
+            <ShieldCheck className="size-4" aria-hidden="true" />
+            Inspect before you install
           </div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white !leading-tight">
-            Find ready to use skills for Codex, Claude Code, Cursor, and AI agents.
-          </h1>
-          
-          <p className="text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-            Browse, run, evaluate, and install portable AI agent skills with traced execution. Turn your AI from a chatbot into a capable software engineer.
+          <h1>Skills for agents that need to do real work.</h1>
+          <p className="public-lede">
+            Discover, evaluate, run, and install portable AI skills with transparent permissions,
+            version history, sandbox controls, and traceable execution.
           </p>
-
-          <div className="flex items-center justify-center gap-4 pt-8">
-            <Link 
-              href="/marketplace" 
-              className="inline-flex h-12 items-center justify-center rounded-md bg-white px-8 text-sm font-medium text-neutral-950 transition-colors hover:bg-neutral-200"
-            >
-              Browse Marketplace
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/marketplace" className="public-primary">
+              Browse marketplace <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
-            <Link 
-              href="/builder" 
-              className="inline-flex h-12 items-center justify-center rounded-md border border-neutral-800 bg-transparent px-8 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
-            >
-              Publish a Skill <ArrowRight className="ml-2 h-4 w-4" />
+            <Link href="/builder" className="public-secondary">
+              <TerminalSquare className="size-4" aria-hidden="true" /> Build a skill
             </Link>
           </div>
-        </div>
 
-        <div className="max-w-5xl w-full mt-32">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight text-white">Explore by Category</h2>
-            <p className="text-neutral-400 mt-2">Find the right tool for your agent's next task.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.name} className="cyber-card p-6 flex flex-col items-start gap-4 hover:border-neutral-700 transition-colors cursor-pointer group">
-                <div className="p-3 rounded-md bg-neutral-900 border border-neutral-800 group-hover:bg-neutral-800 transition-colors">
-                  <cat.icon className={`h-6 w-6 ${cat.color}`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{cat.name}</h3>
-                  <p className="text-sm text-neutral-400 mt-1">{cat.description}</p>
-                </div>
+          <div className="public-proof-grid mt-14">
+            {proof.map((item) => (
+              <div key={item.value} className="public-card">
+                <div className="text-sm font-semibold text-foreground">{item.value}</div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.label}</p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
+
+        <section className="public-section">
+          <div className="public-container">
+            <div className="max-w-2xl">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Explore</div>
+              <h2 className="mt-3">Find the right capability without guessing what it can access.</h2>
+              <p className="mt-5 text-base leading-7 text-muted-foreground">
+                Every skill should communicate its workflow, permissions, compatibility, evaluations,
+                and install targets before a user runs it.
+              </p>
+            </div>
+            <div className="public-category-grid mt-10">
+              {categories.map((category) => {
+                const Icon = category.icon;
+                return (
+                  <Link
+                    key={category.name}
+                    href={`/marketplace?category=${encodeURIComponent(category.name)}`}
+                    className="public-card group"
+                  >
+                    <span className="grid size-10 place-items-center rounded-md border border-primary/30 bg-primary/10 text-primary">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    <h3 className="mt-5 text-lg font-semibold text-foreground group-hover:text-primary">{category.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{category.description}</p>
+                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                      View skills <ArrowRight className="size-4" aria-hidden="true" />
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="public-section">
+          <div className="public-container grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Workflow</div>
+              <h2 className="mt-3">From discovery to a verified run.</h2>
+            </div>
+            <div className="grid gap-3">
+              {[
+                [Blocks, "Inspect", "Review instructions, compatibility, versions, and required permissions."],
+                [CheckCircle2, "Evaluate", "Use saved tests and regression results to understand quality."],
+                [TerminalSquare, "Run", "Execute in a controlled workspace and inspect the resulting trace."],
+              ].map(([Icon, title, body], index) => {
+                const StepIcon = Icon as typeof Blocks;
+                return (
+                  <div key={String(title)} className="public-card flex gap-4">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+                      <StepIcon className="size-4" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <div className="text-xs font-mono text-muted-foreground">0{index + 1}</div>
+                      <h3 className="mt-1 font-semibold text-foreground">{String(title)}</h3>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{String(body)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-8 text-center text-sm text-neutral-500 border-t border-neutral-800 mt-auto">
-        &copy; {new Date().getFullYear()} Agent Skill Marketplace.
+      <footer className="public-footer">
+        <div className="public-container flex flex-wrap items-center justify-between gap-3">
+          <span>Agent Skill Marketplace</span>
+          <div className="flex gap-5">
+            <Link href="/docs">Documentation</Link>
+            <Link href="/marketplace">Marketplace</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
