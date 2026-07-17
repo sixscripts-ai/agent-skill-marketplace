@@ -13,6 +13,30 @@ const allowedModels = new Set([
   "anthropic/claude-3-5-sonnet-20240620",
 ]);
 
+const supportedTargets = ["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"] as const;
+
+function normalizeCompatibility(markdown: string) {
+  const section = markdown.match(/^##\s+Compatibility\s*$([\s\S]*?)(?=^##\s+|(?![\s\S]))/im)?.[1] ?? "";
+  const frontmatter = markdown.match(/^compatibility:\s*(.+)$/im)?.[1] ?? "";
+  const compatibilitySource = `${frontmatter}\n${section}`.toLowerCase();
+  const selectedTargets = supportedTargets.filter((target) => compatibilitySource.includes(target.toLowerCase()));
+  const normalizedTargets = selectedTargets.length ? selectedTargets : ["Codex", "Claude", "VS Code"];
+  const list = normalizedTargets.map((target) => `- ${target}`).join("\n");
+  const frontmatterLine = `compatibility: ${normalizedTargets.join(", ")}`;
+
+  let next = markdown.match(/^compatibility:\s*.+$/im)
+    ? markdown.replace(/^compatibility:\s*.+$/im, frontmatterLine)
+    : markdown.replace(/^description:\s*.+$/im, (line) => `${line}\n${frontmatterLine}`);
+
+  if (/^##\s+Compatibility\s*$/im.test(next)) {
+    next = next.replace(/^##\s+Compatibility\s*$([\s\S]*?)(?=^##\s+|(?![\s\S]))/im, `## Compatibility\n${list}\n`);
+  } else {
+    next = `${next.trimEnd()}\n\n## Compatibility\n${list}\n`;
+  }
+
+  return next;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, model: requestedModel, currentSkill } = await req.json();
@@ -61,11 +85,14 @@ Rules:
 2. Preserve useful existing content unless the user asks for a full rewrite.
 3. Ask at most one concise clarification question only when a required fact is genuinely missing.
 4. Never generate React, API, database, website, or infrastructure code.
-5. The completed SKILL.md must include YAML frontmatter with name, description, license, compatibility, and metadata containing author and version.
-6. Include an H1 title, ## Workflow, ## Permissions, ## Examples, and ## Compatibility.
-7. Permission keys may only be: read_files, write_files, network, shell, browser, run_evals, install_deps.
-8. Use concrete instructions, failure handling, safety constraints, and usable examples.
-9. After a successful tool update, briefly explain what changed. Do not paste the entire markdown into the chat response.`;
+5. YAML frontmatter name must be a lowercase hyphenated slug. The H1 title must be the human-readable skill name.
+6. Include frontmatter description, license, compatibility, and metadata containing author and version.
+7. Include an H1 title, ## Workflow, ## Permissions, ## Examples, and ## Compatibility.
+8. Permission keys may only be: read_files, write_files, network, shell, browser, api_keys.
+9. Compatibility targets may only be: Codex, Claude, Antigravity, OpenCode, Grok, VS Code. Omit unsupported targets even if the user requests them.
+10. The first item under ## Examples must be a realistic prompt that can be used immediately as the Builder test input.
+11. Use concrete instructions, failure handling, safety constraints, and usable examples.
+12. After a successful tool update, briefly explain what changed. Do not paste the entire markdown into the chat response.`;
 
     const result = streamText({
       model: aiModel,
@@ -77,7 +104,7 @@ Rules:
           inputSchema: z.object({
             markdown: z.string().min(100).describe("The complete SKILL.md content, including YAML frontmatter and all required sections."),
           }),
-          execute: async ({ markdown }) => ({ success: true, updatedContent: markdown }),
+          execute: async ({ markdown }) => ({ success: true, updatedContent: normalizeCompatibility(markdown) }),
         }),
       },
     });

@@ -3,10 +3,10 @@
 import dynamic from "next/dynamic";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useRef, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { executeSkillRunStream } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
-import { parseSkillMarkdown } from "@/lib/skill-import";
+import { inferSkillTestPrompt, parseSkillMarkdown } from "@/lib/skill-import";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile, SkillRun } from "@/lib/types";
 import { SafeMessageResponse } from "./safe-message-response";
 import { ApiSettingsModal } from "./api-settings-modal";
@@ -63,7 +63,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "write_files", "network", "shell"]);
   const [selectedTargets, setSelectedTargets] = useState<string[]>(initialDraft?.compatibilityTargets ?? ["Codex", "Claude", "VS Code"]);
   const [visibility, setVisibility] = useState<BuilderVisibility>(initialDraft?.visibility ?? "public");
-  const [testInput, setTestInput] = useState("Create a postmortem from a failed deployment trace.");
+  const [testInput, setTestInput] = useState(() => inferSkillTestPrompt(initialDraft?.skillMd ?? starterSkill));
   const [publishedSlug, setPublishedSlug] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [importResult, setImportResult] = useState<ParsedSkillImport | null>(null);
@@ -82,13 +82,17 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [input, setInput] = useState("");
   const [copilotError, setCopilotError] = useState("");
 
-  const copilotStateRef = useRef({ model: copilotModel, currentSkill: skillMd, apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}" });
+  const copilotStateRef = useRef({
+    model: copilotModel,
+    currentSkill: skillMd,
+    apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
+  });
 
   useEffect(() => {
     copilotStateRef.current = {
       model: copilotModel,
       currentSkill: skillMd,
-      apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}"
+      apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
     };
   }, [copilotModel, skillMd, settingsRevision]);
 
@@ -96,12 +100,10 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     api: "/api/skills/generate",
     fetch: async (url, init) => {
       const state = copilotStateRef.current;
-      const body = JSON.parse(init?.body as string || "{}");
-      
-      // dynamically inject latest state
+      const body = JSON.parse((init?.body as string) || "{}");
       body.model = state.model;
       body.currentSkill = state.currentSkill;
-      
+
       return fetch(url, {
         ...init,
         body: JSON.stringify(body),
@@ -110,7 +112,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           "x-api-keys": state.apiKeys,
         },
       });
-    }
+    },
   }), []);
 
   const { messages, sendMessage, status, stop } = useChat({
@@ -126,7 +128,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     for (const part of lastMessage.parts) {
       if (part.type === "tool-update_skill_markdown") {
         const toolPart = part as typeof part & { input?: { markdown?: string }; output?: { updatedContent?: string } };
-        const markdown = toolPart.input?.markdown ?? toolPart.output?.updatedContent;
+        const markdown = toolPart.output?.updatedContent ?? toolPart.input?.markdown;
         if (markdown && markdown !== skillMd) {
           setSkillMd(markdown);
           void importSkill(markdown);
@@ -159,18 +161,41 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
   }
 
-  async function importSkill(nextSkillMd = skillMd) {
-    setUploadError("");
-    const response = await fetch("/api/skills/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ skillMd: nextSkillMd }) });
-    const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
-    const localParsed = parseSkillMarkdown(nextSkillMd);
-    const parsed = response.ok && payload ? payload : { ...localParsed, suggestions: [...localParsed.suggestions, response.status === 401 ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now." : "The server parser was unavailable, so local formatting suggestions are shown."] };
-    if (!response.ok) setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
+  function applyParsedSkill(parsed: ParsedSkillImport, sourceSkillMd: string) {
     setImportResult(parsed);
-    setName(parsed.name); setSlug(parsed.slug); setCategory(parsed.category); setSummary(parsed.description);
-    setSelectedPermissions(parsed.permissions); setSelectedTargets(parsed.compatibilityTargets);
+    setName(parsed.name);
+    setSlug(parsed.slug);
+    setCategory(parsed.category);
+    setSummary(parsed.description);
+    setSelectedPermissions(parsed.permissions);
+    setSelectedTargets(parsed.compatibilityTargets);
+    setTestInput(inferSkillTestPrompt(sourceSkillMd));
     if (parsed.packageUploadId) setPackageUploadId(parsed.packageUploadId);
     if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
+  }
+
+  async function importSkill(nextSkillMd = skillMd) {
+    setUploadError("");
+    const response = await fetch("/api/skills/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ skillMd: nextSkillMd }),
+    });
+    const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
+    const localParsed = parseSkillMarkdown(nextSkillMd);
+    const parsed = response.ok && payload
+      ? payload
+      : {
+          ...localParsed,
+          suggestions: [
+            ...localParsed.suggestions,
+            response.status === 401
+              ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now."
+              : "The server parser was unavailable, so local formatting suggestions are shown.",
+          ],
+        };
+    if (!response.ok) setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
+    applyParsedSkill(parsed, nextSkillMd);
   }
 
   async function uploadSkillFile(event: ChangeEvent<HTMLInputElement>) {
@@ -178,38 +203,74 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (!files.length) return;
     setUploadError("");
     const form = new FormData();
-    for (const file of files) form.append("files", file, (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
+    for (const file of files) {
+      form.append("files", file, (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
+    }
     const response = await fetch("/api/skills/upload", { method: "POST", body: form });
     const payload = (await response.json()) as ParsedSkillImport & { error?: string };
-    if (!response.ok) { setUploadError(payload.error ?? "Upload failed."); event.target.value = ""; return; }
+    if (!response.ok) {
+      setUploadError(payload.error ?? "Upload failed.");
+      event.target.value = "";
+      return;
+    }
+    const importedSkillMd = payload.primarySkillMd ?? payload.suggestedSkillMd;
     setUploadedFileName(files.length === 1 ? files[0].name : `${files.length} files`);
-    setImportResult(payload); setPackageUploadId(payload.packageUploadId ?? ""); setPackageFiles(payload.packageFiles ?? []);
-    setSkillMd(payload.primarySkillMd ?? payload.suggestedSkillMd); setName(payload.name); setSlug(payload.slug); setCategory(payload.category); setSummary(payload.description);
-    setSelectedPermissions(payload.permissions); setSelectedTargets(payload.compatibilityTargets); event.target.value = "";
+    setPackageUploadId(payload.packageUploadId ?? "");
+    setPackageFiles(payload.packageFiles ?? []);
+    setSkillMd(importedSkillMd);
+    applyParsedSkill(payload, importedSkillMd);
+    event.target.value = "";
   }
 
   function applySuggestedSkillMd() {
     if (!importResult) return;
-    setSkillMd(importResult.suggestedSkillMd); setName(importResult.name); setSlug(importResult.slug); setCategory(importResult.category); setSummary(importResult.description);
-    setSelectedPermissions(importResult.permissions); setSelectedTargets(importResult.compatibilityTargets);
+    setSkillMd(importResult.suggestedSkillMd);
+    applyParsedSkill(importResult, importResult.suggestedSkillMd);
   }
 
   async function publishSkill() {
-    setSaveError(""); setSavedUrls(null); setIsSaving(true);
-    const response = await fetch("/api/skills", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, slug, category, summary, skillMd, permissions: selectedPermissions, compatibilityTargets: selectedTargets, visibility, packageUploadId: packageUploadId || undefined }) });
+    setSaveError("");
+    setSavedUrls(null);
+    setIsSaving(true);
+    const response = await fetch("/api/skills", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name,
+        slug,
+        category,
+        summary,
+        skillMd,
+        permissions: selectedPermissions,
+        compatibilityTargets: selectedTargets,
+        visibility,
+        packageUploadId: packageUploadId || undefined,
+      }),
+    });
     const payload = (await response.json()) as { skill?: { slug: string }; urls?: BuilderSavedUrls; error?: string };
-    if (response.ok && payload.skill && payload.urls) { setPublishedSlug(payload.skill.slug); setSavedUrls(payload.urls); } else setSaveError(payload.error ?? "Skill save failed.");
+    if (response.ok && payload.skill && payload.urls) {
+      setPublishedSlug(payload.skill.slug);
+      setSavedUrls(payload.urls);
+    } else {
+      setSaveError(payload.error ?? "Skill save failed.");
+    }
     setIsSaving(false);
   }
 
   async function runTest() {
     const prompt = testInput.trim();
     if (!prompt || isTesting) return;
-    setIsTesting(true); setTestRun(null);
+    setIsTesting(true);
+    setTestRun(null);
     await executeSkillRunStream({
-      skillSlug: "agent-observer", input: prompt, deniedPermissions: [],
+      skillSlug: "agent-observer",
+      input: prompt,
+      deniedPermissions: [],
       onRun: setTestRun,
-      onEvent: (event) => setTestRun((current) => current ? { ...current, events: [...current.events.filter((item) => item.order !== event.order), event].sort((a, b) => a.order - b.order) } : current),
+      onEvent: (event) => setTestRun((current) => current ? {
+        ...current,
+        events: [...current.events.filter((item) => item.order !== event.order), event].sort((a, b) => a.order - b.order),
+      } : current),
       onOutput: (output) => setTestRun((current) => current ? { ...current, output } : null),
       onComplete: setTestRun,
       onError: (message) => setTestRun((current) => current ? { ...current, status: "failed", output: message } : null),
@@ -220,8 +281,13 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   async function pasteSkill() {
     try {
       const text = await navigator.clipboard.readText();
-      if (text.trim()) { setSkillMd(text); await importSkill(text); }
-    } catch { document.getElementById("builder-skill-md")?.focus(); }
+      if (text.trim()) {
+        setSkillMd(text);
+        await importSkill(text);
+      }
+    } catch {
+      document.getElementById("builder-skill-md")?.focus();
+    }
   }
 
   function submitCopilot(event: FormEvent<HTMLFormElement>) {

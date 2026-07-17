@@ -1,7 +1,7 @@
 "use client";
 
-import type { FormEvent } from "react";
-import { AlertCircle, Bot, KeyRound, Send, Sparkles, Square } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { AlertCircle, Bot, CheckCircle2, KeyRound, Send, Sparkles, Square } from "lucide-react";
 
 export type BuilderCopilotMessage = {
   id: string;
@@ -85,13 +85,7 @@ export function BuilderCopilot({
       <div className="builder-copilot-thread" aria-live="polite">
         {messages.length === 0 ? (
           <div className="builder-copilot-empty"><Sparkles className="size-5 text-primary" /><span>Start with a plain-language idea such as “Build a social media growth skill for Shopify stores.”</span></div>
-        ) : messages.map((message) => (
-          <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`builder-copilot-message ${message.role === "user" ? "builder-copilot-message-user" : "builder-copilot-message-agent"}`}>
-              {message.parts.map((part, index) => part.type === "text" ? <div key={index}>{part.text}</div> : part.type.startsWith("tool-") ? <div key={part.toolCallId ?? index} className="flex items-center gap-2 text-xs"><Sparkles className="size-3" />Updating SKILL.md...</div> : null)}
-            </div>
-          </div>
-        ))}
+        ) : messages.map((message) => <CopilotMessage key={message.id} message={message} />)}
       </div>
 
       {error ? <div className="builder-copilot-error" role="alert"><AlertCircle className="size-4 shrink-0" /><span>{error}</span><button type="button" onClick={onOpenSettings}>Check API keys</button></div> : null}
@@ -105,5 +99,39 @@ export function BuilderCopilot({
         )}
       </form>
     </section>
+  );
+}
+
+function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
+  const [expanded, setExpanded] = useState(false);
+  const textParts = message.parts.filter((part) => part.type === "text" && part.text);
+  const toolParts = message.parts.filter((part) => part.type.startsWith("tool-"));
+  const combinedText = textParts.map((part) => part.text ?? "").join("\n");
+  const isLongUserPrompt = message.role === "user" && (combinedText.length > 420 || combinedText.split("\n").length > 6);
+
+  return (
+    <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+      <div className={`builder-copilot-message ${message.role === "user" ? "builder-copilot-message-user" : "builder-copilot-message-agent"}`}>
+        {textParts.length ? (
+          <div className={`builder-copilot-message-body ${isLongUserPrompt && !expanded ? "builder-copilot-message-collapsed" : ""}`}>
+            {textParts.map((part, index) => <div key={index}>{part.text}</div>)}
+          </div>
+        ) : null}
+        {isLongUserPrompt ? (
+          <button type="button" className="builder-copilot-expand" onClick={() => setExpanded((value) => !value)}>
+            {expanded ? "Collapse prompt" : "Show full prompt"}
+          </button>
+        ) : null}
+        {toolParts.map((part, index) => {
+          const complete = part.state === "output-available";
+          return (
+            <div key={part.toolCallId ?? index} className="builder-copilot-tool-status">
+              {complete ? <CheckCircle2 className="size-3.5" /> : <Sparkles className="size-3.5" />}
+              {complete ? "SKILL.md updated and synchronized." : "Updating SKILL.md..."}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

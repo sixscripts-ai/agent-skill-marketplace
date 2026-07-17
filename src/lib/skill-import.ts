@@ -10,6 +10,14 @@ function slugify(value: string) {
     .slice(0, 64);
 }
 
+function humanizeName(value: string) {
+  return value
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 function frontmatterValue(skillMd: string, key: string) {
   const match = skillMd.match(new RegExp(`^${key}:\\s*(.+)$`, "im"));
   return match?.[1]?.replace(/^["']|["']$/g, "").trim() ?? "";
@@ -25,9 +33,21 @@ function hasSection(lower: string, heading: string) {
   return lower.includes(`## ${heading.toLowerCase()}`);
 }
 
+export function inferSkillTestPrompt(skillMd: string) {
+  const examples = sectionContent(skillMd, "Examples");
+  const firstExample = examples.match(/^\s*[-*]\s+(.+)$/m)?.[1]?.trim();
+  if (firstExample) {
+    return firstExample.replace(/^['"`]|['"`]$/g, "").trim();
+  }
+
+  const title = skillMd.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  return title ? `Use ${title} for a realistic example task.` : "Run this skill on a realistic example task.";
+}
+
 export function parseSkillMarkdown(skillMd: string): ParsedSkillImport {
   const title = skillMd.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? "";
-  const name = frontmatterValue(skillMd, "name") || title || "Untitled Skill";
+  const frontmatterName = frontmatterValue(skillMd, "name");
+  const name = title || (frontmatterName ? humanizeName(frontmatterName) : "Untitled Skill");
   const description = frontmatterValue(skillMd, "description") || "Imported agent skill package.";
   const lower = skillMd.toLowerCase();
   const permissions = permissionKeys.filter((permission) => lower.includes(permission));
@@ -66,7 +86,7 @@ export function parseSkillMarkdown(skillMd: string): ParsedSkillImport {
   return {
     name,
     description,
-    slug: slugify(name) || "imported-skill",
+    slug: slugify(frontmatterName || title || name) || "imported-skill",
     category,
     permissions: normalizedPermissions,
     compatibilityTargets: normalizedTargets,
@@ -105,7 +125,7 @@ function buildSuggestedSkillMarkdown(
   const notes = sectionContent(skillMd, "Notes");
 
   return `---
-name: ${parsed.name}
+name: ${slugify(parsed.name)}
 description: ${parsed.description}
 ---
 
@@ -128,10 +148,12 @@ ${compatibility}${notes ? `\n\n## Notes\n${notes}` : ""}
 }
 
 function inferCategory(lower: string) {
-  if (lower.includes("rag") || lower.includes("retrieval") || lower.includes("citation")) return "Retrieval";
-  if (lower.includes("review") || lower.includes("diff") || lower.includes("pr")) return "Code Review";
-  if (lower.includes("trace") || lower.includes("observability")) return "Observability";
-  if (lower.includes("incident") || lower.includes("postmortem")) return "Reliability";
-  if (lower.includes("research") || lower.includes("source")) return "Research";
+  if (/\b(marketing|social media|instagram|tiktok|facebook|content calendar|campaign|ecommerce|e-commerce)\b/.test(lower)) return "Marketing";
+  if (/\b(rag|retrieval|citation)\b/.test(lower)) return "Retrieval";
+  if (/\b(code review|pull request|merge request|review a diff|git diff)\b/.test(lower)) return "Code Review";
+  if (/\b(trace|tracing|observability|telemetry)\b/.test(lower)) return "Observability";
+  if (/\b(incident|postmortem|reliability|outage)\b/.test(lower)) return "Reliability";
+  if (/\b(research|source analysis|literature review)\b/.test(lower)) return "Research";
+  if (/\b(security|vulnerability|threat|compliance)\b/.test(lower)) return "Security";
   return "Automation";
 }
