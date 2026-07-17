@@ -31,9 +31,10 @@ export async function generateCopilotRefinement(
 
   const { text } = await generateText({
     model: aiModel,
-    system: `You are an AI assistant helping a developer write instructions for their autonomous AI agent.
+    system: `You are an AI assistant helping a developer write the instructions.md file for their autonomous AI agent.
 The agent uses the "Eve" filesystem-first framework.
-Your task is to take the user's request, look at the current agent instructions, and output the NEW, FULL, REFINED instructions in markdown.
+Your task is to take the user's request, look at the current agent instructions, and output the NEW, FULL, REFINED instructions.md file in markdown.
+The output MUST be the instructions for the agent (e.g. "Your goal is to build an app...", "Use these tools to...", "Follow these steps..."), NOT the actual app code or implementation.
 DO NOT include any commentary, just the final markdown file content. Do not wrap the output in markdown code blocks (\`\`\`).
 Current Instructions:
 ${currentInstructions}`,
