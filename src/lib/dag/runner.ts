@@ -1,5 +1,5 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { AgentStateSchema, type AgentState } from "./schema";
+import { StateAnnotation, type AgentState } from "./schema";
 import { PrismaCheckpointer } from "./checkpointer";
 import { mcpMounterNode, llmProcessorNode, terminalExecutorNode, errorHandlerNode } from "./nodes";
 
@@ -7,25 +7,25 @@ import { mcpMounterNode, llmProcessorNode, terminalExecutorNode, errorHandlerNod
 export const checkpointer = new PrismaCheckpointer();
 
 // Build the workflow graph
-const workflow = new StateGraph<AgentState>({ channels: AgentStateSchema as any })
-  .addNode("mcpMounter", mcpMounterNode as any)
-  .addNode("llmProcessor", llmProcessorNode as any)
-  .addNode("terminalExecutor", terminalExecutorNode as any)
-  .addNode("errorHandler", errorHandlerNode as any)
+const workflow = new StateGraph(StateAnnotation)
+  .addNode("mcpMounter", mcpMounterNode)
+  .addNode("llmProcessor", llmProcessorNode)
+  .addNode("terminalExecutor", terminalExecutorNode)
+  .addNode("errorHandler", errorHandlerNode)
   
   // Define strict deterministic routing
   .addEdge(START, "mcpMounter")
   .addConditionalEdges(
     "mcpMounter",
-    (state: AgentState) => state.hasError ? "errorHandler" : "llmProcessor"
+    (state: typeof StateAnnotation.State) => state.hasError ? "errorHandler" : "llmProcessor"
   )
   .addConditionalEdges(
     "llmProcessor",
-    (state: AgentState) => state.payload.requiresTerminal ? "terminalExecutor" : END
+    (state: typeof StateAnnotation.State) => state.payload.requiresTerminal ? "terminalExecutor" : END
   )
   .addConditionalEdges(
     "errorHandler",
-    (state: AgentState) => state.retryCount < 3 ? "mcpMounter" : END
+    (state: typeof StateAnnotation.State) => state.retryCount < 3 ? "mcpMounter" : END
   )
   .addEdge("terminalExecutor", END);
 
