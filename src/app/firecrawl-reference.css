@@ -1,0 +1,299 @@
+/* Firecrawl-inspired product theme: Heat, Graphite, and Paper. */
+
+:root {
+  --fire-heat: #fa5d19;
+  --fire-heat-hover: #e94f0f;
+  --fire-heat-soft: rgba(250, 93, 25, 0.1);
+  --fire-heat-line: rgba(250, 93, 25, 0.34);
+  --fire-graphite: #262626;
+  --fire-paper: #f9f9f9;
+  --fire-panel: #ffffff;
+  --fire-subtle: #f2f2f0;
+  --fire-line: #deded9;
+  --fire-line-strong: #bdbdb5;
+  --fire-muted: #70706b;
+
+  --background: var(--fire-paper);
+  --foreground: var(--fire-graphite);
+  --card: var(--fire-panel);
+  --card-foreground: var(--fire-graphite);
+  --panel-subtle: var(--fire-subtle);
+  --border: var(--fire-line);
+  --border-strong: var(--fire-line-strong);
+  --muted: var(--fire-subtle);
+  --muted-foreground: var(--fire-muted);
+  --topbar: rgba(249, 249, 249, 0.92);
+  --topbar-border: var(--fire-line);
+  --topbar-text: var(--fire-graphite);
+  --topbar-muted: var(--fire-muted);
+  --sidebar: #f4f4f1;
+  --sidebar-foreground: #41413d;
+  --sidebar-accent: #eaeae5;
+  --sidebar-accent-foreground: var(--fire-graphite);
+  --sidebar-border: var(--fire-line);
+  --sidebar-ring: var(--fire-heat);
+  --sidebar-primary: var(--fire-heat);
+  --sidebar-primary-foreground: #ffffff;
+  --primary: var(--fire-heat);
+  --primary-hover: var(--fire-heat-hover);
+  --primary-foreground: #ffffff;
+  --secondary: var(--fire-subtle);
+  --secondary-foreground: var(--fire-graphite);
+  --accent: #ecece7;
+  --accent-foreground: var(--fire-graphite);
+  --popover: var(--fire-panel);
+  --popover-foreground: var(--fire-graphite);
+  --input: var(--fire-line);
+  --ring: var(--fire-heat);
+  --brand: var(--fire-heat);
+  --brand-foreground: #ffffff;
+  --brand-soft: var(--fire-heat-soft);
+  --brand-border: var(--fire-heat-line);
+  --brand-glow: transparent;
+
+  --surface-canvas: var(--fire-paper);
+  --surface-panel: var(--fire-panel);
+  --surface-raised: var(--fire-panel);
+  --surface-subtle: var(--fire-subtle);
+  --surface-hover: #ebebe6;
+  --text-strong: var(--fire-graphite);
+  --text-body: #3f3f3b;
+  --text-muted: var(--fire-muted);
+  --line-soft: var(--fire-line);
+  --line-strong: var(--fire-line-strong);
+  --accent-solid: var(--fire-heat);
+  --accent-hover: var(--fire-heat-hover);
+  --accent-soft: var(--fire-heat-soft);
+  --accent-line: var(--fire-heat-line);
+  --focus-ring: rgba(250, 93, 25, 0.28);
+  --shadow-panel: 0 1px 0 rgba(38, 38, 38, 0.04), 0 10px 30px rgba(38, 38, 38, 0.055);
+  --shadow-float: 0 22px 60px rgba(38, 38, 38, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fire-paper: #171717;
+    --fire-panel: #202020;
+    --fire-subtle: #292927;
+    --fire-line: #3a3a36;
+    --fire-line-strong: #55554f;
+    --fire-muted: #aaa9a1;
+
+    --background: var(--fire-paper);
+    --foreground: #f9f9f7;
+    --card: var(--fire-panel);
+    --card-foreground: #f9f9f7;
+    --panel-subtle: var(--fire-subtle);
+    --border: var(--fire-line);
+    --border-strong: var(--fire-line-strong);
+    --muted: var(--fire-subtle);
+    --muted-foreground: var(--fire-muted);
+    --topbar: rgba(23, 23, 23, 0.92);
+    --topbar-border: var(--fire-line);
+    --topbar-text: #f9f9f7;
+    --topbar-muted: var(--fire-muted);
+    --sidebar: #1a1a1a;
+    --sidebar-foreground: #d8d8d2;
+    --sidebar-accent: #2a2a27;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: var(--fire-line);
+    --secondary: var(--fire-subtle);
+    --secondary-foreground: #f9f9f7;
+    --accent: #30302d;
+    --accent-foreground: #ffffff;
+    --popover: var(--fire-panel);
+    --popover-foreground: #f9f9f7;
+    --input: var(--fire-line);
+
+    --surface-canvas: var(--fire-paper);
+    --surface-panel: var(--fire-panel);
+    --surface-raised: #252523;
+    --surface-subtle: var(--fire-subtle);
+    --surface-hover: #32322f;
+    --text-strong: #f9f9f7;
+    --text-body: #d5d5cf;
+    --text-muted: var(--fire-muted);
+    --line-soft: var(--fire-line);
+    --line-strong: var(--fire-line-strong);
+    --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.025), 0 16px 38px rgba(0, 0, 0, 0.2);
+    --shadow-float: 0 24px 70px rgba(0, 0, 0, 0.42);
+  }
+}
+
+html,
+body {
+  background: var(--surface-canvas);
+}
+
+body {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--line-soft) 36%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-soft) 36%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  color: var(--text-body);
+}
+
+.topbar {
+  background: var(--topbar);
+  border-bottom-color: var(--line-soft);
+  box-shadow: 0 1px 0 rgba(38, 38, 38, 0.03);
+}
+
+[data-slot="sidebar"] {
+  background: color-mix(in srgb, var(--sidebar) 96%, transparent);
+}
+
+[data-slot="sidebar-menu-button"][data-active="true"],
+[data-slot="sidebar-menu-button"][aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-solid);
+}
+
+[data-slot="button"] {
+  border-radius: 0.4rem;
+}
+
+[data-slot="card"] {
+  border-radius: 0.55rem;
+  box-shadow: none;
+}
+
+.marketplace-cyber::before {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(250, 93, 25, 0.1), transparent 25rem),
+    linear-gradient(to right, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px) !important;
+  background-size: auto, 48px 48px, 48px 48px !important;
+}
+
+.marketplace-cyber section:first-child > div:first-child {
+  border-radius: 0.35rem !important;
+  background: var(--surface-panel) !important;
+  box-shadow: 3px 3px 0 var(--accent-soft) !important;
+}
+
+.marketplace-cyber section:first-child h1 {
+  max-width: 14ch;
+  letter-spacing: -0.075em !important;
+}
+
+.marketplace-cyber .cyber-gradient-text {
+  background: none !important;
+  color: var(--accent-solid) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.marketplace-cyber section:first-child > div:last-child span:not([class]) {
+  border-radius: 0.35rem;
+  background: var(--surface-panel);
+  box-shadow: 2px 2px 0 var(--surface-subtle);
+  font-family: var(--font-mono) !important;
+}
+
+/* Compact sticky discovery rail. It stays sticky while the page scrolls,
+   and all controls remain in a single horizontally-scrollable line. */
+.marketplace-cyber > .mx-auto > .cyber-card {
+  top: 4.25rem;
+  overflow: hidden;
+  border-radius: 0.55rem;
+  padding: 0.55rem;
+  background: color-mix(in srgb, var(--surface-panel) 96%, transparent);
+  box-shadow: 0 10px 28px rgba(38, 38, 38, 0.08);
+}
+
+.marketplace-cyber > .mx-auto > .cyber-card > div {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  padding-bottom: 0.1rem;
+}
+
+.marketplace-cyber > .mx-auto > .cyber-card > div > div:first-child {
+  display: flex !important;
+  flex: 0 0 auto;
+  flex-wrap: nowrap !important;
+  gap: 0.35rem !important;
+}
+
+.marketplace-cyber > .mx-auto > .cyber-card > div > div:last-child {
+  display: flex !important;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem !important;
+}
+
+.marketplace-cyber .cyber-pill {
+  min-height: 2.15rem;
+  flex: 0 0 auto;
+  border-radius: 0.35rem;
+  padding-inline: 0.72rem !important;
+  font-family: var(--font-mono);
+  font-size: 0.72rem !important;
+  letter-spacing: 0.01em;
+}
+
+.marketplace-cyber .cyber-pill[aria-pressed="true"] {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: #ffffff;
+}
+
+.marketplace-cyber .cyber-select {
+  width: 9.25rem !important;
+  min-width: 9.25rem;
+  min-height: 2.3rem;
+  border-radius: 0.35rem;
+  background: var(--surface-panel);
+  font-size: 0.76rem !important;
+}
+
+.marketplace-cyber [data-testid="marketplace-search"] {
+  width: 13.5rem !important;
+  min-width: 13.5rem;
+  background: var(--surface-panel);
+}
+
+.marketplace-cyber [data-testid="skill-card"] {
+  border-radius: 0.55rem;
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--line-soft) 55%, transparent);
+}
+
+.marketplace-cyber [data-testid="skill-card"]:hover {
+  border-color: var(--accent-solid);
+  box-shadow: 5px 5px 0 var(--accent-soft);
+}
+
+.marketplace-cyber [data-testid="skill-card"] > div:first-child > div:first-child > div:first-child {
+  border-radius: 0.35rem !important;
+  background: var(--accent-solid) !important;
+  color: #ffffff !important;
+}
+
+.marketplace-cyber [data-testid="skill-card"]:hover h3 {
+  color: var(--accent-solid) !important;
+}
+
+.marketplace-cyber .cyber-badge,
+.marketplace-cyber .cyber-badge-amber,
+.marketplace-cyber .cyber-badge-red,
+.marketplace-cyber .cyber-badge-blue,
+.marketplace-cyber .cyber-badge-neutral {
+  border-radius: 0.3rem;
+}
+
+@media (max-width: 767px) {
+  .marketplace-cyber > .mx-auto > .cyber-card {
+    position: sticky !important;
+    top: 3.75rem !important;
+  }
+
+  .marketplace-cyber > .mx-auto > .cyber-card > div {
+    margin-inline: -0.1rem;
+    padding-inline: 0.1rem;
+  }
+}
