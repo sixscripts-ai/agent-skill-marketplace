@@ -1,0 +1,141 @@
+/* Production shell and marketplace styling for the Firecrawl-inspired redesign. */
+
+.app-shell-v2 {
+  min-height: 100vh;
+  background: var(--surface-canvas);
+  color: var(--text-body);
+}
+
+.app-shell-v2 .topbar-v2 {
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--surface-canvas) 92%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell-v2 .brand-mark {
+  background: var(--accent-solid);
+  color: #fff;
+  box-shadow: 3px 3px 0 var(--accent-soft);
+}
+
+.app-shell-v2 .nav-link-active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-solid);
+}
+
+.app-shell-v2 .global-search {
+  border: 1px solid var(--line-soft);
+  background: var(--surface-panel);
+}
+
+.marketplace-v2 {
+  position: relative;
+  min-height: calc(100vh - 3.5rem);
+}
+
+.marketplace-v2::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 0%, var(--accent-soft), transparent 26rem),
+    linear-gradient(to right, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+}
+
+.marketplace-hero-v2 {
+  padding-block: clamp(3.5rem, 8vw, 6.25rem);
+}
+
+.marketplace-hero-v2 h1 {
+  max-width: 13ch;
+  font-size: clamp(3rem, 7vw, 5.75rem);
+  line-height: 0.96;
+  letter-spacing: -0.075em;
+}
+
+.discovery-rail-v2 {
+  position: sticky;
+  top: 4.25rem;
+  z-index: 30;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--surface-panel) 96%, transparent);
+  box-shadow: 0 12px 30px rgba(38, 38, 38, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.discovery-row-v2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.55rem;
+  white-space: nowrap;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.discovery-search-v2 {
+  width: 15rem;
+  min-width: 15rem;
+  height: 2.35rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 0.4rem;
+  background: var(--surface-panel);
+  padding-inline: 0.75rem;
+}
+
+.discovery-control-v2 {
+  flex: 0 0 auto;
+  height: 2.35rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 0.4rem;
+  background: var(--surface-panel);
+  padding-inline: 0.75rem;
+  color: var(--text-body);
+  font-size: 0.78rem;
+}
+
+.discovery-pill-v2[aria-pressed="true"] {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+.skill-card-v2 {
+  border: 1px solid var(--line-soft);
+  border-radius: 0.6rem;
+  background: var(--surface-panel);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--line-soft) 60%, transparent);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.skill-card-v2:hover {
+  border-color: var(--accent-solid);
+  box-shadow: 5px 5px 0 var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.skill-card-v2 .skill-icon-v2 {
+  border: 1px solid var(--accent-line);
+  border-radius: 0.4rem;
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  .discovery-rail-v2 {
+    top: 3.75rem;
+  }
+
+  .marketplace-hero-v2 {
+    padding-block: 2.75rem 3.5rem;
+  }
+}
