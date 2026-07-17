@@ -45,8 +45,8 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   const skill = await findSkill(slug, await getCurrentUser());
   if (!skill) notFound();
-  const version = latestVersion(skill);
-  const latestScore = skill.evalSuites[0]?.results[0]?.score ?? 0;
+  const version = latestVersion(skill) || { readme: "No README available.", skillMd: "No SKILL.md available.", compatibilityTargets: [] } as any;
+  const latestScore = skill.evalSuites?.[0]?.results?.[0]?.score ?? 0;
 
   return (
     <div className="marketplace-cyber min-h-screen bg-[#0f1729] pt-10 pb-20">
@@ -97,7 +97,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
             <div className="cyber-card p-6">
               <h2 className="font-semibold text-white">Required Permissions</h2>
               <div className="mt-6 flex flex-col gap-3">
-                {skill.permissions.map((permission) => (
+                {(skill.permissions || []).map((permission) => (
                     <div key={permission.key} className="cyber-inset p-4">
                       <div className="flex items-start justify-between gap-3">
                         <span className="font-mono text-sm font-medium text-white">{permission.key}</span>
@@ -130,7 +130,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
               <div className="cyber-card p-6">
                 <h2 className="font-semibold text-white">Compatibility</h2>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {version.compatibilityTargets.map((target) => (
+                  {(version.compatibilityTargets || []).map((target: string) => (
                     <CyberBadge key={target} tone="neutral">{target}</CyberBadge>
                   ))}
                 </div>
@@ -154,7 +154,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
               <div className="cyber-card p-6">
                 <h2 className="font-semibold text-white">Reviews</h2>
                 <div className="mt-4 flex flex-col gap-4">
-                  {skill.reviews.map((review) => (
+                  {(skill.reviews || []).map((review) => (
                     <div key={review.comment} className="cyber-inset p-4">
                       <span className="font-mono text-sm font-semibold text-white">{review.user}</span>
                       <p className="mt-2 text-sm leading-6 text-gray-400">{review.comment}</p>
