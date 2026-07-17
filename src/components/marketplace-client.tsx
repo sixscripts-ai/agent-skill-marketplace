@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { categories, compatibilityTargets, latestVersion, permissionKeys, permissionLabels } from "@/lib/data";
 import type { CompatibilityTarget, Skill } from "@/lib/types";
-import { ActionGuide } from "./feature-walkthrough";
+import { MarketplaceHero } from "./marketplace-hero";
 import { SkillCard } from "./skill-card";
-import { Badge, ButtonLink, Metric, Panel } from "./ui";
 
 const filterPills = ["All", "Popular", "New", "Top Rated", "Verified"];
 
@@ -18,6 +18,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
   const [pill, setPill] = useState("All");
   const [sort, setSort] = useState("runs");
   const [selectedSlug, setSelectedSlug] = useState("");
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -52,14 +53,12 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
       return matchesQuery && matchesCategory && matchesTarget && matchesPermission && matchesTrust && matchesPill;
     });
 
-    // Sort
     return [...result].sort((a, b) => {
       if (sort === "runs") {
         return b.installCount - a.installCount;
       } else if (sort === "rating") {
         return b.rating - a.rating;
       } else {
-        // updated
         const aDate = new Date(latestVersion(a).createdAt).getTime();
         const bDate = new Date(latestVersion(b).createdAt).getTime();
         return bDate - aDate;
@@ -73,170 +72,203 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
     count: skills.filter((skill) => skill.category === item).length,
   }));
 
+  function scrollToGrid() {
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">Marketplace</h1>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Choose a skill, inspect what it can touch, then run or install it when the trace makes sense.
-          </p>
+    <div className="marketplace-cyber -mx-4 -my-6 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:-my-8 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-7xl">
+        {/* ─── Hero ─── */}
+        <MarketplaceHero onBrowseClick={scrollToGrid} />
+
+        {/* ─── Stats Row ─── */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CyberMetric icon="📦" value={skills.length} label="published skills" />
+          <CyberMetric icon="🎯" value={compatibilityTargets.length} label="install targets" />
+          <CyberMetric icon="📊" value="91%" label="average eval" />
+          <CyberMetric icon="🔒" value="SSE" label="sandbox mode" />
         </div>
-        <ButtonLink href="/builder">New Skill</ButtonLink>
-      </div>
 
-      <ActionGuide
-        steps={[
-          { label: "1", title: "Choose", body: "Search or filter until one skill looks relevant." },
-          { label: "2", title: "Inspect", body: "Open the detail page if you need README, permissions, or versions." },
-          { label: "3", title: "Run", body: "Use Run Skill to test it with a safe prompt before installing." },
-          { label: "4", title: "Install", body: "Export the package only after the result and trace make sense." },
-          { label: "5", title: "Build", body: "Use New Skill when you want to upload or author your own skill." },
-        ]}
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel className="p-4"><Metric label="published skills" value={skills.length} /></Panel>
-        <Panel className="p-4"><Metric label="install targets" value={compatibilityTargets.length} /></Panel>
-        <Panel className="p-4"><Metric label="average eval" value="91%" /></Panel>
-        <Panel className="p-4"><Metric label="sandbox mode" value="SSE" /></Panel>
-      </div>
-
-      <Panel className="p-4">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2">
-            {filterPills.map((item) => (
-              <button
-                key={item}
-                onClick={() => setPill(item)}
-                aria-pressed={pill === item}
-                data-testid={`marketplace-pill-${item.toLowerCase().replaceAll(" ", "-")}`}
-                className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
-                  pill === item
-                    ? "border-brand bg-brand text-brand-foreground"
-                    : "border-neutral-200 bg-[#39FF14] text-neutral-700 hover:bg-neutral-100"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_1fr]">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              data-testid="marketplace-search"
-              aria-label="Search skills"
-              placeholder="Search skills, authors, use cases"
-              className="h-11 rounded-md border px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-            />
-            <Filter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
-            <Filter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
-            <Filter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} labels={permissionLabels} />
-            <Filter label="Trust Level" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
-            <Filter label="Sort By" testId="marketplace-sort" value={sort} onChange={setSort} values={["runs", "rating", "updated"]} labels={{ runs: "Sort by runs", rating: "Sort by rating", updated: "Sort by updated" }} />
-          </div>
-        </div>
-      </Panel>
-
-      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.length ? (
-            filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} onSelect={setSelectedSlug} isSelected={skill.slug === selectedSlug} />)
-          ) : (
-            <Panel className="flex min-h-[400px] flex-col items-center justify-center p-6 text-center sm:col-span-2 lg:col-span-3">
-              <div className="mb-4 grid size-12 place-items-center rounded-full bg-neutral-100">
-                <span className="text-xl">🔍</span>
-              </div>
-              <h2 className="text-lg font-semibold text-neutral-950">No skills found</h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-600">
-                We couldn't find any skills matching your filters. Try clearing your search or adjusting the criteria.
-              </p>
-              <button
-                onClick={() => {
-                  setQuery("");
-                  setCategory("All");
-                  setTarget("All");
-                  setPermission("All");
-                  setTrust("All");
-                  setPill("All");
-                }}
-                className="mt-6 inline-flex h-9 items-center justify-center rounded-md border border-neutral-300 bg-[#39FF14] px-4 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-              >
-                Clear all filters
-              </button>
-            </Panel>
-          )}
-        </section>
-
-        <aside className="flex flex-col gap-4">
-          <Panel className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-medium text-neutral-500">Selected skill</div>
-                <h2 className="mt-2 text-xl font-semibold text-neutral-950">{selected.name}</h2>
-              </div>
-              <Badge tone={selected.trustLevel === "Verified" ? "green" : "amber"}>{selected.trustLevel}</Badge>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-neutral-600">{selected.summary}</p>
-            <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
-              Selected skill preview. Use this panel to decide whether to run, inspect, or install the first matching result.
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-3">
-              <MiniMetric label="rating" value={selected.rating.toFixed(1)} />
-              <MiniMetric label="runs" value={selected.installCount.toLocaleString()} />
-              <MiniMetric label="version" value={selected.currentVersion} />
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {selected.permissions.map((permission) => (
-                <Badge key={permission.key} tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "neutral"}>
-                  {permission.key}
-                </Badge>
-              ))}
-            </div>
-            <div className="mt-5 flex gap-3">
-              <ButtonLink href={`/skills/${selected.slug}/run`}>Run Skill</ButtonLink>
-              <ButtonLink href={`/install/${selected.slug}`} variant="secondary">Install</ButtonLink>
-            </div>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-              <div className="mb-3 flex gap-2">
-                {["Claude", "Codex", "VS Code", "OpenCode"].map((item) => (
-                  <Badge key={item}>{item}</Badge>
-                ))}
-              </div>
-              <pre className="overflow-x-auto rounded-md border border-neutral-200 bg-[#39FF14] p-3 font-mono text-xs text-neutral-800">
-                {`agent-skills install ${selected.slug}`}
-              </pre>
-              <div className="mt-3 flex gap-4 text-sm">
-                <a className="font-medium text-neutral-950 underline" href={`/skills/${selected.slug}`}>View README</a>
-                <a className="font-medium text-neutral-950 underline" href={`/skills/${selected.slug}/versions`}>All versions</a>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Category trend</h2>
-            <div className="mt-4 flex flex-col gap-3">
-              {topCategories.map((item) => (
-                <div key={item.name}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-700">{item.name}</span>
-                    <span className="font-mono text-neutral-500">{item.count}</span>
-                  </div>
-                  <div className="mt-2 h-2 rounded-full bg-neutral-100">
-                    <div className="h-2 rounded-full bg-brand" style={{ width: `${Math.max(12, item.count * 22)}%` }} />
-                  </div>
+        {/* ─── Action Guide (collapsed) ─── */}
+        <div ref={gridRef} className="mt-6 scroll-mt-20">
+          <details className="cyber-card p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+              <h2 className="text-base font-semibold text-white">What am I supposed to do?</h2>
+              <span className="cyber-badge inline-flex items-center px-2 py-0.5 text-xs">quick start</span>
+            </summary>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              {[
+                { label: "1", title: "Choose", body: "Search or filter until one skill looks relevant." },
+                { label: "2", title: "Inspect", body: "Open the detail page if you need README, permissions, or versions." },
+                { label: "3", title: "Run", body: "Use Run Skill to test it with a safe prompt before installing." },
+                { label: "4", title: "Install", body: "Export the package only after the result and trace make sense." },
+                { label: "5", title: "Build", body: "Use New Skill when you want to upload or author your own skill." },
+              ].map((step) => (
+                <div key={`${step.label}-${step.title}`} className="cyber-inset p-3">
+                  <div className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-cyan-400">{step.label}</div>
+                  <div className="mt-2 font-semibold text-white">{step.title}</div>
+                  <p className="mt-1 text-sm leading-5 text-gray-400">{step.body}</p>
                 </div>
               ))}
             </div>
-          </Panel>
-        </aside>
+          </details>
+        </div>
+
+        {/* ─── Filters ─── */}
+        <div className="cyber-card mt-6 p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              {filterPills.map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setPill(item)}
+                  aria-pressed={pill === item}
+                  data-testid={`marketplace-pill-${item.toLowerCase().replaceAll(" ", "-")}`}
+                  className="cyber-pill px-3 py-2 text-sm font-medium"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_1fr]">
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                data-testid="marketplace-search"
+                aria-label="Search skills"
+                placeholder="Search skills, authors, use cases"
+                className="cyber-select h-11 px-3 text-sm placeholder:text-gray-500"
+              />
+              <CyberFilter label="Category" testId="marketplace-category" value={category} onChange={setCategory} values={["All", ...categories]} />
+              <CyberFilter label="Compatibility" testId="marketplace-target" value={target} onChange={setTarget} values={["All", ...compatibilityTargets]} />
+              <CyberFilter label="Permission" testId="marketplace-permission" value={permission} onChange={setPermission} values={["All", ...permissionKeys]} labels={permissionLabels} />
+              <CyberFilter label="Trust Level" testId="marketplace-trust" value={trust} onChange={setTrust} values={["All", "Verified", "Reviewed", "Experimental"]} />
+              <CyberFilter label="Sort By" testId="marketplace-sort" value={sort} onChange={setSort} values={["runs", "rating", "updated"]} labels={{ runs: "Sort by runs", rating: "Sort by rating", updated: "Sort by updated" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Main Grid + Sidebar ─── */}
+        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.length ? (
+              filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} onSelect={setSelectedSlug} isSelected={skill.slug === selectedSlug} />)
+            ) : (
+              <div className="cyber-card flex min-h-[400px] flex-col items-center justify-center p-6 text-center sm:col-span-2 lg:col-span-3">
+                <div className="mb-4 grid size-12 place-items-center rounded-full bg-white/5">
+                  <span className="text-xl">🔍</span>
+                </div>
+                <h2 className="text-lg font-semibold text-white">No skills found</h2>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-gray-400">
+                  We couldn&apos;t find any skills matching your filters. Try clearing your search or adjusting the criteria.
+                </p>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setCategory("All");
+                    setTarget("All");
+                    setPermission("All");
+                    setTrust("All");
+                    setPill("All");
+                  }}
+                  className="cyber-btn-secondary mt-6 inline-flex h-9 items-center px-4 text-sm"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </section>
+
+          <aside className="flex flex-col gap-4">
+            {/* Selected Skill Panel */}
+            <div className="cyber-card p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Selected skill</div>
+                  <h2 className="mt-2 font-mono text-xl font-semibold text-white">{selected.name}</h2>
+                </div>
+                <CyberBadge tone={selected.trustLevel === "Verified" ? "green" : "amber"}>{selected.trustLevel}</CyberBadge>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-gray-400">{selected.summary}</p>
+              <p className="cyber-inset mt-3 p-3 text-sm leading-6 text-gray-400">
+                Selected skill preview. Use this panel to decide whether to run, inspect, or install the first matching result.
+              </p>
+              <div className="cyber-inset mt-4 grid grid-cols-3 gap-3 p-3">
+                <MiniMetric label="rating" value={selected.rating.toFixed(1)} />
+                <MiniMetric label="runs" value={selected.installCount.toLocaleString()} />
+                <MiniMetric label="version" value={selected.currentVersion} />
+              </div>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {selected.permissions.map((perm) => (
+                  <CyberBadge key={perm.key} tone={perm.risk === "high" ? "red" : perm.risk === "medium" ? "amber" : "neutral"}>
+                    {perm.key}
+                  </CyberBadge>
+                ))}
+              </div>
+              <div className="mt-5 flex gap-3">
+                <Link href={`/skills/${selected.slug}/run`} className="cyber-btn-primary inline-flex h-8 items-center px-4 text-sm">
+                  Run Skill
+                </Link>
+                <Link href={`/install/${selected.slug}`} className="cyber-btn-secondary inline-flex h-8 items-center px-4 text-sm">
+                  Install
+                </Link>
+              </div>
+              <div className="cyber-inset mt-4 p-4">
+                <div className="mb-3 flex gap-2">
+                  {["Claude", "Codex", "VS Code", "OpenCode"].map((item) => (
+                    <span key={item} className="cyber-badge-neutral cyber-badge inline-flex items-center px-2 py-0.5">{item}</span>
+                  ))}
+                </div>
+                <pre className="cyber-code overflow-x-auto p-3 font-mono text-xs">
+                  {`agent-skills install ${selected.slug}`}
+                </pre>
+                <div className="mt-3 flex gap-4 text-sm">
+                  <Link className="font-medium text-cyan-400 underline underline-offset-4 hover:text-cyan-300" href={`/skills/${selected.slug}`}>View README</Link>
+                  <Link className="font-medium text-cyan-400 underline underline-offset-4 hover:text-cyan-300" href={`/skills/${selected.slug}/versions`}>All versions</Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Category Trend Panel */}
+            <div className="cyber-card p-4">
+              <h2 className="font-semibold text-white">Category trend</h2>
+              <div className="mt-4 flex flex-col gap-3">
+                {topCategories.map((item) => (
+                  <div key={item.name}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">{item.name}</span>
+                      <span className="font-mono text-gray-500">{item.count}</span>
+                    </div>
+                    <div className="mt-2 h-2 rounded-full bg-white/5">
+                      <div className="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-green-400" style={{ width: `${Math.max(12, item.count * 22)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
 }
 
-function Filter({
+/* ─── Subcomponents ─── */
+
+function CyberMetric({ icon, value, label }: { icon: string; value: string | number; label: string }) {
+  return (
+    <div className="cyber-card flex items-center gap-3 p-4">
+      <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-white/5 text-lg">{icon}</div>
+      <div>
+        <div className="text-2xl font-semibold text-white">{value}</div>
+        <div className="mt-0.5 text-xs uppercase tracking-[0.16em] text-gray-500">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function CyberFilter({
   label,
   testId,
   value,
@@ -258,7 +290,7 @@ function Filter({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         data-testid={testId}
-        className="h-11 w-full rounded-md border px-3 text-sm text-neutral-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+        className="cyber-select h-11 w-full px-3 text-sm"
       >
         {values.map((item) => (
           <option key={item} value={item}>{labels?.[item] ?? item}</option>
@@ -268,11 +300,21 @@ function Filter({
   );
 }
 
+function CyberBadge({ tone = "green", children }: { tone?: "green" | "amber" | "red" | "blue" | "neutral"; children: React.ReactNode }) {
+  const toneClass =
+    tone === "green" ? "cyber-badge" :
+    tone === "amber" ? "cyber-badge cyber-badge-amber" :
+    tone === "red" ? "cyber-badge cyber-badge-red" :
+    tone === "blue" ? "cyber-badge cyber-badge-blue" :
+    "cyber-badge cyber-badge-neutral";
+  return <span className={`${toneClass} inline-flex h-5 items-center px-2 py-0.5 text-xs`}>{children}</span>;
+}
+
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="truncate font-semibold text-neutral-950">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-[0.14em] text-neutral-500">{label}</div>
+      <div className="truncate font-semibold text-white">{value}</div>
+      <div className="mt-1 text-xs uppercase tracking-[0.14em] text-gray-500">{label}</div>
     </div>
   );
 }
