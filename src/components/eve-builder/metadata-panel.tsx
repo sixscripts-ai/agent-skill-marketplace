@@ -41,9 +41,10 @@ export function MetadataPanel({
             onChange={(e) => updateState({ model: e.target.value })}
             className="w-full appearance-none rounded-md border border-white/10 bg-black/50 px-3 py-2.5 text-sm text-white focus:border-heat-100 focus:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-heat-100 transition-all duration-200"
           >
+            <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+            <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
             <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
             <option value="openai/gpt-4o">GPT-4o</option>
-            <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
             <option value="xai/grok-2-latest">Grok 2</option>
           </select>
           <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 group-hover:text-white transition-colors">

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
 import { ForkSkillButton } from "@/components/fork-skill-button";
-import { Badge, ButtonLink, Metric, Panel } from "@/components/ui";
 import { latestVersion } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { findSkill } from "@/lib/repository";
+import type { Skill } from "@/lib/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -23,6 +22,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+function CyberBadge({ tone = "green", children }: { tone?: "green" | "amber" | "red" | "blue" | "neutral"; children: React.ReactNode }) {
+  const toneClass =
+    tone === "green" ? "cyber-badge" :
+    tone === "amber" ? "cyber-badge cyber-badge-amber" :
+    tone === "red" ? "cyber-badge cyber-badge-red" :
+    tone === "blue" ? "cyber-badge cyber-badge-blue" :
+    "cyber-badge cyber-badge-neutral";
+  return <span className={`${toneClass} inline-flex h-6 items-center px-3 text-xs`}>{children}</span>;
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="truncate text-xl font-semibold text-white">{value}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-gray-500">{label}</div>
+    </div>
+  );
+}
+
 export default async function SkillDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const skill = await findSkill(slug, await getCurrentUser());
@@ -31,99 +49,124 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
   const latestScore = skill.evalSuites[0]?.results[0]?.score ?? 0;
 
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6">
-        <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <Panel className="p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge tone="blue">{skill.category}</Badge>
-                  <Badge tone={skill.trustLevel === "Verified" ? "green" : "amber"}>{skill.trustLevel}</Badge>
-                </div>
-                <h1 className="mt-5 text-4xl font-semibold tracking-tight text-neutral-950">{skill.name}</h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-neutral-600">{skill.summary}</p>
-              </div>
-              <div className="flex gap-3">
-                <ButtonLink href={`/skills/${skill.slug}/run?mode=autopilot`}>⚡ Quick Run</ButtonLink>
-                <ButtonLink href={`/skills/${skill.slug}/run`} variant="secondary">Run Skill</ButtonLink>
-                <ButtonLink href={`/install/${skill.slug}`} variant="secondary">Install</ButtonLink>
-                <ForkSkillButton slug={skill.slug} />
-              </div>
-            </div>
-            <div className="mt-8 grid grid-cols-2 gap-5 border-t border-neutral-200 pt-6 sm:grid-cols-4">
-              <Metric label="version" value={skill.currentVersion} />
-              <Metric label="eval score" value={`${latestScore}%`} />
-              <Metric label="rating" value={skill.rating.toFixed(1)} />
-              <Metric label="installs" value={skill.installCount.toLocaleString()} />
-            </div>
-          </Panel>
-          <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">Required permissions</h2>
-            <div className="mt-4 flex flex-col gap-3">
-              {skill.permissions.map((permission) => (
-                  <div key={permission.key} className="rounded-md border border-border bg-card p-3 transition hover:border-brand-border">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-mono text-sm text-foreground">{permission.key}</span>
-                      <Badge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
-                        {permission.risk}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 text-sm leading-5 text-muted-foreground">{permission.reason}</p>
-                  </div>
-              ))}
-            </div>
-          </Panel>
-        </section>
+    <div className="marketplace-cyber min-h-screen bg-[#0f1729] pt-10 pb-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        
+        {/* Navigation / Header */}
+        <div className="mb-6">
+          <Link href="/marketplace" className="inline-flex items-center text-sm font-medium text-gray-400 transition hover:text-cyan-400">
+            <span className="mr-2">←</span> Back to Marketplace
+          </Link>
+        </div>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">README</h2>
-            <p className="mt-3 text-sm leading-6 text-neutral-600">{version.readme}</p>
-            <h2 className="mt-8 font-semibold text-neutral-950">SKILL.md</h2>
-            <div className="mt-3">
-              <CodeBlock code={version.skillMd} />
-            </div>
-          </Panel>
-          <div className="flex flex-col gap-6">
-            <Panel className="p-5">
-              <h2 className="font-semibold text-neutral-950">Compatibility</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {version.compatibilityTargets.map((target) => (
-                  <Badge key={target}>{target}</Badge>
-                ))}
-              </div>
-            </Panel>
-            <Panel className="p-5">
-              <h2 className="font-semibold text-neutral-950">Project links</h2>
-              <div className="mt-4 grid gap-3">
-                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/versions`}>
-                  Version history and diff
-                </Link>
-                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/evals`}>
-                  Evaluation suites
-                </Link>
-                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/skills/${skill.slug}/graph`}>
-                  Dependency graph
-                </Link>
-                <Link className="text-sm font-medium text-foreground underline underline-offset-4 transition hover:text-brand" href={`/install/${skill.slug}`}>
-                  Export install package
-                </Link>
-              </div>
-            </Panel>
-            <Panel className="p-5">
-              <h2 className="font-semibold text-neutral-950">Reviews</h2>
-              <div className="mt-4 flex flex-col gap-3">
-                {skill.reviews.map((review) => (
-                  <div key={review.comment} className="text-sm leading-6 text-neutral-600">
-                    <span className="font-semibold text-neutral-950">{review.user}</span>: {review.comment}
+        <div className="flex flex-col gap-6">
+          <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            {/* Main Header Card */}
+            <div className="cyber-card p-6 md:p-10">
+              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-wrap gap-2">
+                    <CyberBadge tone="blue">{skill.category}</CyberBadge>
+                    <CyberBadge tone={skill.trustLevel === "Verified" ? "green" : "amber"}>{skill.trustLevel}</CyberBadge>
                   </div>
+                  <h1 className="font-mono text-4xl font-semibold tracking-tight text-white md:text-5xl">{skill.name}</h1>
+                  <p className="max-w-3xl text-base leading-7 text-gray-400">{skill.summary}</p>
+                </div>
+                
+                {/* Actions */}
+                <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row md:flex-col lg:flex-row">
+                  <Link href={`/skills/${skill.slug}/run?mode=autopilot`} className="cyber-btn-primary flex h-11 items-center justify-center px-6 text-sm font-semibold whitespace-nowrap">
+                    ⚡ Quick Run
+                  </Link>
+                  <Link href={`/install/${skill.slug}`} className="cyber-btn-secondary flex h-11 items-center justify-center px-6 text-sm font-semibold whitespace-nowrap">
+                    Install Code
+                  </Link>
+                </div>
+              </div>
+
+              {/* Metrics */}
+              <div className="cyber-inset mt-10 grid grid-cols-2 gap-5 p-6 sm:grid-cols-4">
+                <MiniMetric label="version" value={skill.currentVersion} />
+                <MiniMetric label="eval score" value={`${latestScore}%`} />
+                <MiniMetric label="rating" value={skill.rating.toFixed(1)} />
+                <MiniMetric label="installs" value={skill.installCount.toLocaleString()} />
+              </div>
+            </div>
+
+            {/* Permissions Panel */}
+            <div className="cyber-card p-6">
+              <h2 className="font-semibold text-white">Required Permissions</h2>
+              <div className="mt-6 flex flex-col gap-3">
+                {skill.permissions.map((permission) => (
+                    <div key={permission.key} className="cyber-inset p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="font-mono text-sm font-medium text-white">{permission.key}</span>
+                        <CyberBadge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
+                          {permission.risk}
+                        </CyberBadge>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-gray-400">{permission.reason}</p>
+                    </div>
                 ))}
               </div>
-            </Panel>
-          </div>
-        </section>
+            </div>
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            {/* README & Code */}
+            <div className="cyber-card p-6 md:p-10">
+              <h2 className="text-xl font-semibold text-white">README</h2>
+              <p className="mt-4 text-base leading-7 text-gray-400">{version.readme}</p>
+              
+              <h2 className="mt-12 text-xl font-semibold text-white">SKILL.md</h2>
+              <div className="mt-4">
+                <CodeBlock code={version.skillMd} />
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="flex flex-col gap-6">
+              
+              <div className="cyber-card p-6">
+                <h2 className="font-semibold text-white">Compatibility</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {version.compatibilityTargets.map((target) => (
+                    <CyberBadge key={target} tone="neutral">{target}</CyberBadge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="cyber-card p-6">
+                <h2 className="font-semibold text-white">Project Links</h2>
+                <div className="mt-4 flex flex-col gap-4">
+                  <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/versions`}>
+                    Version history & diffs
+                  </Link>
+                  <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/evals`}>
+                    Evaluation suites
+                  </Link>
+                  <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/graph`}>
+                    Dependency graph
+                  </Link>
+                </div>
+              </div>
+
+              <div className="cyber-card p-6">
+                <h2 className="font-semibold text-white">Reviews</h2>
+                <div className="mt-4 flex flex-col gap-4">
+                  {skill.reviews.map((review) => (
+                    <div key={review.comment} className="cyber-inset p-4">
+                      <span className="font-mono text-sm font-semibold text-white">{review.user}</span>
+                      <p className="mt-2 text-sm leading-6 text-gray-400">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </section>
+        </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

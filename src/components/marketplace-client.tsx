@@ -17,18 +17,11 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
   const [trust, setTrust] = useState("All");
   const [pill, setPill] = useState("All");
   const [sort, setSort] = useState("runs");
-  const [selectedSlug, setSelectedSlug] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
-
-  useEffect(() => {
-    if (!selectedSlug && skills.length) {
-      setSelectedSlug(skills[0].slug);
-    }
-  }, [selectedSlug, skills]);
 
   const filtered = useMemo(() => {
     const normalized = query.toLowerCase();
@@ -66,11 +59,6 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
     });
   }, [category, permission, pill, query, target, trust, sort, skills]);
 
-  const selected = skills.find((s) => s.slug === selectedSlug) ?? skills[0];
-  const topCategories = categories.slice(0, 5).map((item) => ({
-    name: item,
-    count: skills.filter((skill) => skill.category === item).length,
-  }));
 
   function scrollToGrid() {
     gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -88,31 +76,6 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
           <CyberMetric icon="🎯" value={compatibilityTargets.length} label="install targets" />
           <CyberMetric icon="📊" value="91%" label="average eval" />
           <CyberMetric icon="🔒" value="SSE" label="sandbox mode" />
-        </div>
-
-        {/* ─── Action Guide (collapsed) ─── */}
-        <div ref={gridRef} className="mt-6 scroll-mt-20">
-          <details className="cyber-card p-4">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-              <h2 className="text-base font-semibold text-white">What am I supposed to do?</h2>
-              <span className="cyber-badge inline-flex items-center px-2 py-0.5 text-xs">quick start</span>
-            </summary>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {[
-                { label: "1", title: "Choose", body: "Search or filter until one skill looks relevant." },
-                { label: "2", title: "Inspect", body: "Open the detail page if you need README, permissions, or versions." },
-                { label: "3", title: "Run", body: "Use Run Skill to test it with a safe prompt before installing." },
-                { label: "4", title: "Install", body: "Export the package only after the result and trace make sense." },
-                { label: "5", title: "Build", body: "Use New Skill when you want to upload or author your own skill." },
-              ].map((step) => (
-                <div key={`${step.label}-${step.title}`} className="cyber-inset p-3">
-                  <div className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-cyan-400">{step.label}</div>
-                  <div className="mt-2 font-semibold text-white">{step.title}</div>
-                  <p className="mt-1 text-sm leading-5 text-gray-400">{step.body}</p>
-                </div>
-              ))}
-            </div>
-          </details>
         </div>
 
         {/* ─── Filters ─── */}
@@ -149,11 +112,11 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
           </div>
         </div>
 
-        {/* ─── Main Grid + Sidebar ─── */}
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
-          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {/* ─── Main Grid ─── */}
+        <div ref={gridRef} className="mt-6 scroll-mt-20">
+          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {filtered.length ? (
-              filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} onSelect={setSelectedSlug} isSelected={skill.slug === selectedSlug} />)
+              filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />)
             ) : (
               <div className="cyber-card flex min-h-[400px] flex-col items-center justify-center p-6 text-center sm:col-span-2 lg:col-span-3">
                 <div className="mb-4 grid size-12 place-items-center rounded-full bg-white/5">
@@ -179,75 +142,6 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
               </div>
             )}
           </section>
-
-          <aside className="flex flex-col gap-4">
-            {/* Selected Skill Panel */}
-            <div className="cyber-card p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-medium text-gray-500">Selected skill</div>
-                  <h2 className="mt-2 font-mono text-xl font-semibold text-white">{selected.name}</h2>
-                </div>
-                <CyberBadge tone={selected.trustLevel === "Verified" ? "green" : "amber"}>{selected.trustLevel}</CyberBadge>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-gray-400">{selected.summary}</p>
-              <p className="cyber-inset mt-3 p-3 text-sm leading-6 text-gray-400">
-                Selected skill preview. Use this panel to decide whether to run, inspect, or install the first matching result.
-              </p>
-              <div className="cyber-inset mt-4 grid grid-cols-3 gap-3 p-3">
-                <MiniMetric label="rating" value={selected.rating.toFixed(1)} />
-                <MiniMetric label="runs" value={selected.installCount.toLocaleString()} />
-                <MiniMetric label="version" value={selected.currentVersion} />
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {selected.permissions.map((perm) => (
-                  <CyberBadge key={perm.key} tone={perm.risk === "high" ? "red" : perm.risk === "medium" ? "amber" : "neutral"}>
-                    {perm.key}
-                  </CyberBadge>
-                ))}
-              </div>
-              <div className="mt-5 flex gap-3">
-                <Link href={`/skills/${selected.slug}/run`} className="cyber-btn-primary inline-flex h-8 items-center px-4 text-sm">
-                  Run Skill
-                </Link>
-                <Link href={`/install/${selected.slug}`} className="cyber-btn-secondary inline-flex h-8 items-center px-4 text-sm">
-                  Install
-                </Link>
-              </div>
-              <div className="cyber-inset mt-4 p-4">
-                <div className="mb-3 flex gap-2">
-                  {["Claude", "Codex", "VS Code", "OpenCode"].map((item) => (
-                    <span key={item} className="cyber-badge-neutral cyber-badge inline-flex items-center px-2 py-0.5">{item}</span>
-                  ))}
-                </div>
-                <pre className="cyber-code overflow-x-auto p-3 font-mono text-xs">
-                  {`agent-skills install ${selected.slug}`}
-                </pre>
-                <div className="mt-3 flex gap-4 text-sm">
-                  <Link className="font-medium text-cyan-400 underline underline-offset-4 hover:text-cyan-300" href={`/skills/${selected.slug}`}>View README</Link>
-                  <Link className="font-medium text-cyan-400 underline underline-offset-4 hover:text-cyan-300" href={`/skills/${selected.slug}/versions`}>All versions</Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Category Trend Panel */}
-            <div className="cyber-card p-4">
-              <h2 className="font-semibold text-white">Category trend</h2>
-              <div className="mt-4 flex flex-col gap-3">
-                {topCategories.map((item) => (
-                  <div key={item.name}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{item.name}</span>
-                      <span className="font-mono text-gray-500">{item.count}</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-white/5">
-                      <div className="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-green-400" style={{ width: `${Math.max(12, item.count * 22)}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
         </div>
       </div>
     </div>

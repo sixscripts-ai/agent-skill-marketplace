@@ -19,7 +19,7 @@ const PreviewExportPanel = dynamic(() => import('./preview-export-panel').then(m
 export function EveBuilderClient() {
   const [state, setState] = useState<AgentState>({
     agentName: "my-eve-agent",
-    model: "anthropic/claude-3-5-sonnet-20240620",
+    model: "google/gemini-2.5-pro",
     instructions: DEFAULT_INSTRUCTIONS_MD,
     selectedTools: [],
   });
