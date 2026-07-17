@@ -3,26 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, BookOpen, Code2, Search, Sparkles } from "lucide-react";
-import { useState, useEffect, type FormEvent } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { getUserAction } from "@/app/actions";
 import type { MarketplaceUser } from "@/lib/types";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu,
+  SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail,
+  SidebarSeparator, SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 const topNav = [
@@ -35,32 +23,23 @@ const topNav = [
 ];
 
 const sections = [
-  {
-    title: "Main",
-    items: [
-      { href: "/marketplace", label: "Marketplace", icon: "M" },
-      { href: "/skills", label: "My Skills", icon: "S" },
-      { href: "/skills/agent-observer/run", label: "Sandbox", icon: "R" },
-    ],
-  },
-  {
-    title: "Workspace",
-    items: [
-      { href: "/builder", label: "Builder", icon: "B" },
-      { href: "/builder/eve", label: "Eve Builder", icon: "E" },
-      { href: "/ai-elements", label: "AI Elements", icon: "A" },
-      { href: "/skills/agent-observer/evals", label: "Evaluations", icon: "E" },
-      { href: "/skills/agent-observer/run", label: "Run & Traces", icon: "T" },
-      { href: "/skills/agent-observer/graph", label: "Collections", icon: "C" },
-    ],
-  },
-  {
-    title: "Distribution",
-    items: [
-      { href: "/install/agent-observer", label: "Installed", icon: "I" },
-      { href: "/cli", label: "Settings", icon: "S" },
-    ],
-  },
+  { title: "Main", items: [
+    { href: "/marketplace", label: "Marketplace", icon: "M" },
+    { href: "/skills", label: "My Skills", icon: "S" },
+    { href: "/skills/agent-observer/run", label: "Sandbox", icon: "R" },
+  ]},
+  { title: "Workspace", items: [
+    { href: "/builder", label: "Builder", icon: "B" },
+    { href: "/builder/eve", label: "Eve Builder", icon: "E" },
+    { href: "/ai-elements", label: "AI Elements", icon: "A" },
+    { href: "/skills/agent-observer/evals", label: "Evaluations", icon: "E" },
+    { href: "/skills/agent-observer/run", label: "Run & Traces", icon: "T" },
+    { href: "/skills/agent-observer/graph", label: "Collections", icon: "C" },
+  ]},
+  { title: "Distribution", items: [
+    { href: "/install/agent-observer", label: "Installed", icon: "I" },
+    { href: "/cli", label: "Settings", icon: "S" },
+  ]},
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -70,21 +49,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [user, setUser] = useState<MarketplaceUser | null>(null);
 
-  useEffect(() => {
-    getUserAction().then(setUser);
-  }, []);
+  useEffect(() => { getUserAction().then(setUser); }, []);
 
   const initials = user
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase()
+    ? user.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()
     : "AA";
-  const workspaceName = user
-    ? `${user.name.split(" ")[0].toLowerCase()}-workspace`
-    : "sixscripts-ai workspace";
+  const workspaceName = user ? `${user.name.split(" ")[0].toLowerCase()}-workspace` : "sixscripts-ai workspace";
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,221 +64,122 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
+      <div className="app-shell-v2 contents">
+        <Sidebar collapsible="icon">
+          <SidebarHeader>
+            <SidebarMenu><SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link href="/marketplace" />}>
-                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-brand-border bg-brand text-brand-foreground shadow-[0_0_12px_var(--brand-glow)]">
+                <span className="brand-mark grid size-8 shrink-0 place-items-center rounded-md">
                   <Sparkles className="size-4" aria-hidden="true" />
                 </span>
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate text-sm font-semibold">Agent Skills</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">
-                    secure skills, traced runs
-                  </span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">portable, inspectable, secure</span>
                 </div>
               </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+            </SidebarMenuItem></SidebarMenu>
+          </SidebarHeader>
 
-        <SidebarContent>
-          {sections.map((section) => (
-            <SidebarGroup key={section.title}>
-              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {section.items.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        render={<Link href={item.href} />}
-                        isActive={isActivePath(pathname, item.href)}
-                        tooltip={item.label}
-                      >
-                        <span className="grid size-5 shrink-0 place-items-center rounded border border-sidebar-border bg-sidebar font-mono text-[10px]">
-                          {item.icon}
-                        </span>
+          <SidebarContent>
+            {sections.map((section) => (
+              <SidebarGroup key={section.title}>
+                <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+                <SidebarGroupContent><SidebarMenu>
+                  {section.items.map((item) => {
+                    const active = isActivePath(pathname, item.href);
+                    return <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton render={<Link href={item.href} />} isActive={active} tooltip={item.label} className={active ? "nav-link-active" : undefined}>
+                        <span className="grid size-5 shrink-0 place-items-center rounded border border-sidebar-border bg-sidebar font-mono text-[10px]">{item.icon}</span>
                         <span>{item.label}</span>
                       </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
+                    </SidebarMenuItem>;
+                  })}
+                </SidebarMenu></SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
 
-        <SidebarSeparator />
-
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg">
-                <span className="flex size-2 shrink-0 rounded-full bg-brand shadow-[0_0_8px_var(--brand-glow)]" />
+          <SidebarSeparator />
+          <SidebarFooter>
+            <SidebarMenu>
+              <SidebarMenuItem><SidebarMenuButton size="lg">
+                <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate text-xs font-semibold">System Status</span>
-                  <span className="truncate text-[10px] text-sidebar-foreground/50">
-                    Sandbox routes operational
-                  </span>
+                  <span className="truncate text-[10px] text-sidebar-foreground/50">Sandbox routes operational</span>
                 </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border">
-                  {initials}
-                </span>
+              </SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem><SidebarMenuButton size="lg">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border">{initials}</span>
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-sm font-semibold">
-                    {user?.name ?? "Ashton Aschenbrener"}
-                  </span>
-                  <span className="truncate text-xs text-sidebar-foreground/50">
-                    {workspaceName}
-                  </span>
+                  <span className="truncate text-sm font-semibold">{user?.name ?? "Ashton Aschenbrener"}</span>
+                  <span className="truncate text-xs text-sidebar-foreground/50">{workspaceName}</span>
                 </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+              </SidebarMenuButton></SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
 
-        <SidebarRail />
-      </Sidebar>
+        <SidebarInset>
+          <header className="topbar-v2 sticky inset-x-0 top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-6">
+            <SidebarTrigger className="-ml-1" />
+            <nav className="hidden items-center gap-1 lg:flex">
+              {topNav.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+                  className={`rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition ${active ? "nav-link-active" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                  {item.label}
+                </Link>;
+              })}
+            </nav>
 
-      <SidebarInset>
-        {/* ─── Top Bar ─── */}
-        <header className="topbar sticky inset-x-0 top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-6">
-          <SidebarTrigger className="-ml-1 text-topbar-muted hover:text-topbar-text" />
+            <form onSubmit={submitSearch} role="search" className="global-search ml-auto hidden w-full max-w-md items-center rounded-md px-3 py-1.5 md:flex">
+              <Search className="mr-2 size-4 text-muted-foreground" aria-hidden="true" />
+              <input aria-label="Global search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search skills, traces, packages"
+                className="h-5 flex-1 border-0 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+              <button className="ml-2 rounded border border-border px-2 py-0.5 font-mono text-[10px] text-muted-foreground" type="submit">enter</button>
+            </form>
 
-          <nav className="hidden items-center gap-1 lg:flex">
-            {topNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  isActivePath(pathname, item.href)
-                    ? "bg-brand text-brand-foreground shadow-[0_0_12px_var(--brand-glow)]"
-                    : "text-neutral-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+            <div className="ml-auto flex items-center gap-1 md:ml-0">
+              <TopButton href="/docs" icon={<BookOpen className="size-4" />} label="Docs" />
+              <TopButton href="/api-docs" icon={<Code2 className="size-4" />} label="API" />
+              <button aria-label="Notifications" aria-pressed={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}
+                className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" type="button">
+                <Bell className="size-4" />
+              </button>
+              <div className="ml-1 grid size-8 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border">{initials}</div>
+            </div>
 
-          <form
-            onSubmit={submitSearch}
-            role="search"
-            className="ml-auto hidden w-full max-w-md items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 md:flex"
-          >
-            <Search className="mr-2 size-4 text-neutral-500" aria-hidden="true" />
-            <input
-              aria-label="Global search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search skills, traces, packages"
-              className="h-5 flex-1 border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-neutral-500"
-            />
-            <button
-              className="ml-2 rounded border border-white/10 px-2 py-0.5 font-mono text-[10px] text-neutral-400"
-              type="submit"
-            >
-              enter
-            </button>
-          </form>
+            {notificationsOpen ? <div className="absolute right-4 top-12 w-80 rounded-md border border-border bg-popover p-4 shadow-lg">
+              <div className="text-sm font-semibold text-popover-foreground">Notifications</div>
+              <p className="mt-2 text-sm leading-5 text-muted-foreground">No unread alerts. Run traces, upload warnings, and package export issues will appear here.</p>
+            </div> : null}
+          </header>
 
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
-            <TopButton href="/docs" icon={<BookOpen className="size-4" aria-hidden="true" />} label="Docs" />
-            <TopButton href="/api-docs" icon={<Code2 className="size-4" aria-hidden="true" />} label="API" />
-            <IconButton
-              label="Notifications"
-              icon={<Bell className="size-4" aria-hidden="true" />}
-              onClick={() => setNotificationsOpen((v) => !v)}
-              pressed={notificationsOpen}
-            />
-            <div className="ml-1 grid size-8 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground ring-1 ring-sidebar-border">
-              {initials}
+          <div className="border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
+            <div className="flex gap-2 overflow-x-auto">
+              {topNav.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+                  className={`shrink-0 rounded-md border px-3 py-2 text-sm font-medium ${active ? "nav-link-active" : "border-sidebar-border bg-sidebar-accent text-sidebar-foreground"}`}>
+                  {item.label}
+                </Link>;
+              })}
             </div>
           </div>
 
-          {notificationsOpen ? (
-            <div className="absolute right-4 top-12 w-80 rounded-md border border-white/10 bg-neutral-950 p-4">
-              <div className="text-sm font-semibold text-white">Notifications</div>
-              <p className="mt-2 text-sm leading-5 text-neutral-400">
-                No unread alerts. Run traces, upload warnings, and package export issues will appear here.
-              </p>
-            </div>
-          ) : null}
-        </header>
-
-        {/* ─── Mobile Nav ─── */}
-        <div className="border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
-          <div className="flex gap-2 overflow-x-auto">
-            {topNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
-                className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                  isActivePath(pathname, item.href)
-                    ? "border-brand-border bg-brand text-brand-foreground"
-                    : "border-sidebar-border bg-sidebar-accent text-neutral-300"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* ─── Page Content ─── */}
-        <main className="workspace min-h-[calc(100vh-3.5rem)]">
-          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-            {children}
-          </div>
-        </main>
-      </SidebarInset>
+          <main className="workspace min-h-[calc(100vh-3.5rem)]">
+            <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
+          </main>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
 
 function TopButton({ href, icon, label }: { href: string; icon: ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-neutral-400 transition hover:bg-white/5 hover:text-white sm:inline-flex"
-    >
-      {icon}
-      {label}
-    </Link>
-  );
-}
-
-function IconButton({
-  label,
-  icon,
-  onClick,
-  pressed,
-}: {
-  label: string;
-  icon: ReactNode;
-  onClick: () => void;
-  pressed: boolean;
-}) {
-  return (
-    <button
-      aria-label={label}
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={`grid size-8 place-items-center rounded-md text-neutral-400 transition hover:bg-white/5 hover:text-white ${
-        pressed ? "bg-white/10 text-white" : ""
-      }`}
-      type="button"
-    >
-      {icon}
-    </button>
-  );
+  return <Link href={href} className="hidden items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex">{icon}{label}</Link>;
 }
 
 function isActivePath(pathname: string, href: string) {
