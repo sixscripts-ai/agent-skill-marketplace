@@ -1,9 +1,15 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
 import { convertToModelMessages, streamText, tool } from "ai";
 import { z } from "zod";
+import { requireCurrentUser } from "@/lib/auth";
+import { createSkillPackage } from "@/lib/repository";
+import {
+  buildFullSkillPackage,
+  FULL_PACKAGE_PROFILE_LABEL,
+} from "@/lib/skill-package-profile";
 
 const allowedModels = new Set([
   "google/gemini-2.5-flash",
@@ -13,38 +19,18 @@ const allowedModels = new Set([
   "anthropic/claude-3-5-sonnet-20240620",
 ]);
 
-const supportedTargets = ["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"] as const;
-
-function normalizeCompatibility(markdown: string) {
-  const section = markdown.match(/^##\s+Compatibility\s*$([\s\S]*?)(?=^##\s+|(?![\s\S]))/im)?.[1] ?? "";
-  const frontmatter = markdown.match(/^compatibility:\s*(.+)$/im)?.[1] ?? "";
-  const compatibilitySource = `${frontmatter}\n${section}`.toLowerCase();
-  const selectedTargets = supportedTargets.filter((target) => compatibilitySource.includes(target.toLowerCase()));
-  const normalizedTargets = selectedTargets.length ? selectedTargets : ["Codex", "Claude", "VS Code"];
-  const list = normalizedTargets.map((target) => `- ${target}`).join("\n");
-  const frontmatterLine = `compatibility: ${normalizedTargets.join(", ")}`;
-
-  let next = markdown.match(/^compatibility:\s*.+$/im)
-    ? markdown.replace(/^compatibility:\s*.+$/im, frontmatterLine)
-    : markdown.replace(/^description:\s*.+$/im, (line) => `${line}\n${frontmatterLine}`);
-
-  if (/^##\s+Compatibility\s*$/im.test(next)) {
-    next = next.replace(/^##\s+Compatibility\s*$([\s\S]*?)(?=^##\s+|(?![\s\S]))/im, `## Compatibility\n${list}\n`);
-  } else {
-    next = `${next.trimEnd()}\n\n## Compatibility\n${list}\n`;
-  }
-
-  return next;
-}
+const permissionSchema = z.enum(["read_files", "write_files", "network", "shell", "browser", "api_keys"]);
+const targetSchema = z.enum(["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"]);
+const roleSchema = z.enum(["readme", "script", "asset", "reference", "config", "doc", "example", "other"]);
 
 export async function POST(req: Request) {
   try {
-    const { messages, model: requestedModel, currentSkill } = await req.json();
-
+    const { messages, model: requestedModel, currentSkill, currentFiles } = await req.json();
     if (!Array.isArray(messages)) {
       return Response.json({ error: "Missing or invalid messages." }, { status: 400 });
     }
 
+    const user = await requireCurrentUser();
     const modelId = allowedModels.has(requestedModel) ? requestedModel : "google/gemini-2.5-flash";
     const apiKeysHeader = req.headers.get("x-api-keys");
     let apiKeys: Record<string, string> = {};
@@ -73,26 +59,44 @@ export async function POST(req: Request) {
       aiModel = createOpenAI({ apiKey: key })(modelId.replace("openai/", ""));
     }
 
+
+    const currentPackageContext = Array.isArray(currentFiles)
+      ? currentFiles
+          .slice(0, 30)
+          .map((file: { path?: unknown; content?: unknown }) => {
+            const path = typeof file.path === "string" ? file.path : "unknown-file";
+            const content = typeof file.content === "string" ? file.content.slice(0, 4000) : "[binary or empty]";
+            return `FILE: ${path}\n${content}`;
+          })
+          .join("\n\n")
+      : "No additional package files were provided.";
+
     const systemPrompt = `You are the primary AI Copilot for an Agent Skill Builder.
 
-Your job is to create and improve SKILL.md instruction files, not application code. The user expects you to update the editor directly whenever they ask to create, rewrite, repair, or improve a skill.
+Create and improve complete agent skill packages using the ${FULL_PACKAGE_PROFILE_LABEL}. Never generate application code unless the skill itself explicitly requires a bundled helper script.
 
 CURRENT SKILL.MD:
 ${typeof currentSkill === "string" && currentSkill.trim() ? currentSkill : "No current skill was provided."}
 
-Rules:
-1. Use the update_skill_markdown tool whenever the user asks to create or modify the skill.
-2. Preserve useful existing content unless the user asks for a full rewrite.
-3. Ask at most one concise clarification question only when a required fact is genuinely missing.
-4. Never generate React, API, database, website, or infrastructure code.
-5. YAML frontmatter name must be a lowercase hyphenated slug. The H1 title must be the human-readable skill name.
-6. Include frontmatter description, license, compatibility, and metadata containing author and version.
-7. Include an H1 title, ## Workflow, ## Permissions, ## Examples, and ## Compatibility.
-8. Permission keys may only be: read_files, write_files, network, shell, browser, api_keys.
-9. Compatibility targets may only be: Codex, Claude, Antigravity, OpenCode, Grok, VS Code. Omit unsupported targets even if the user requests them.
-10. The first item under ## Examples must be a realistic prompt that can be used immediately as the Builder test input.
-11. Use concrete instructions, failure handling, safety constraints, and usable examples.
-12. After a successful tool update, briefly explain what changed. Do not paste the entire markdown into the chat response.`;
+CURRENT SUPPORTING FILES:
+${currentPackageContext}
+
+Mandatory package rules:
+1. Use the update_skill_markdown tool whenever the user asks to create, rewrite, repair, or improve a skill.
+2. The package directory and YAML frontmatter name must be the same lowercase hyphenated identifier.
+3. The YAML description must be 1024 characters or fewer and begin with "Use this skill when...". Include direct and indirect activation triggers.
+4. Include license, runtime compatibility requirements, metadata.author, metadata.version, metadata.targets, and allowed-tools. The compatibility frontmatter field describes runtime requirements, not marketplace targets.
+5. Keep SKILL.md under 500 lines.
+6. Include these exact H2 sections: Overview, Activation, Required Inputs, Workflow, Output Contract, Available Scripts, References, Safety and Permissions, Failure Handling, Gotchas, Examples, Validation, Compatibility.
+7. In References, state exact load conditions such as: Read `references/api-errors.md` when the API returns a 404.
+8. Scripts must be non-interactive, accept CLI flags, handle failures, and prefer structured output. Only create scripts that materially improve the skill.
+9. Keep reference files focused, relative to the skill root, and one level deep under references/.
+10. The server automatically scaffolds scripts/, references/, assets/, and examples/ when omitted. Do not invent meaningless scripts or assets.
+11. Supported permissions are only: read_files, write_files, network, shell, browser, api_keys.
+12. Supported marketplace targets are only: Codex, Claude, Antigravity, OpenCode, Grok, VS Code.
+13. Return a human-readable display name separately from the machine directory name.
+14. Supply a realistic test prompt and a marketplace category.
+15. After the tool succeeds, summarize the package files and validation result without pasting the complete SKILL.md into chat.`;
 
     const result = streamText({
       model: aiModel,
@@ -100,11 +104,52 @@ Rules:
       messages: await convertToModelMessages(messages),
       tools: {
         update_skill_markdown: tool({
-          description: "Replace the Builder editor contents with a complete, valid SKILL.md file.",
+          description: `Create or replace a complete skill package that conforms to ${FULL_PACKAGE_PROFILE_LABEL}.`,
           inputSchema: z.object({
-            markdown: z.string().min(100).describe("The complete SKILL.md content, including YAML frontmatter and all required sections."),
+            skillMd: z.string().min(200).describe("Complete SKILL.md with YAML frontmatter and all required H2 sections."),
+            files: z.array(z.object({
+              path: z.string().min(1).describe("Path relative to the skill root, such as references/platform-rules.md."),
+              content: z.string().describe("UTF-8 text file contents."),
+              role: roleSchema,
+            })).default([]),
+            metadata: z.object({
+              displayName: z.string().min(4).max(64),
+              directoryName: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+              category: z.string().min(2).max(48),
+              summary: z.string().min(40).max(1024),
+              testPrompt: z.string().min(12).max(500),
+              permissions: z.array(permissionSchema).min(1),
+              targets: z.array(targetSchema).min(1),
+            }),
           }),
-          execute: async ({ markdown }) => ({ success: true, updatedContent: normalizeCompatibility(markdown) }),
+          execute: async ({ skillMd, files, metadata }) => {
+            const generated = buildFullSkillPackage({ skillMd, files, metadata });
+            if (!generated.profile.valid) {
+              return {
+                success: false,
+                updatedContent: generated.skillMd,
+                packageFiles: generated.files,
+                metadata: generated.metadata,
+                profile: generated.profile,
+              };
+            }
+            const record = await createSkillPackage({
+              owner: user,
+              uploadSource: "paste",
+              originalFilename: `${generated.metadata.directoryName}.zip`,
+              blobPrefix: `skills/${user.id}/${generated.metadata.directoryName}/${Date.now()}`,
+              manifest: generated.manifest,
+              files: generated.files,
+            });
+            return {
+              success: true,
+              updatedContent: generated.skillMd,
+              packageUploadId: record.id,
+              packageFiles: record.files,
+              metadata: generated.metadata,
+              profile: generated.profile,
+            };
+          },
         }),
       },
     });
