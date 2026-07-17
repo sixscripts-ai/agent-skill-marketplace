@@ -20,7 +20,16 @@ export const sandboxProviders: {
     defaultBaseUrl: "https://api.openai.com/v1",
     modelEnv: "OPENAI_MODEL",
   },
-  { id: "gemini", label: "Gemini", model: "gemini-2.0-flash", mode: "local-deterministic" },
+  {
+    id: "gemini",
+    label: "Gemini",
+    model: "gemini-2.5-pro",
+    mode: "openai-compatible",
+    keyEnv: "GEMINI_API_KEY",
+    baseUrlEnv: "GEMINI_BASE_URL",
+    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    modelEnv: "GEMINI_MODEL",
+  },
   {
     id: "groq",
     label: "Groq",

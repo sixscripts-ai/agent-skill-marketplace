@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       const anthropic = createAnthropic({ apiKey: apiKeys.anthropic || process.env.ANTHROPIC_API_KEY || "" });
       aiModel = anthropic(requestedModel.replace("anthropic/", ""));
     } else if (requestedModel?.startsWith("google/")) {
-      const google = createGoogleGenerativeAI({ apiKey: apiKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
+      const google = createGoogleGenerativeAI({ apiKey: apiKeys.google || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
       aiModel = google(requestedModel.replace("google/", ""));
     } else if (requestedModel?.startsWith("xai/")) {
       const xai = createXai({ apiKey: apiKeys.xai || process.env.XAI_API_KEY || "" });

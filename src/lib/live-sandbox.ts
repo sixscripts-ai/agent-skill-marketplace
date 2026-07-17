@@ -18,7 +18,7 @@ export function createInitialLiveRun(
   skill: Skill,
   owner: MarketplaceUser,
   input: string,
-  providerId: SandboxProvider = "openai",
+  providerId: SandboxProvider = "gemini",
   workspaceFiles: WorkspaceFile[] = [],
   replayOf?: string,
 ): SkillRun {
@@ -51,7 +51,7 @@ export async function* streamLiveSandboxRun(
   owner: MarketplaceUser,
   input: string,
   deniedPermissions: string[] = [],
-  providerId: SandboxProvider = "openai",
+  providerId: SandboxProvider = "gemini",
   workspaceFiles: WorkspaceFile[] = [],
   replayOf?: string,
 ) {

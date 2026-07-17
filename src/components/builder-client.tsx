@@ -70,7 +70,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [isTesting, setIsTesting] = useState(false);
   const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
 
-  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-flash");
+  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-pro");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [input, setInput] = useState("");
   const { messages, sendMessage, status } = useChat({
