@@ -62,17 +62,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ski
 async function uploadedPackageZipFiles(skill: Skill) {
   const latestPackage = skill.packages?.[0];
   if (!latestPackage) return [];
-  const files = [];
-  for (const file of latestPackage.files) {
+
+  const filesPromises = latestPackage.files.map(async (file) => {
     if (file.content !== undefined) {
-      files.push({ path: file.path, content: decodeStoredPackageContent(file.content) });
-      continue;
+      return { path: file.path, content: decodeStoredPackageContent(file.content) };
     }
     if (file.blobUrl) {
       const response = await fetch(file.blobUrl);
       if (response.ok) {
-        files.push({ path: file.path, content: new Uint8Array(await response.arrayBuffer()) });
+        return { path: file.path, content: new Uint8Array(await response.arrayBuffer()) };
       }
+    }
+    return null;
+  });
+
+  const results = await Promise.all(filesPromises);
+  const files = [];
+  for (const result of results) {
+    if (result !== null) {
+      files.push(result);
     }
   }
   return files;
