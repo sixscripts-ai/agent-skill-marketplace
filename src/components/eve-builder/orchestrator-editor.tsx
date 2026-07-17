@@ -14,22 +14,38 @@ export function OrchestratorEditor({
 }) {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAskCopilot = async () => {
     if (!prompt.trim()) return;
+
+    // Check if user has any API key stored
+    const storedKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") : null;
+    const apiKeys: Record<string, string> = storedKeys ? JSON.parse(storedKeys) : {};
+    const hasKey = Object.values(apiKeys).some((v) => v && v.trim().length > 0);
+    if (!hasKey) {
+      setError("No API key found. Click Settings (top-right) → enter your Google Gemini or OpenAI key → Save Keys → try again.");
+      return;
+    }
     
     setIsLoading(true);
+    setError(null);
     try {
-      const storedKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") : null;
-      const apiKeys = storedKeys ? JSON.parse(storedKeys) : {};
-      
       const response = await generateCopilotRefinement(prompt, state.instructions, state.model, apiKeys);
       if (response) {
         updateState({ instructions: response });
         setPrompt("");
+      } else {
+        setError("Copilot returned an empty response. Check your API key in Settings.");
       }
-    } catch (error) {
-      console.error("Failed to generate instructions:", error);
+    } catch (err: unknown) {
+      console.error("Failed to generate instructions:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("API Key") || message.includes("403") || message.includes("identity") || message.includes("401")) {
+        setError("Invalid API key. Open Settings and verify your key for the selected model.");
+      } else {
+        setError(`Copilot error: ${message.slice(0, 200)}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +84,15 @@ export function OrchestratorEditor({
           Generate
         </button>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-400">
+          <span className="mt-0.5 shrink-0">⚠</span>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto shrink-0 text-red-600 hover:text-red-400">✕</button>
+        </div>
+      )}
 
       {/* Editor Container */}
       <div className="relative flex-1 min-h-[300px] border border-white/10 rounded-xl overflow-hidden bg-[#0a0a0a] flex flex-col">
