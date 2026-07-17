@@ -66,6 +66,8 @@ export function BuilderCopilot({
             <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
             <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
             <option value="xai/grok-2-latest">Grok 2</option>
+            <option value="groq/llama-3.3-70b-versatile">Llama 3.3 (Groq)</option>
+            <option value="groq/mixtral-8x7b-32768">Mixtral (Groq)</option>
             <option value="openai/gpt-4o">GPT-4o</option>
             <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
           </select>

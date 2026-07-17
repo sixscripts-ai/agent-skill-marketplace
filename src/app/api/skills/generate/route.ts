@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
+import { createGroq } from "@ai-sdk/groq";
 import { convertToModelMessages, streamText, tool } from "ai";
 import { z } from "zod";
 import { requireCurrentUser } from "@/lib/auth";
@@ -17,6 +18,8 @@ const allowedModels = new Set([
   "xai/grok-2-latest",
   "openai/gpt-4o",
   "anthropic/claude-3-5-sonnet-20240620",
+  "groq/llama-3.3-70b-versatile",
+  "groq/mixtral-8x7b-32768",
 ]);
 
 const permissionSchema = z.enum(["read_files", "write_files", "network", "shell", "browser", "api_keys"]);
@@ -53,6 +56,10 @@ export async function POST(req: Request) {
       const key = apiKeys.xai || process.env.XAI_API_KEY || "";
       if (!key) return Response.json({ error: "An xAI API key is required for this model." }, { status: 400 });
       aiModel = createXai({ apiKey: key })(modelId.replace("xai/", ""));
+    } else if (modelId.startsWith("groq/")) {
+      const key = apiKeys.groq || process.env.GROQ_API_KEY || "";
+      if (!key) return Response.json({ error: "A Groq API key is required for this model." }, { status: 400 });
+      aiModel = createGroq({ apiKey: key })(modelId.replace("groq/", ""));
     } else {
       const key = apiKeys.openai || process.env.OPENAI_API_KEY || "";
       if (!key) return Response.json({ error: "An OpenAI API key is required for this model." }, { status: 400 });
@@ -88,7 +95,7 @@ Mandatory package rules:
 4. Include license, runtime compatibility requirements, metadata.author, metadata.version, metadata.targets, and allowed-tools. The compatibility frontmatter field describes runtime requirements, not marketplace targets.
 5. Keep SKILL.md under 500 lines.
 6. Include these exact H2 sections: Overview, Activation, Required Inputs, Workflow, Output Contract, Available Scripts, References, Safety and Permissions, Failure Handling, Gotchas, Examples, Validation, Compatibility.
-7. In References, state exact load conditions such as: Read `references/api-errors.md` when the API returns a 404.
+7. In References, state exact load conditions such as: Read \`references/api-errors.md\` when the API returns a 404.
 8. Scripts must be non-interactive, accept CLI flags, handle failures, and prefer structured output. Only create scripts that materially improve the skill.
 9. Keep reference files focused, relative to the skill root, and one level deep under references/.
 10. The server automatically scaffolds scripts/, references/, assets/, and examples/ when omitted. Do not invent meaningless scripts or assets.
