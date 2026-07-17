@@ -1,21 +1,24 @@
 "use client";
 
-import { useMemo, useState, useEffect, type ChangeEvent } from "react";
+import dynamic from "next/dynamic";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { executeSkillRunStream } from "@/lib/runner";
-import { Send, Upload, Sparkles, Settings } from "lucide-react";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { parseSkillMarkdown } from "@/lib/skill-import";
 import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile, SkillRun } from "@/lib/types";
-import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
 import { SafeMessageResponse } from "./safe-message-response";
-import { Badge, Panel } from "./ui";
-import { CodeBlock } from "./code-block";
-import { ApiSettingsModal, type ApiKeys } from "./api-settings-modal";
-import dynamic from 'next/dynamic';
-const CanvasEditor = dynamic(() => import('./canvas-editor').then(mod => mod.CanvasEditor), { ssr: false });
-const MarkdownEditor = dynamic(() => import('./markdown-editor'), { ssr: false });
+import { ApiSettingsModal } from "./api-settings-modal";
+import { BuilderStudio } from "./builder/builder-ui";
+import { BuilderHeader } from "./builder/builder-header";
+import { BuilderConfiguration } from "./builder/builder-configuration";
+import { BuilderEditor, type BuilderChatMessage } from "./builder/builder-editor";
+import { BuilderInspector } from "./builder/builder-inspector";
+import type { BuilderSavedUrls, BuilderViewMode, BuilderVisibility } from "./builder/builder-types";
+
+const CanvasEditor = dynamic(() => import("./canvas-editor").then((mod) => mod.CanvasEditor), { ssr: false });
+const MarkdownEditor = dynamic(() => import("./markdown-editor"), { ssr: false });
 
 const starterSkill = `---
 name: Incident Postmortem Assistant
@@ -49,13 +52,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [name, setName] = useState(initialDraft?.name ?? "Incident Postmortem Assistant");
   const [slug, setSlug] = useState(initialDraft?.slug ?? "incident-postmortem-assistant");
   const [category, setCategory] = useState(initialDraft?.category ?? "Reliability");
-  const [summary, setSummary] = useState(
-    initialDraft?.summary ?? "Turns logs, traces, commits, and alerts into a source-backed incident timeline.",
-  );
+  const [summary, setSummary] = useState(initialDraft?.summary ?? "Turns logs, traces, commits, and alerts into a source-backed incident timeline.");
   const [skillMd, setSkillMd] = useState(initialDraft?.skillMd ?? starterSkill);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "write_files", "network", "shell"]);
   const [selectedTargets, setSelectedTargets] = useState<string[]>(initialDraft?.compatibilityTargets ?? ["Codex", "Claude", "VS Code"]);
-  const [visibility, setVisibility] = useState<"public" | "private" | "unlisted">(initialDraft?.visibility ?? "public");
+  const [visibility, setVisibility] = useState<BuilderVisibility>(initialDraft?.visibility ?? "public");
   const [testInput, setTestInput] = useState("Create a postmortem from a failed deployment trace.");
   const [publishedSlug, setPublishedSlug] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -65,51 +66,33 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [packageFiles, setPackageFiles] = useState<SkillPackageFile[]>([]);
   const [uploadError, setUploadError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
+  const [savedUrls, setSavedUrls] = useState<BuilderSavedUrls | null>(null);
   const [testRun, setTestRun] = useState<SkillRun | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-  const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
-
+  const [viewMode, setViewMode] = useState<BuilderViewMode>("markdown");
   const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-pro");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [input, setInput] = useState("");
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/skills/generate",
-      body: {
-        model: copilotModel,
-      },
-      headers: {
-        "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
-      },
+      body: { model: copilotModel },
+      headers: { "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}" },
     }),
   });
 
-  const isGenerating = status === 'streaming' || status === 'submitted';
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isGenerating) return;
-    sendMessage({ text: input });
-    setInput('');
-  };
+  const isGenerating = status === "streaming" || status === "submitted";
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.parts) {
-      for (const part of lastMessage.parts) {
-        if (part.type === "tool-update_skill_markdown") {
-          const args = part.input as { markdown?: string };
-          if (args?.markdown) {
-            if (skillMd !== args.markdown) {
-              setSkillMd(args.markdown);
-              importSkill(args.markdown);
-            }
-          }
+    if (!lastMessage?.parts) return;
+    for (const part of lastMessage.parts) {
+      if (part.type === "tool-update_skill_markdown") {
+        const args = part.input as { markdown?: string };
+        if (args?.markdown && args.markdown !== skillMd) {
+          setSkillMd(args.markdown);
+          void importSkill(args.markdown);
         }
       }
     }
@@ -134,82 +117,20 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     return next;
   }, [name, selectedPermissions.length, selectedTargets.length, skillMd, slug, summary]);
 
-  async function runTest() {
-    const prompt = testInput.trim();
-    if (!prompt || isTesting) return;
-    setIsTesting(true);
-    setTestRun(null);
-
-    await executeSkillRunStream({
-      skillSlug: "agent-observer",
-      input: prompt,
-      deniedPermissions: [],
-      onRun: (payloadRun) => setTestRun(payloadRun),
-      onEvent: (event) => {
-        setTestRun((current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            events: [...current.events.filter((e) => e.order !== event.order), event].sort(
-              (a, b) => a.order - b.order,
-            ),
-          };
-        });
-      },
-      onOutput: (output) => {
-        setTestRun((current) => current ? { ...current, output } : null);
-      },
-      onComplete: (payloadRun) => setTestRun(payloadRun),
-      onError: (message) => {
-        setTestRun((current) => {
-          if (!current) return null;
-          return {
-            ...current,
-            status: "failed",
-            output: message,
-          };
-        });
-      },
-    });
-
-    setIsTesting(false);
-  }
-
   function toggle(value: string, selected: string[], setter: (value: string[]) => void) {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
   }
 
   async function importSkill(nextSkillMd = skillMd) {
     setUploadError("");
-    const response = await fetch("/api/skills/import", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ skillMd: nextSkillMd }),
-    });
+    const response = await fetch("/api/skills/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ skillMd: nextSkillMd }) });
     const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
     const localParsed = parseSkillMarkdown(nextSkillMd);
-    const parsed =
-      response.ok && payload
-        ? payload
-        : {
-            ...localParsed,
-            suggestions: [
-              ...localParsed.suggestions,
-              response.status === 401
-                ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now."
-                : "The server parser was unavailable, so local formatting suggestions are shown.",
-            ],
-          };
-    if (!response.ok) {
-      setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
-    }
+    const parsed = response.ok && payload ? payload : { ...localParsed, suggestions: [...localParsed.suggestions, response.status === 401 ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now." : "The server parser was unavailable, so local formatting suggestions are shown."] };
+    if (!response.ok) setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
     setImportResult(parsed);
-    setName(parsed.name);
-    setSlug(parsed.slug);
-    setCategory(parsed.category);
-    setSummary(parsed.description);
-    setSelectedPermissions(parsed.permissions);
-    setSelectedTargets(parsed.compatibilityTargets);
+    setName(parsed.name); setSlug(parsed.slug); setCategory(parsed.category); setSummary(parsed.description);
+    setSelectedPermissions(parsed.permissions); setSelectedTargets(parsed.compatibilityTargets);
     if (parsed.packageUploadId) setPackageUploadId(parsed.packageUploadId);
     if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
   }
@@ -219,602 +140,87 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (!files.length) return;
     setUploadError("");
     const form = new FormData();
-    for (const file of files) {
-      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      form.append("files", file, relativePath);
-    }
+    for (const file of files) form.append("files", file, (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
     const response = await fetch("/api/skills/upload", { method: "POST", body: form });
     const payload = (await response.json()) as ParsedSkillImport & { error?: string };
-    if (!response.ok) {
-      setUploadError(payload.error ?? "Upload failed.");
-      event.target.value = "";
-      return;
-    }
+    if (!response.ok) { setUploadError(payload.error ?? "Upload failed."); event.target.value = ""; return; }
     setUploadedFileName(files.length === 1 ? files[0].name : `${files.length} files`);
-    setImportResult(payload);
-    setPackageUploadId(payload.packageUploadId ?? "");
-    setPackageFiles(payload.packageFiles ?? []);
-    setSkillMd(payload.primarySkillMd ?? payload.suggestedSkillMd);
-    setName(payload.name);
-    setSlug(payload.slug);
-    setCategory(payload.category);
-    setSummary(payload.description);
-    setSelectedPermissions(payload.permissions);
-    setSelectedTargets(payload.compatibilityTargets);
-    event.target.value = "";
+    setImportResult(payload); setPackageUploadId(payload.packageUploadId ?? ""); setPackageFiles(payload.packageFiles ?? []);
+    setSkillMd(payload.primarySkillMd ?? payload.suggestedSkillMd); setName(payload.name); setSlug(payload.slug); setCategory(payload.category); setSummary(payload.description);
+    setSelectedPermissions(payload.permissions); setSelectedTargets(payload.compatibilityTargets); event.target.value = "";
   }
 
   function applySuggestedSkillMd() {
     if (!importResult) return;
-    setSkillMd(importResult.suggestedSkillMd);
-    setName(importResult.name);
-    setSlug(importResult.slug);
-    setCategory(importResult.category);
-    setSummary(importResult.description);
-    setSelectedPermissions(importResult.permissions);
-    setSelectedTargets(importResult.compatibilityTargets);
+    setSkillMd(importResult.suggestedSkillMd); setName(importResult.name); setSlug(importResult.slug); setCategory(importResult.category); setSummary(importResult.description);
+    setSelectedPermissions(importResult.permissions); setSelectedTargets(importResult.compatibilityTargets);
   }
 
   async function publishSkill() {
-    setSaveError("");
-    setSavedUrls(null);
-    setIsSaving(true);
-    const response = await fetch("/api/skills", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name,
-        slug,
-        category,
-        summary,
-        skillMd,
-        permissions: selectedPermissions,
-        compatibilityTargets: selectedTargets,
-        visibility,
-        packageUploadId: packageUploadId || undefined,
-      }),
-    });
-    const payload = (await response.json()) as { skill?: { slug: string }; urls?: typeof savedUrls; error?: string };
-    if (response.ok && payload.skill && payload.urls) {
-      setPublishedSlug(payload.skill.slug);
-      setSavedUrls(payload.urls);
-    } else {
-      setSaveError(payload.error ?? "Skill save failed.");
-    }
+    setSaveError(""); setSavedUrls(null); setIsSaving(true);
+    const response = await fetch("/api/skills", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, slug, category, summary, skillMd, permissions: selectedPermissions, compatibilityTargets: selectedTargets, visibility, packageUploadId: packageUploadId || undefined }) });
+    const payload = (await response.json()) as { skill?: { slug: string }; urls?: BuilderSavedUrls; error?: string };
+    if (response.ok && payload.skill && payload.urls) { setPublishedSlug(payload.skill.slug); setSavedUrls(payload.urls); } else setSaveError(payload.error ?? "Skill save failed.");
     setIsSaving(false);
   }
 
+  async function runTest() {
+    const prompt = testInput.trim();
+    if (!prompt || isTesting) return;
+    setIsTesting(true); setTestRun(null);
+    await executeSkillRunStream({
+      skillSlug: "agent-observer", input: prompt, deniedPermissions: [],
+      onRun: setTestRun,
+      onEvent: (event) => setTestRun((current) => current ? { ...current, events: [...current.events.filter((item) => item.order !== event.order), event].sort((a, b) => a.order - b.order) } : current),
+      onOutput: (output) => setTestRun((current) => current ? { ...current, output } : null),
+      onComplete: setTestRun,
+      onError: (message) => setTestRun((current) => current ? { ...current, status: "failed", output: message } : null),
+    });
+    setIsTesting(false);
+  }
+
+  async function pasteSkill() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) { setSkillMd(text); await importSkill(text); }
+    } catch { document.getElementById("builder-skill-md")?.focus(); }
+  }
+
+  function submitCopilot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!input.trim() || isGenerating) return;
+    sendMessage({ text: input }); setInput("");
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Skill Builder</h1>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Upload or write a SKILL.md package, repair the format, validate permissions, then publish when it is ready.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 h-10 rounded-md border border-neutral-200 bg-[#39FF14] px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50 shadow-sm"
-          >
-            <Settings className="w-4 h-4" />
-            API Keys
-          </button>
-          <button
-            onClick={publishSkill}
-            data-testid="builder-publish"
-            className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={issues.length > 0 || isSaving}
-          >
-            {isSaving ? "Saving..." : "Publish version"}
-          </button>
-        </div>
+    <BuilderStudio>
+      <BuilderHeader issueCount={issues.length} isSaving={isSaving} onOpenSettings={() => setIsSettingsOpen(true)} onPublish={publishSkill} />
+      <div className="builder-workspace-grid">
+        <BuilderConfiguration
+          name={name} slug={slug} category={category} summary={summary} visibility={visibility}
+          permissions={selectedPermissions} targets={selectedTargets} permissionValues={permissionKeys}
+          targetValues={compatibilityTargets} permissionLabels={permissionLabels} packageFiles={packageFiles}
+          packageUploadId={packageUploadId} uploadedFileName={uploadedFileName} uploadError={uploadError}
+          onNameChange={setName} onSlugChange={setSlug} onCategoryChange={setCategory} onSummaryChange={setSummary}
+          onVisibilityChange={setVisibility} onPermissionToggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)}
+          onTargetToggle={(value) => toggle(value, selectedTargets, setSelectedTargets)} onUpload={uploadSkillFile}
+          onPaste={pasteSkill} onParse={() => void importSkill()}
+        />
+        <BuilderEditor
+          viewMode={viewMode} issueCount={issues.length} copilotModel={copilotModel}
+          messages={messages as BuilderChatMessage[]} input={input} isGenerating={isGenerating}
+          editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
+          preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
+          onViewModeChange={setViewMode} onModelChange={setCopilotModel} onInputChange={setInput} onSubmit={submitCopilot}
+        />
+        <BuilderInspector
+          issues={issues} importResult={importResult} publishedSlug={publishedSlug} savedUrls={savedUrls}
+          saveError={saveError} visibility={visibility} name={name} category={category} summary={summary}
+          permissions={selectedPermissions} targets={selectedTargets} testInput={testInput} testRun={testRun}
+          isTesting={isTesting} onApplySuggestions={applySuggestedSkillMd} onTestInputChange={setTestInput} onRunTest={() => void runTest()}
+        />
       </div>
-
-      <ActionGuide
-        steps={[
-          { label: "1", title: "Upload", body: "Bring in SKILL.md, a .skill file, zip, or folder." },
-          { label: "2", title: "Format", body: "Parse the file and apply suggested structure fixes." },
-          { label: "3", title: "Validate", body: "Resolve missing workflow, permissions, examples, and targets." },
-          { label: "4", title: "Preview", body: "Check the marketplace card and README excerpt." },
-          { label: "5", title: "Publish", body: "Save an unlisted, private, or public version." },
-        ]}
-      />
-
-      <FeatureWalkthrough
-        title="Builder turns an idea or uploaded package into a marketplace skill."
-        description="Use this page to create the skill record, normalize SKILL.md formatting, attach package files, choose permissions, and publish a version that can appear in My Skills or Marketplace."
-        example="Upload a folder with SKILL.md, README, scripts, references, and assets. Then click Parse / suggest edits before publishing."
-        why="Good skills need a clear workflow, explicit permissions, examples, and compatibility targets so users know when to trust and run them."
-        items={[
-          {
-            title: "Metadata",
-            body: "Name, slug, category, summary, and visibility decide how the skill appears and who can find it.",
-          },
-          {
-            title: "Package upload",
-            body: "Use .md, .skill, .zip, or folder upload to bring in the real skill files instead of typing everything manually.",
-          },
-          {
-            title: "SKILL.md editor",
-            body: "This is the source of truth for the agent instructions: workflow, permissions, examples, and compatibility.",
-          },
-          {
-            title: "Validation",
-            body: "Warnings show what is missing. Suggested formatting can repair common structure issues before publish.",
-          },
-        ]}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-        <Panel className="p-4">
-          <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
-            {["Upload", "Format", "Validate", "Publish"].map((step) => (
-              <div key={step} className="rounded bg-[#39FF14] px-2 py-2">{step}</div>
-            ))}
-          </div>
-          <h2 className="mt-5 text-base font-semibold text-neutral-950">Metadata</h2>
-          <div className="mt-5 flex flex-col gap-4">
-            <Field
-              error={name.trim().length > 64 || name.trim().length < 4}
-              helper="4-64 characters. This becomes the marketplace card title."
-              label="Name"
-              maxLength={64}
-              testId="builder-name"
-              value={name}
-              onChange={setName}
-            />
-            <Field
-              error={!/^[a-z0-9-]+$/.test(slug)}
-              helper="Lowercase letters, numbers, and hyphens only."
-              label="Slug"
-              testId="builder-slug"
-              value={slug}
-              onChange={setSlug}
-            />
-            <Field
-              helper="Use a short grouping such as Research, Reliability, Security, or Automation."
-              label="Category"
-              testId="builder-category"
-              value={category}
-              onChange={setCategory}
-            />
-            <Field
-              error={summary.trim().length > 1024 || summary.trim().length < 40}
-              helper="40-1024 characters. Explain what the skill does and when to use it."
-              label="Summary"
-              maxLength={1024}
-              testId="builder-summary"
-              value={summary}
-              onChange={setSummary}
-            />
-            <label className="block text-sm font-medium text-neutral-700">
-              Visibility
-              <select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as "public" | "private" | "unlisted")}
-                data-testid="builder-visibility"
-                className="mt-2 h-9 w-full rounded-md border border-neutral-200 bg-[#39FF14] px-3 text-[13px] outline-none transition-all focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
-              >
-                <option value="public">public</option>
-                <option value="private">private</option>
-                <option value="unlisted">unlisted</option>
-              </select>
-            </label>
-          </div>
-          <div className="mt-6 flex flex-col gap-5">
-            <Checklist
-              title="Permissions"
-              values={permissionKeys}
-              labels={permissionLabels}
-              selected={selectedPermissions}
-              toggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)}
-            />
-            <Checklist
-              title="Install targets"
-              values={compatibilityTargets}
-              selected={selectedTargets}
-              toggle={(value) => toggle(value, selectedTargets, setSelectedTargets)}
-            />
-          </div>
-          <div className="mt-6 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-            <div className="font-semibold text-neutral-950">Upload Skill Package</div>
-            <p className="mt-1 text-xs leading-5 text-neutral-500">
-              Upload `.md`, `.skill`, `.zip`, or a folder with docs, scripts, references, assets, and config.
-            </p>
-            <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
-              <span className="font-semibold text-neutral-950">File / zip</span>
-              <span className="mt-1 block text-xs leading-5 text-neutral-500">Accepts `.md`, `.skill`, and `.zip` packages.</span>
-              <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} data-testid="builder-file-upload" className="mt-3 block w-full text-xs" />
-            </label>
-            <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
-              <span className="font-semibold text-neutral-950">Folder</span>
-              <span className="mt-1 block text-xs leading-5 text-neutral-500">Preserves nested docs, references, scripts, configs, and assets.</span>
-              <input
-                type="file"
-                multiple
-                onChange={uploadSkillFile}
-                data-testid="builder-folder-upload"
-                className="mt-3 block w-full text-xs"
-                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
-              />
-            </label>
-          </div>
-          {uploadError ? (
-            <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">{uploadError}</div>
-          ) : null}
-          {uploadedFileName ? (
-            <div className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
-              Uploaded: <span className="font-mono text-neutral-950">{uploadedFileName}</span>
-              {packageUploadId ? <div className="mt-1 font-mono text-neutral-500">Package: {packageUploadId}</div> : null}
-            </div>
-          ) : null}
-          {packageFiles.length ? (
-            <div className="mt-3 rounded-md border border-neutral-200 bg-[#39FF14] p-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Package preview</div>
-              <div className="mt-3 max-h-44 overflow-auto rounded-md border border-neutral-200">
-                {packageFiles.map((file) => (
-                  <div key={file.path} className="grid grid-cols-[1fr_76px_72px] gap-2 border-b border-neutral-100 px-3 py-2 text-xs last:border-b-0">
-                    <span className="truncate font-mono text-neutral-950">{file.path}</span>
-                    <span className="text-neutral-500">{file.role}</span>
-                    <span className="text-right text-neutral-500">{file.size.toLocaleString()} B</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <button
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                if (text.trim()) {
-                  setSkillMd(text);
-                  await importSkill(text);
-                }
-              } catch {
-                document.getElementById("builder-skill-md")?.focus();
-              }
-            }}
-            className="mt-6 block w-full rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-left text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-[#39FF14] cursor-pointer"
-          >
-            <span className="font-semibold text-neutral-950">Paste SKILL.md</span>
-            <span className="mt-1 block text-xs leading-5 text-neutral-500">
-              Click to paste from clipboard, then parse and suggest edits before publishing.
-            </span>
-          </button>
-          <button
-            onClick={() => importSkill()}
-            data-testid="builder-parse"
-            className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-[#39FF14] text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
-          >
-            Parse / suggest edits
-          </button>
-        </Panel>
-
-        <Panel className="min-w-0 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold text-neutral-950">
-              {viewMode === "markdown" ? "SKILL.md editor" : "AI Elements Canvas"}
-            </h2>
-            <div className="flex items-center gap-4">
-              <div className="flex rounded-md border border-neutral-300 bg-neutral-100 p-1">
-                <button
-                  onClick={() => setViewMode("markdown")}
-                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
-                    viewMode === "markdown"
-                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-                >
-                  Markdown
-                </button>
-                <button
-                  onClick={() => setViewMode("canvas")}
-                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
-                    viewMode === "canvas"
-                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-                >
-                  Canvas
-                </button>
-              </div>
-              <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex flex-col rounded-md border border-blue-200 bg-blue-50 overflow-hidden">
-            <div className="flex items-center justify-between gap-4 p-4 border-b border-blue-100 bg-blue-50/50">
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
-                <Sparkles className="size-4" />
-                AI Skill Copilot
-              </div>
-              <select
-                value={copilotModel}
-                onChange={(e) => setCopilotModel(e.target.value)}
-                className="h-8 rounded-md border border-blue-200 bg-[#39FF14] px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="xai/grok-2-latest">Grok 2</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
-                <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                <option value="grok-2-latest">Grok 2</option>
-              </select>
-            </div>
-            
-            <div className="flex-1 max-h-[400px] min-h-[150px] overflow-y-auto p-4 flex flex-col gap-3">
-              {messages.length === 0 ? (
-                <p className="text-sm text-blue-800 opacity-70">Describe the skill you want to build or how you want to modify it, and the AI will chat with you and update the code automatically.</p>
-              ) : (
-                messages.map(m => (
-                  <div key={m.id} className={`flex flex-col max-w-[90%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}>
-                    <div className={`px-3 py-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-[#39FF14] border border-blue-200 text-blue-950 rounded-bl-sm'}`}>
-                      {m.parts.map((part, i) => {
-                        if (part.type === 'text') {
-                          return <div key={i}>{part.text}</div>;
-                        }
-                        if (part.type === 'tool-update_skill_markdown') {
-                          return (
-                            <div key={part.toolCallId} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
-                              <Settings className="size-3 animate-spin-slow" />
-                              Updating skill editor...
-                            </div>
-                          );
-                        }
-                        if (part.type.startsWith('tool-')) {
-                          return (
-                            <div key={i} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
-                              <Settings className="size-3 animate-spin-slow" />
-                              Running tool...
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-3 bg-[#39FF14] border-t border-blue-100 flex gap-2 items-center">
-              <input
-                value={input}
-                onChange={handleInputChange}
-                placeholder="e.g. Add a workflow step for checking API keys..."
-                className="h-10 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:bg-[#39FF14] focus:ring-2 focus:ring-blue-100 transition-all"
-                disabled={isGenerating}
-              />
-              <button
-                type="submit"
-                disabled={!input || isGenerating}
-                className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Send className="size-4" />
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-[#39FF14] text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
-            {viewMode === "markdown" ? (
-              <MarkdownEditor
-                value={skillMd}
-                onValueChange={(code) => setSkillMd(code)}
-                textareaId="builder-skill-md"
-                textareaClassName="focus:outline-none"
-              />
-            ) : (
-              <CanvasEditor />
-            )}
-          </div>
-          <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
-            <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-4">
-              <SafeMessageResponse>{skillMd}</SafeMessageResponse>
-            </div>
-          </details>
-        </Panel>
-
-        <div className="flex flex-col gap-6 lg:col-span-2 2xl:col-span-1">
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Validation</h2>
-            <div className="mt-4 flex flex-col gap-2">
-              {issues.length ? (
-                issues.map((issue) => (
-                  <div key={issue} className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-                    {issue}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                  Ready to publish. Required metadata, workflow, permissions, and targets are present.
-                </div>
-              )}
-              {importResult ? (
-                <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
-                  <div>
-                    Parsed import: {importResult.permissions.length} permission(s), {importResult.compatibilityTargets.length} target(s),{" "}
-                    {importResult.issues.length} warning(s).
-                  </div>
-                  {importResult.suggestions.length ? (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Suggested edits</div>
-                      <ul className="mt-2 list-disc space-y-1 pl-5">
-                        {importResult.suggestions.map((suggestion) => (
-                          <li key={suggestion}>{suggestion}</li>
-                        ))}
-                      </ul>
-                      <button
-                        onClick={applySuggestedSkillMd}
-                        data-testid="builder-apply-suggestions"
-                        className="mt-3 h-9 rounded-md border border-neutral-950 bg-neutral-950 px-3 text-xs font-semibold text-white transition hover:bg-neutral-800"
-                      >
-                        Apply suggested formatting
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-2 text-xs font-medium text-green-800">
-                      Format matches the required SKILL.md structure.
-                    </div>
-                  )}
-                </div>
-              ) : null}
-              {publishedSlug ? (
-                <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                  Saved. View it at /skills/{publishedSlug} or find it in the marketplace.
-                  {savedUrls ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <a className="rounded-md border border-neutral-950 bg-neutral-950 px-2 py-1 text-xs font-semibold text-white" href={`${savedUrls.run}?mode=autopilot`}>⚡ Quick Run</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.edit}>Edit</a>
-                      {visibility === "public" ? (
-                        <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.marketplace}>Marketplace</a>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {saveError ? (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">{saveError}</div>
-              ) : null}
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Live marketplace preview</h2>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold text-neutral-950">{name}</h3>
-                  <p className="mt-1 text-sm text-neutral-500">{category}</p>
-                </div>
-                <Badge tone="amber">Experimental</Badge>
-              </div>
-              <p className="mt-4 text-sm leading-6 text-neutral-600">{summary}</p>
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Test skill</h2>
-            <div className="mt-4 flex gap-2">
-              <input
-                value={testInput}
-                onChange={(event) => setTestInput(event.target.value)}
-                data-testid="builder-test-input"
-                className="h-10 flex-1 rounded-md border px-3 text-sm outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isTesting) runTest();
-                }}
-              />
-              <button
-                onClick={runTest}
-                disabled={isTesting || !testInput.trim()}
-                className="flex h-10 items-center justify-center rounded-md bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
-              >
-                {isTesting ? "Testing..." : "Run test"}
-              </button>
-            </div>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">test output</div>
-                {testRun?.status && <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge>}
-              </div>
-              <p className="mt-2 text-sm leading-6 text-neutral-600 min-h-6">
-                {testRun?.output || (isTesting ? "Streaming..." : "Enter a test prompt to preview output.")}
-              </p>
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">README excerpt</h2>
-            <div className="mt-3">
-              <CodeBlock
-                code={`# ${name}\n\n${summary}\n\n## Compatibility\n${selectedTargets.map((target) => `- ${target}`).join("\n")}\n\n## Permissions\n${selectedPermissions.map((permission) => `- ${permission}`).join("\n")}\n\nVisibility: ${visibility}`}
-              />
-            </div>
-          </Panel>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  error = false,
-  helper,
-  label,
-  maxLength,
-  testId,
-  value,
-  onChange,
-}: {
-  error?: boolean;
-  helper?: string;
-  label: string;
-  maxLength?: number;
-  testId: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm font-medium text-neutral-700">
-      <span className="flex items-center justify-between gap-3">
-        <span>{label}</span>
-        {maxLength ? (
-          <span className={`font-mono text-xs ${value.length > maxLength ? "text-red-600" : "text-neutral-500"}`}>
-            {value.length}/{maxLength}
-          </span>
-        ) : null}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        data-testid={testId}
-        className={`mt-2 h-9 w-full rounded-md border px-3 text-[13px] outline-none transition-all ${
-          error ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-neutral-200 bg-[#39FF14] focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
-        }`}
-      />
-      {helper ? <span className={`mt-1 block text-xs ${error ? "text-red-700" : "text-neutral-500"}`}>{helper}</span> : null}
-    </label>
-  );
-}
-
-function Checklist({
-  title,
-  values,
-  labels,
-  selected,
-  toggle,
-}: {
-  title: string;
-  values: readonly string[];
-  labels?: Record<string, string>;
-  selected: string[];
-  toggle: (value: string) => void;
-}) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-neutral-950">{title}</h3>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {values.map((value) => (
-          <button
-            key={value}
-            onClick={() => toggle(value)}
-            data-testid={`builder-toggle-${value.toLowerCase().replaceAll(" ", "-")}`}
-            className={`rounded-md border px-3 py-2 text-xs font-medium transition ${
-              selected.includes(value)
-                ? "border-neutral-950 bg-neutral-950 text-white"
-                : "border-neutral-200 bg-[#39FF14] text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            {labels?.[value] ?? value}
-          </button>
-        ))}
-      </div>
-    </div>
+      <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+    </BuilderStudio>
   );
 }

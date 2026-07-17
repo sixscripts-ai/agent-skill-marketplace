@@ -1,83 +1,189 @@
 .builder-studio {
-  --builder-panel: var(--surface-panel, var(--card));
-  --builder-subtle: var(--surface-subtle, var(--muted));
   color: var(--foreground);
 }
 
-.builder-studio > div {
-  gap: 1.25rem;
+.builder-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--card);
+  padding: 1.25rem;
 }
 
-.builder-studio h1,
-.builder-studio h2,
-.builder-studio h3,
-.builder-studio label {
-  color: var(--foreground) !important;
-}
-
-.builder-studio p,
-.builder-studio span,
-.builder-studio div {
-  border-color: var(--border);
-}
-
-.builder-studio [class*="bg-[#39FF14]"] {
-  background: var(--builder-panel) !important;
-}
-
-.builder-studio [class*="text-neutral-950"] {
-  color: var(--foreground) !important;
-}
-
-.builder-studio [class*="text-neutral-900"] {
-  color: var(--foreground) !important;
-}
-
-.builder-studio [class*="text-neutral-700"],
-.builder-studio [class*="text-neutral-600"],
-.builder-studio [class*="text-neutral-500"] {
-  color: var(--muted-foreground) !important;
-}
-
-.builder-studio input,
-.builder-studio textarea,
-.builder-studio select {
-  border-color: var(--border) !important;
-  background: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
-.builder-studio input:focus,
-.builder-studio textarea:focus,
-.builder-studio select:focus {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent) !important;
-}
-
-.builder-studio button,
-.builder-studio a {
-  min-height: 2.5rem;
-}
-
-.builder-studio button[data-testid="builder-publish"] {
-  border-color: var(--primary) !important;
-  background: var(--primary) !important;
-  color: var(--primary-foreground) !important;
-}
-
-.builder-studio [class*="grid-cols-[300px_minmax(0,1fr)]"] {
-  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) !important;
+.builder-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr) minmax(18rem, 22rem);
   align-items: start;
+  gap: 1rem;
 }
 
-@media (min-width: 1536px) {
-  .builder-studio [class*="2xl:grid-cols-[320px_minmax(0,1fr)_360px]"] {
-    grid-template-columns: 20rem minmax(0, 1fr) 22rem !important;
+.builder-input,
+.builder-textarea,
+.builder-compact-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.builder-input,
+.builder-compact-select {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
+
+.builder-textarea {
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+}
+
+.builder-compact-select {
+  min-height: 2rem;
+  width: auto;
+  font-size: 0.75rem;
+}
+
+.builder-input:focus,
+.builder-textarea:focus,
+.builder-compact-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.builder-primary-button,
+.builder-secondary-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.builder-primary-button {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-primary-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.builder-primary-button:disabled,
+.builder-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.builder-secondary-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.builder-secondary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+
+.builder-chip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  padding: 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.builder-chip:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--foreground);
+}
+
+.builder-chip-active {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  color: var(--primary);
+}
+
+.builder-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--muted);
+  padding: 0.2rem;
+}
+
+.builder-segmented button {
+  min-height: 1.9rem;
+  border-radius: 0.35rem;
+  padding: 0 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.builder-segmented button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.builder-studio input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card);
+  padding: 0.4rem 0.65rem;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+@media (max-width: 1380px) {
+  .builder-workspace-grid {
+    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
   }
 }
 
-@media (max-width: 1100px) {
-  .builder-studio [class*="grid-cols-[300px_minmax(0,1fr)]"] {
-    grid-template-columns: 1fr !important;
+@media (max-width: 960px) {
+  .builder-toolbar {
+    flex-direction: column;
+  }
+
+  .builder-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: auto;
+    display: block;
+  }
+
+  .builder-workspace-grid > :last-child > * + * {
+    margin-top: 1rem;
   }
 }
