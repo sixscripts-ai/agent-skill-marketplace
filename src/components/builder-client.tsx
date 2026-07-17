@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { executeSkillRunStream } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { parseSkillMarkdown } from "@/lib/skill-import";
@@ -82,13 +82,36 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [input, setInput] = useState("");
   const [copilotError, setCopilotError] = useState("");
 
+  const copilotStateRef = useRef({ model: copilotModel, currentSkill: skillMd, apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}" });
+
+  useEffect(() => {
+    copilotStateRef.current = {
+      model: copilotModel,
+      currentSkill: skillMd,
+      apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}"
+    };
+  }, [copilotModel, skillMd, settingsRevision]);
+
   const transport = useMemo(() => new DefaultChatTransport({
     api: "/api/skills/generate",
-    body: { model: copilotModel, currentSkill: skillMd },
-    headers: {
-      "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
-    },
-  }), [copilotModel, settingsRevision, skillMd]);
+    fetch: async (url, init) => {
+      const state = copilotStateRef.current;
+      const body = JSON.parse(init?.body as string || "{}");
+      
+      // dynamically inject latest state
+      body.model = state.model;
+      body.currentSkill = state.currentSkill;
+      
+      return fetch(url, {
+        ...init,
+        body: JSON.stringify(body),
+        headers: {
+          ...init?.headers,
+          "x-api-keys": state.apiKeys,
+        },
+      });
+    }
+  }), []);
 
   const { messages, sendMessage, status, stop } = useChat({
     transport,
