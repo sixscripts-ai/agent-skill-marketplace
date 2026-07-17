@@ -31,10 +31,10 @@ export function SkillCard({ skill }: { skill: Skill }) {
             {skill.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h3 className="block truncate font-mono text-base font-semibold text-white group-hover:text-cyan-400 transition-colors">
+            <h3 className="line-clamp-2 font-mono text-[15px] leading-tight font-semibold text-white group-hover:text-cyan-400 transition-colors">
               {skill.name}
             </h3>
-            <p className="mt-0.5 truncate text-sm text-gray-500">{skill.author}</p>
+            <p className="mt-1 truncate text-sm text-gray-500">{skill.author}</p>
           </div>
         </div>
         <span className={`${badgeToneClass(tone)} inline-flex h-5 shrink-0 items-center px-2 py-0.5 text-xs`}>

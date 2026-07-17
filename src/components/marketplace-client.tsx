@@ -114,7 +114,7 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
 
         {/* ─── Main Grid ─── */}
         <div ref={gridRef} className="mt-6 scroll-mt-20">
-          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.length ? (
               filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />)
             ) : (
