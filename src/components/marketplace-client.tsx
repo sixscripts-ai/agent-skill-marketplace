@@ -70,13 +70,6 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
         {/* ─── Hero ─── */}
         <MarketplaceHero onBrowseClick={scrollToGrid} />
 
-        {/* ─── Stats Row ─── */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CyberMetric icon="📦" value={skills.length} label="published skills" />
-          <CyberMetric icon="🎯" value={compatibilityTargets.length} label="install targets" />
-          <CyberMetric icon="📊" value="91%" label="average eval" />
-          <CyberMetric icon="🔒" value="SSE" label="sandbox mode" />
-        </div>
 
         {/* ─── Filters ─── */}
         <div className="cyber-card mt-6 p-4">

@@ -269,15 +269,7 @@ export function RunnerClient({
         </div>
       </div>
 
-      <ActionGuide
-        steps={[
-          { label: "1", title: "Add files", body: "Use Builder uploads or Add file when the skill needs real context." },
-          { label: "2", title: "Pick a mode", body: "Use virtual agent for safe text output; use real shell only for approved commands." },
-          { label: "3", title: "Run", body: "Start with a safe test prompt, then watch output and events stream in." },
-          { label: "4", title: "Read output", body: "The center panel is the answer. Artifacts are saved reports or files." },
-          { label: "5", title: "Open trace", body: "After a run, inspect the trace to see exactly what happened." },
-        ]}
-      />
+
 
       <div className="grid min-w-0 gap-6 2xl:grid-cols-[360px_minmax(0,1fr)_390px]">
         <div className="min-w-0 flex flex-col gap-6">
@@ -650,30 +642,7 @@ export function RunnerClient({
         </div>
       </div>
 
-      <FeatureWalkthrough
-        title="Sandbox runs a skill and shows the evidence."
-        description="Use this page when you want to test whether a skill can handle a real prompt, inspect its files, request permissions, and produce a useful result. The sandbox is the place where a skill proves it can do work."
-        example="Ask: Audit the uploaded package, run the approved command, and produce a short report with risks and next steps."
-        why="A skill is only valuable if it can turn context into output while showing what it touched, what it blocked, and what it saved."
-        items={[
-          {
-            title: "Prompt",
-            body: "Tell the skill what job to do. Use the suggestions when you are not sure what a good request looks like.",
-          },
-          {
-            title: "Execution controls",
-            body: "Choose virtual agent for text/tool flow or real shell when you want an approved command to run inside Vercel Sandbox.",
-          },
-          {
-            title: "Approvals",
-            body: "These are safety gates. Denying shell, network, or file writes should change what the run is allowed to do.",
-          },
-          {
-            title: "Evidence panes",
-            body: "Conversation output is the answer. Files, terminal, artifacts, and tool timeline explain how that answer was produced.",
-          },
-        ]}
-      />
+
 
       <Panel className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">

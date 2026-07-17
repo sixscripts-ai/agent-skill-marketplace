@@ -9,7 +9,7 @@ import { generateEveZip, type AgentState } from "@/lib/eve/export-utils";
 import { motion } from "motion/react";
 import { ApiSettingsModal } from "../api-settings-modal";
 
-const CanvasBuilder = dynamic(() => import('./canvas-builder').then(mod => mod.CanvasBuilder), { ssr: false });
+
 const OrchestratorEditor = dynamic(() => import('./orchestrator-editor').then(mod => mod.OrchestratorEditor), { ssr: false });
 const MetadataPanel = dynamic(() => import('./metadata-panel').then(mod => mod.MetadataPanel), { ssr: false });
 const CapabilitiesPanel = dynamic(() => import('./capabilities-panel').then(mod => mod.CapabilitiesPanel), { ssr: false });
@@ -24,7 +24,7 @@ export function EveBuilderClient() {
     selectedTools: [],
   });
 
-  const [activeTab, setActiveTab] = useState<"canvas" | "instructions">("canvas");
+
 
   const updateState = (updates: Partial<AgentState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -115,51 +115,22 @@ export function EveBuilderClient() {
             <div className="px-6 py-4 border-b border-white/10 bg-black/40 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-white">
-                  {activeTab === "canvas" ? "Visual Topology Canvas" : "instructions.md Core Brain"}
+                  instructions.md Core Brain
                 </h2>
                 <p className="text-xs text-neutral-400 mt-0.5">
-                  {activeTab === "canvas" 
-                    ? "Drag-and-drop tools and connect handles visually to attach skills." 
-                    : "Write prompt, instructions, and define the custom core logic."}
+                  Write prompt, instructions, and define the custom core logic.
                 </p>
               </div>
 
               {/* High-fidelity custom toggle tabs */}
-              <div className="flex bg-black/50 p-1 rounded-lg border border-white/10">
-                <button
-                  onClick={() => setActiveTab("canvas")}
-                  className={`px-3.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    activeTab === "canvas"
-                      ? "bg-neutral-800 text-white shadow-sm"
-                      : "text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  Visual Canvas
-                </button>
-                <button
-                  onClick={() => setActiveTab("instructions")}
-                  className={`px-3.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    activeTab === "instructions"
-                      ? "bg-neutral-800 text-white shadow-sm"
-                      : "text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  <CodeXml className="w-3.5 h-3.5" />
-                  Raw Instructions
-                </button>
-              </div>
+
             </div>
 
             {/* Active Workspace View */}
             <div className="flex-1 overflow-hidden relative">
-              {activeTab === "canvas" ? (
-                <CanvasBuilder state={state} updateState={updateState} />
-              ) : (
-                <div className="h-full overflow-y-auto p-6 scrollbar-hide bg-[#0a0a0a]">
-                  <OrchestratorEditor state={state} updateState={updateState} />
-                </div>
-              )}
+              <div className="h-full overflow-y-auto p-6 scrollbar-hide bg-[#0a0a0a]">
+                <OrchestratorEditor state={state} updateState={updateState} />
+              </div>
             </div>
           </motion.div>
 
