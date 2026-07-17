@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download, Star } from "lucide-react";
 import type { Skill } from "@/lib/types";
 
 function trustTone(trust: Skill["trustLevel"]): "green" | "amber" | "blue" {
@@ -34,17 +35,32 @@ export function SkillCard({ skill }: { skill: Skill }) {
             <h3 className="line-clamp-2 font-mono text-[15px] leading-tight font-semibold text-white group-hover:text-cyan-400 transition-colors">
               {skill.name}
             </h3>
-            <p className="mt-1 truncate text-sm text-gray-500">{skill.author}</p>
+            <p className="mt-1 truncate text-sm text-gray-500">{skill.author} &middot; {skill.category}</p>
           </div>
         </div>
-        <span className={`${badgeToneClass(tone)} inline-flex h-5 shrink-0 items-center px-2 py-0.5 text-xs`}>
-          {skill.trustLevel}
-        </span>
       </div>
       
-      <p className="mt-4 text-sm leading-6 text-gray-400 line-clamp-2" title={skill.summary}>
+      <p className="mt-4 text-sm leading-6 text-gray-400 line-clamp-2 flex-1" title={skill.summary}>
         {skill.summary}
       </p>
+
+      <div className="mt-6 flex items-center justify-between border-t border-neutral-800 pt-4">
+        <div className="flex items-center gap-3 text-xs text-neutral-400 font-mono">
+          <div className="flex items-center gap-1">
+            <Download className="h-3.5 w-3.5" />
+            {(skill.installCount || 0).toLocaleString()}
+          </div>
+          <div className="flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 text-yellow-500" />
+            {(skill.rating || 0).toFixed(1)}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className={`${badgeToneClass(tone)} inline-flex h-5 shrink-0 items-center px-2 py-0.5 text-xs`}>
+            {skill.trustLevel}
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }

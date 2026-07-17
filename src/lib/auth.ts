@@ -36,19 +36,7 @@ export function isAuthenticatedUser(user: MarketplaceUser) {
 }
 
 export async function getOptionalUser(): Promise<MarketplaceUser | undefined> {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const session = cookieStore.get("session")?.value;
-  
-  if (session === "admin-session-token") {
-    return {
-      id: "cmr8c6fz90000ihd2cuqs764a", // admin user id from seed
-      clerkId: "admin",
-      name: "Admin",
-      email: "admin@admin.com",
-      role: "admin",
-    };
-  }
+
 
   if (isClerkConfigured()) {
     try {

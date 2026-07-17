@@ -1,36 +1,21 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export function middleware(request: NextRequest) {
-  const session = request.cookies.get("session")?.value;
-  
-  // Define public paths that don't require authentication
-  const publicPaths = ["/login", "/api/health", "/manifest.webmanifest"];
-  const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+const isProtectedRoute = createRouteMatcher([
+  "/builder(.*)",
+  "/install(.*)",
+  "/traces(.*)",
+  "/skills/(.*)/run",
+]);
 
-  if (!session && !isPublicPath) {
-    return NextResponse.redirect(new URL("/login", request.url));
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
-
-  if (session && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/marketplace", request.url));
-  }
-
-  if (request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/marketplace", request.url));
-  }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };
