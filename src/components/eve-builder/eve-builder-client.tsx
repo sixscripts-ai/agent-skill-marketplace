@@ -1,159 +1,28 @@
 "use client";
-
-import { useState } from "react";
-import { Download, Settings, Home, Layers, CodeXml } from "lucide-react";
-import Link from "next/link";
-import dynamic from 'next/dynamic';
+import { useMemo, useState } from "react";
+import { CheckCircle2, Download, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 import { DEFAULT_INSTRUCTIONS_MD } from "@/lib/eve/eve-templates";
 import { generateEveZip, type AgentState } from "@/lib/eve/export-utils";
-import { motion } from "motion/react";
 import { ApiSettingsModal } from "../api-settings-modal";
+import { MetadataPanel } from "./metadata-panel";
+import { CapabilitiesPanel } from "./capabilities-panel";
+import { OrchestratorEditor } from "./orchestrator-editor";
+import { PreviewExportPanel } from "./preview-export-panel";
 
-
-const OrchestratorEditor = dynamic(() => import('./orchestrator-editor').then(mod => mod.OrchestratorEditor), { ssr: false });
-const MetadataPanel = dynamic(() => import('./metadata-panel').then(mod => mod.MetadataPanel), { ssr: false });
-const CapabilitiesPanel = dynamic(() => import('./capabilities-panel').then(mod => mod.CapabilitiesPanel), { ssr: false });
-const PreviewExportPanel = dynamic(() => import('./preview-export-panel').then(mod => mod.PreviewExportPanel), { ssr: false });
-
-
-export function EveBuilderClient() {
-  const [state, setState] = useState<AgentState>({
-    agentName: "my-eve-agent",
-    model: "google/gemini-2.5-pro",
-    instructions: DEFAULT_INSTRUCTIONS_MD,
-    selectedTools: [],
-  });
-
-
-
-  const updateState = (updates: Partial<AgentState>) => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="fixed inset-0 bg-neutral-950 flex flex-col font-sans text-white"
-    >
-      {/* Top Action Bar */}
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="fixed top-6 left-6 flex items-center gap-3 z-[60]"
-      >
-        <Link
-          href="/builder"
-          className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-white/10 rounded-lg text-sm text-white transition-colors flex items-center gap-2 shadow-sm font-medium cursor-pointer"
-        >
-          <Home className="w-4 h-4 text-neutral-400" />
-          Home
-        </Link>
-      </motion.div>
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="fixed top-6 right-6 flex items-center gap-3 z-[60]"
-      >
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-white/10 rounded-lg text-sm text-white transition-colors flex items-center gap-2 shadow-sm font-medium cursor-pointer"
-        >
-          <Settings className="w-4 h-4" />
-          Settings
-        </button>
-        <button
-          onClick={() => generateEveZip(state)}
-          className="px-5 py-2 bg-heat-100 hover:bg-heat-200 text-black rounded-lg text-sm font-bold transition-all active:scale-[0.98] flex items-center gap-2 shadow-[0_0_20px_rgba(204,255,0,0.15)] cursor-pointer border border-[#668000]/10"
-        >
-          <Download className="w-4 h-4 text-black" />
-          Export Agent (.zip)
-        </button>
-      </motion.div>
-
-      {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Left Sidebar - Configuration */}
-        <motion.aside
-          initial={{ x: -300, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-[320px] m-5 rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-lg flex-shrink-0 z-10 self-start max-h-[calc(100vh-40px)] overflow-y-auto scrollbar-hide space-y-8"
-        >
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-white">
-              Eve Agent Builder
-            </h1>
-            <p className="text-xs text-neutral-400 mt-1.5">Configure your agent's identity and tools.</p>
-          </div>
-
-          <section className="space-y-4">
-            <h2 className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Identity</h2>
-            <MetadataPanel state={state} updateState={updateState} />
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Active Checklist</h2>
-            <CapabilitiesPanel state={state} updateState={updateState} />
-          </section>
-        </motion.aside>
-
-        {/* Center Workspace (Canvas / Editor Toggle) */}
-        <div className="flex-1 flex gap-5 p-5 pl-0 overflow-hidden relative z-0">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex-1 rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-lg overflow-hidden flex flex-col"
-          >
-            {/* Header with Switcher Tabs */}
-            <div className="px-6 py-4 border-b border-white/10 bg-black/40 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-white">
-                  instructions.md Core Brain
-                </h2>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  Write prompt, instructions, and define the custom core logic.
-                </p>
-              </div>
-
-              {/* High-fidelity custom toggle tabs */}
-
-            </div>
-
-            {/* Active Workspace View */}
-            <div className="flex-1 overflow-hidden relative">
-              <div className="h-full overflow-y-auto p-6 scrollbar-hide bg-[#0a0a0a]">
-                <OrchestratorEditor state={state} updateState={updateState} />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Right Preview Panel */}
-          <motion.div 
-            initial={{ x: 300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="w-[450px] shrink-0 rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-lg overflow-hidden flex flex-col hidden xl:flex"
-          >
-            <div className="px-6 py-4 border-b border-white/10 bg-black/40">
-              <h2 className="text-sm font-semibold text-white">Live Filesystem</h2>
-              <p className="text-xs text-white/50 mt-0.5">Preview the generated Eve project code.</p>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-              <PreviewExportPanel state={state} />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-      
-      <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-    </motion.div>
-  );
+export function EveBuilderClient(){
+ const [state,setState]=useState<AgentState>({agentName:"research-operations-agent",model:"google/gemini-2.5-pro",instructions:DEFAULT_INSTRUCTIONS_MD,selectedTools:["firecrawl_mcp"]});
+ const [settings,setSettings]=useState(false);
+ const issues=useMemo(()=>validate(state),[state]);
+ const updateState=(updates:Partial<AgentState>)=>setState(current=>({...current,...updates}));
+ return <div className="eve-agent-studio">
+  <header className="eve-studio-header"><div><div className="eve-eyebrow">Eve Agent Studio</div><h1>Build a runnable agent project</h1><p>Design the agent, refine its instructions, review tools and project files, validate readiness, and export one complete Eve workspace.</p></div><div className="eve-header-actions"><span className={`eve-ready-pill ${issues.length?"":"eve-ready-pill-complete"}`}><ShieldCheck className="size-4"/>{issues.length?`${issues.length} issue${issues.length===1?"":"s"}`:"Ready"}</span><button className="builder-secondary-button" onClick={()=>setSettings(true)}><KeyRound className="size-4"/>API keys</button><button className="builder-primary-button" disabled={!!issues.length} onClick={()=>void generateEveZip(state)}><Download className="size-4"/>Export agent</button></div></header>
+  <section className="eve-architect"><div className="eve-architect-title"><span><Sparkles className="size-5"/></span><div><div className="eve-eyebrow">Primary creation workspace</div><h2>Design the agent with AI Architect</h2><p>Ask Architect to create or improve the operating instructions. The configuration, generated filesystem, and readiness review remain visible below.</p></div></div><div className="eve-architect-editor"><OrchestratorEditor state={state} updateState={updateState}/></div></section>
+  <div className="eve-workspace-grid">
+   <div className="eve-stack"><Panel title="Agent configuration"><MetadataPanel state={state} updateState={updateState}/></Panel><Panel title="Tools and capabilities"><CapabilitiesPanel state={state} updateState={updateState}/></Panel></div>
+   <Panel title="Generated project" className="eve-project-panel"><PreviewExportPanel state={state}/><div className="eve-instructions-preview"><h3>instructions.md</h3><textarea value={state.instructions} onChange={e=>updateState({instructions:e.target.value})} spellCheck={false}/></div></Panel>
+   <div className="eve-stack"><Panel title="Readiness"><div className="eve-score"><strong>{Math.max(0,100-issues.length*20)}</strong><span>/100</span></div>{issues.length?issues.map(issue=><div className="eve-issue" key={issue}>{issue}</div>):<div className="eve-result"><CheckCircle2 className="size-4"/>Identity, instructions, model, and export structure are ready.</div>}</Panel><Panel title="Project summary"><dl className="eve-summary"><div><dt>Model</dt><dd>{state.model}</dd></div><div><dt>Tools</dt><dd>{state.selectedTools.length}</dd></div><div><dt>Mode</dt><dd>Supervised</dd></div><div><dt>Files</dt><dd>{6+state.selectedTools.length}</dd></div></dl></Panel><Panel title="Export"><p className="eve-muted">The ZIP contains agent code, instructions, tool files, skill slots, configuration, environment guidance, and documentation.</p><button className="builder-primary-button w-full mt-3" disabled={!!issues.length} onClick={()=>void generateEveZip(state)}><Download className="size-4"/>Download agent ZIP</button></Panel></div>
+  </div><ApiSettingsModal isOpen={settings} onClose={()=>setSettings(false)}/>
+ </div>
 }
-
+function Panel({title,children,className=""}:{title:string;children:React.ReactNode;className?:string}){return <section className={`eve-panel ${className}`}><header><h2>{title}</h2></header><div className="eve-panel-body">{children}</div></section>}
+function validate(state:AgentState){const issues:string[]=[];if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(state.agentName))issues.push("Use a lowercase hyphenated agent name.");if(state.instructions.length<180)issues.push("Add a complete operating policy.");for(const heading of ["Identity","Goals","Tools"])if(!state.instructions.toLowerCase().includes(heading.toLowerCase()))issues.push(`Instructions need a ${heading} section.`);return issues}

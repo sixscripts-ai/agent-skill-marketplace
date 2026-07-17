@@ -4,6 +4,7 @@ import "./shell-marketplace-production.css";
 import "./design-system-v2.css";
 import "./builder-studio.css";
 import "./builder-copilot.css";
+import "./eve-agent-studio.css";
 
 export default function AppTemplate({ children }: { children: ReactNode }) {
   return <>{children}</>;

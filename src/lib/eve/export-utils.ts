@@ -1,53 +1,42 @@
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { getAgentTs, DEFAULT_INSTRUCTIONS_MD, AVAILABLE_TOOLS } from './eve-templates';
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { createDefaultEveProject, synchronizeEveProject, type EveAgentProject } from "./agent-project";
 
 export interface AgentState {
   agentName: string;
   model: string;
   instructions: string;
-  selectedTools: string[]; // array of tool ids
+  selectedTools: string[];
 }
 
-export const generateEveZip = async (state: AgentState) => {
+export async function downloadEveProject(project: EveAgentProject) {
+  const synchronized = synchronizeEveProject(project, true);
   const zip = new JSZip();
-  const agentFolder = zip.folder(state.agentName || 'agent');
+  const root = zip.folder(synchronized.directoryName);
+  if (!root) throw new Error("Failed to create the Eve project archive.");
 
-  if (!agentFolder) {
-    throw new Error('Failed to create zip folder');
+  for (const [path, content] of Object.entries(synchronized.files).sort(([a], [b]) => a.localeCompare(b))) {
+    root.file(path, content);
   }
 
-  const useFirecrawlMcp = state.selectedTools.includes('firecrawl_mcp');
+  const blob = await zip.generateAsync({ type: "blob" });
+  saveAs(blob, `${synchronized.directoryName}-eve-agent.zip`);
+}
 
-  // Add agent.ts
-  const agentTsContent = getAgentTs(state.agentName || 'agent', state.model || 'anthropic/claude-3-5-sonnet-20240620', useFirecrawlMcp);
-  agentFolder.file('agent.ts', agentTsContent);
-
-  // Add instructions.md
-  agentFolder.file('instructions.md', state.instructions || DEFAULT_INSTRUCTIONS_MD);
-
-  // Add tools/ directory
-  const toolsFolder = agentFolder.folder('tools');
-  const skillsFolder = agentFolder.folder('skills');
-
-  if (toolsFolder) {
-    state.selectedTools.forEach(toolId => {
-      const toolDef = AVAILABLE_TOOLS.find(t => t.id === toolId);
-      // MCP tools like firecrawl_mcp don't have a .ts file, they are injected in agent.ts
-      if (toolDef && !toolDef.isMcp && toolDef.code) {
-        toolsFolder.file(`\${toolId}.ts`, toolDef.code);
-      }
-    });
-    // Add a placeholder to keep the directory if empty
-    toolsFolder.file('.gitkeep', '');
-  }
-
-  if (skillsFolder) {
-    // Add a placeholder to keep the directory
-    skillsFolder.file('.gitkeep', '');
-  }
-
-  // Generate zip file and download
-  const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `\${state.agentName || 'agent'}-eve-agent.zip`);
-};
+export async function generateEveZip(state: AgentState | EveAgentProject) {
+  if ("directoryName" in state) return downloadEveProject(state);
+  const base = createDefaultEveProject();
+  return downloadEveProject(
+    synchronizeEveProject(
+      {
+        ...base,
+        displayName: state.agentName.replace(/[-_]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase()),
+        directoryName: state.agentName,
+        model: state.model,
+        instructions: state.instructions,
+        selectedTools: state.selectedTools,
+      },
+      false,
+    ),
+  );
+}
