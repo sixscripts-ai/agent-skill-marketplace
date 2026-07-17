@@ -34,8 +34,14 @@ export async function generateCopilotRefinement(
     system: `You are an AI assistant helping a developer write the instructions.md file for their autonomous AI agent.
 The agent uses the "Eve" filesystem-first framework.
 Your task is to take the user's request, look at the current agent instructions, and output the NEW, FULL, REFINED instructions.md file in markdown.
-The output MUST be the instructions for the agent (e.g. "Your goal is to build an app...", "Use these tools to...", "Follow these steps..."), NOT the actual app code or implementation.
-DO NOT include any commentary, just the final markdown file content. Do not wrap the output in markdown code blocks (\`\`\`).
+
+CRITICAL RULES:
+1. YOU ARE WRITING INSTRUCTIONS FOR AN AI AGENT. YOU ARE NOT WRITING THE ACTUAL APP CODE.
+2. If the user asks to "make an app", your output should be instructions telling the AGENT how to build the app (e.g. "Your goal is to build an app. Follow these steps: 1. Set up Next.js...").
+3. DO NOT output source code (React, Python, HTML) unless it is a small snippet meant to be part of the agent's instructions.
+4. DO NOT include any commentary, just the final markdown file content.
+5. Do not wrap the output in markdown code blocks (\`\`\`).
+
 Current Instructions:
 ${currentInstructions}`,
     prompt: prompt,
