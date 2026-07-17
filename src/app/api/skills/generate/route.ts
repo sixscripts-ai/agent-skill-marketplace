@@ -1,72 +1,92 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createXai } from '@ai-sdk/xai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createXai } from "@ai-sdk/xai";
+import { convertToModelMessages, streamText, tool } from "ai";
+import { z } from "zod";
+
+const allowedModels = new Set([
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-pro",
+  "xai/grok-2-latest",
+  "openai/gpt-4o",
+  "anthropic/claude-3-5-sonnet-20240620",
+]);
 
 export async function POST(req: Request) {
   try {
-    const { messages, model: requestedModel } = await req.json();
+    const { messages, model: requestedModel, currentSkill } = await req.json();
 
-    if (!messages || !Array.isArray(messages)) {
-      return new Response("Missing or invalid messages", { status: 400 });
+    if (!Array.isArray(messages)) {
+      return Response.json({ error: "Missing or invalid messages." }, { status: 400 });
     }
 
+    const modelId = allowedModels.has(requestedModel) ? requestedModel : "google/gemini-2.5-flash";
     const apiKeysHeader = req.headers.get("x-api-keys");
-    const apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
+    let apiKeys: Record<string, string> = {};
+    try {
+      apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
+    } catch {
+      return Response.json({ error: "Stored API keys are invalid. Open API keys and save them again." }, { status: 400 });
+    }
 
     let aiModel;
-    if (requestedModel?.startsWith("anthropic/")) {
-      const anthropic = createAnthropic({ apiKey: apiKeys.anthropic || process.env.ANTHROPIC_API_KEY || "" });
-      aiModel = anthropic(requestedModel.replace("anthropic/", ""));
-    } else if (requestedModel?.startsWith("google/")) {
-      const google = createGoogleGenerativeAI({ apiKey: apiKeys.google || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
-      aiModel = google(requestedModel.replace("google/", ""));
-    } else if (requestedModel?.startsWith("xai/")) {
-      const xai = createXai({ apiKey: apiKeys.xai || process.env.XAI_API_KEY || "" });
-      aiModel = xai(requestedModel.replace("xai/", ""));
+    if (modelId.startsWith("anthropic/")) {
+      const key = apiKeys.anthropic || process.env.ANTHROPIC_API_KEY || "";
+      if (!key) return Response.json({ error: "An Anthropic API key is required for this model." }, { status: 400 });
+      aiModel = createAnthropic({ apiKey: key })(modelId.replace("anthropic/", ""));
+    } else if (modelId.startsWith("google/")) {
+      const key = apiKeys.google || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+      if (!key) return Response.json({ error: "A Google Gemini API key is required for this model." }, { status: 400 });
+      aiModel = createGoogleGenerativeAI({ apiKey: key })(modelId.replace("google/", ""));
+    } else if (modelId.startsWith("xai/")) {
+      const key = apiKeys.xai || process.env.XAI_API_KEY || "";
+      if (!key) return Response.json({ error: "An xAI API key is required for this model." }, { status: 400 });
+      aiModel = createXai({ apiKey: key })(modelId.replace("xai/", ""));
     } else {
-      const openai = createOpenAI({ apiKey: apiKeys.openai || process.env.OPENAI_API_KEY || "" });
-      aiModel = openai(requestedModel ? requestedModel.replace("openai/", "") : "gpt-4o-mini");
+      const key = apiKeys.openai || process.env.OPENAI_API_KEY || "";
+      if (!key) return Response.json({ error: "An OpenAI API key is required for this model." }, { status: 400 });
+      aiModel = createOpenAI({ apiKey: key })(modelId.replace("openai/", ""));
     }
 
-    const systemPrompt = `You are an expert AI Agent Skill creator and pair programmer.
-Your job is to help the user build an autonomous agent skill.
-When you are ready to update the skill code, or if the user asks you to create/update the skill, you MUST call the \`update_skill_markdown\` tool. Do NOT output raw markdown directly in your message if it's meant to be the final skill code; use the tool instead.
-You can converse with the user to clarify requirements before generating the skill.
+    const systemPrompt = `You are the primary AI Copilot for an Agent Skill Builder.
 
-When calling the \`update_skill_markdown\` tool, the content MUST adhere to the Agent Skills Specification exactly:
-1. YAML frontmatter containing 'name' (lowercase, hyphenated), 'description' (short summary), 'license', 'compatibility', and 'metadata' (with 'author' and 'version').
-2. An H1 heading matching the human-readable name of the skill.
-3. A "## Workflow" section with a numbered list of steps.
-4. A "## Permissions" section with a bulleted list. Use only these keys: read_files, write_files, network, shell, browser, run_evals, install_deps.
-5. A "## Examples" section with a bulleted list of user queries that would trigger the skill.
-6. A "## Compatibility" section with a bulleted list (e.g. Codex, Claude, Antigravity).
+Your job is to create and improve SKILL.md instruction files, not application code. The user expects you to update the editor directly whenever they ask to create, rewrite, repair, or improve a skill.
 
-Never output markdown blocks in your conversational response if you intend to update the editor. Always use the tool.`;
+CURRENT SKILL.MD:
+${typeof currentSkill === "string" && currentSkill.trim() ? currentSkill : "No current skill was provided."}
+
+Rules:
+1. Use the update_skill_markdown tool whenever the user asks to create or modify the skill.
+2. Preserve useful existing content unless the user asks for a full rewrite.
+3. Ask at most one concise clarification question only when a required fact is genuinely missing.
+4. Never generate React, API, database, website, or infrastructure code.
+5. The completed SKILL.md must include YAML frontmatter with name, description, license, compatibility, and metadata containing author and version.
+6. Include an H1 title, ## Workflow, ## Permissions, ## Examples, and ## Compatibility.
+7. Permission keys may only be: read_files, write_files, network, shell, browser, run_evals, install_deps.
+8. Use concrete instructions, failure handling, safety constraints, and usable examples.
+9. After a successful tool update, briefly explain what changed. Do not paste the entire markdown into the chat response.`;
 
     const result = streamText({
       model: aiModel,
       system: systemPrompt,
-      messages: messages,
+      messages: await convertToModelMessages(messages),
       tools: {
         update_skill_markdown: tool({
-          description: "Update the SKILL.md code editor with the generated markdown content.",
-          parameters: z.object({
-            markdown: z.string().describe("The fully formatted SKILL.md markdown content including YAML frontmatter."),
+          description: "Replace the Builder editor contents with a complete, valid SKILL.md file.",
+          inputSchema: z.object({
+            markdown: z.string().min(100).describe("The complete SKILL.md content, including YAML frontmatter and all required sections."),
           }),
-          // @ts-expect-error - AI SDK types for client-side tool execution are mismatched
-          execute: async ({ markdown }) => {
-            return { success: true, updatedContent: markdown };
-          },
+          execute: async ({ markdown }) => ({ success: true, updatedContent: markdown }),
         }),
       },
     });
-    
-    return result.toUIMessageStreamResponse();
+
+    return result.toUIMessageStreamResponse({
+      onError: (error) => error instanceof Error ? error.message : "Copilot generation failed.",
+    });
   } catch (error) {
     console.error("AI Skill Chat Error:", error);
-    return new Response("Internal Server Error", { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : "Copilot generation failed." }, { status: 500 });
   }
 }

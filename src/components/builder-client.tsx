@@ -13,7 +13,8 @@ import { ApiSettingsModal } from "./api-settings-modal";
 import { BuilderStudio } from "./builder/builder-ui";
 import { BuilderHeader } from "./builder/builder-header";
 import { BuilderConfiguration } from "./builder/builder-configuration";
-import { BuilderEditor, type BuilderChatMessage } from "./builder/builder-editor";
+import { BuilderEditor } from "./builder/builder-editor";
+import { BuilderCopilot, type BuilderCopilotMessage } from "./builder/builder-copilot";
 import { BuilderInspector } from "./builder/builder-inspector";
 import type { BuilderSavedUrls, BuilderViewMode, BuilderVisibility } from "./builder/builder-types";
 
@@ -21,8 +22,13 @@ const CanvasEditor = dynamic(() => import("./canvas-editor").then((mod) => mod.C
 const MarkdownEditor = dynamic(() => import("./markdown-editor"), { ssr: false });
 
 const starterSkill = `---
-name: Incident Postmortem Assistant
+name: incident-postmortem-assistant
 description: Use when the user needs to turn logs, traces, commits, and alerts into an incident timeline.
+license: MIT
+compatibility: Codex, Claude, VS Code
+metadata:
+  author: marketplace-user
+  version: 0.1.0
 ---
 
 # Incident Postmortem Assistant
@@ -70,16 +76,23 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [testRun, setTestRun] = useState<SkillRun | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [viewMode, setViewMode] = useState<BuilderViewMode>("markdown");
-  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-pro");
+  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-flash");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsRevision, setSettingsRevision] = useState(0);
   const [input, setInput] = useState("");
+  const [copilotError, setCopilotError] = useState("");
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/skills/generate",
-      body: { model: copilotModel },
-      headers: { "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}" },
-    }),
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: "/api/skills/generate",
+    body: { model: copilotModel, currentSkill: skillMd },
+    headers: {
+      "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
+    },
+  }), [copilotModel, settingsRevision, skillMd]);
+
+  const { messages, sendMessage, status, stop } = useChat({
+    transport,
+    onError: (error) => setCopilotError(error.message || "Copilot could not complete the request."),
   });
 
   const isGenerating = status === "streaming" || status === "submitted";
@@ -89,10 +102,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (!lastMessage?.parts) return;
     for (const part of lastMessage.parts) {
       if (part.type === "tool-update_skill_markdown") {
-        const args = part.input as { markdown?: string };
-        if (args?.markdown && args.markdown !== skillMd) {
-          setSkillMd(args.markdown);
-          void importSkill(args.markdown);
+        const toolPart = part as typeof part & { input?: { markdown?: string }; output?: { updatedContent?: string } };
+        const markdown = toolPart.input?.markdown ?? toolPart.output?.updatedContent;
+        if (markdown && markdown !== skillMd) {
+          setSkillMd(markdown);
+          void importSkill(markdown);
+          setViewMode("markdown");
         }
       }
     }
@@ -189,12 +204,26 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   function submitCopilot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!input.trim() || isGenerating) return;
-    sendMessage({ text: input }); setInput("");
+    setCopilotError("");
+    void sendMessage({ text: input });
+    setInput("");
   }
 
   return (
     <BuilderStudio>
       <BuilderHeader issueCount={issues.length} isSaving={isSaving} onOpenSettings={() => setIsSettingsOpen(true)} onPublish={publishSkill} />
+      <BuilderCopilot
+        messages={messages as BuilderCopilotMessage[]}
+        input={input}
+        model={copilotModel}
+        isGenerating={isGenerating}
+        error={copilotError}
+        onInputChange={setInput}
+        onModelChange={setCopilotModel}
+        onSubmit={submitCopilot}
+        onStop={() => void stop()}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
       <div className="builder-workspace-grid">
         <BuilderConfiguration
           name={name} slug={slug} category={category} summary={summary} visibility={visibility}
@@ -207,11 +236,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           onPaste={pasteSkill} onParse={() => void importSkill()}
         />
         <BuilderEditor
-          viewMode={viewMode} issueCount={issues.length} copilotModel={copilotModel}
-          messages={messages as BuilderChatMessage[]} input={input} isGenerating={isGenerating}
+          viewMode={viewMode}
+          issueCount={issues.length}
           editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
           preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
-          onViewModeChange={setViewMode} onModelChange={setCopilotModel} onInputChange={setInput} onSubmit={submitCopilot}
+          onViewModeChange={setViewMode}
         />
         <BuilderInspector
           issues={issues} importResult={importResult} publishedSlug={publishedSlug} savedUrls={savedUrls}
@@ -220,7 +249,10 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           isTesting={isTesting} onApplySuggestions={applySuggestedSkillMd} onTestInputChange={setTestInput} onRunTest={() => void runTest()}
         />
       </div>
-      <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <ApiSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => { setIsSettingsOpen(false); setSettingsRevision((value) => value + 1); }}
+      />
     </BuilderStudio>
   );
 }
