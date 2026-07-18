@@ -1,72 +1,94 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createXai } from '@ai-sdk/xai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createXai } from "@ai-sdk/xai";
+import { convertToModelMessages, streamText, tool } from "ai";
+import { z } from "zod";
+import { requireCurrentUser } from "@/lib/auth";
+import { createSkillPackage } from "@/lib/repository";
+import { buildFullSkillPackage, FULL_PACKAGE_PROFILE_LABEL } from "@/lib/skill-package-profile";
+
+const allowedModels = new Set(["google/gemini-2.5-flash", "google/gemini-2.5-pro", "xai/grok-4.3", "xai/grok-4.5", "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20240620", "groq/llama-3.3-70b-versatile", "groq/mixtral-8x7b-32768", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"]);
+const permissionSchema = z.enum(["read_files", "write_files", "network", "shell", "browser", "api_keys"]);
+const targetSchema = z.enum(["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"]);
+const roleSchema = z.enum(["readme", "script", "asset", "reference", "config", "doc", "example", "other"]);
+const requiredSections = ["Overview", "Activation", "Required Inputs", "Workflow", "Output Contract", "Available Scripts", "References", "Safety and Permissions", "Failure Handling", "Gotchas", "Examples", "Validation", "Compatibility"];
 
 export async function POST(req: Request) {
   try {
-    const { messages, model: requestedModel } = await req.json();
+    const { messages, model: requestedModel, currentSkill, currentFiles } = await req.json();
+    if (!Array.isArray(messages)) return Response.json({ error: "Missing or invalid messages." }, { status: 400 });
+    const user = await requireCurrentUser();
+    const modelId = allowedModels.has(requestedModel) ? requestedModel : "google/gemini-2.5-flash";
+    let apiKeys: Record<string, string> = {};
+    try { apiKeys = JSON.parse(req.headers.get("x-api-keys") || "{}"); } catch { return Response.json({ error: "Stored API keys are invalid. Open API keys and save them again." }, { status: 400 }); }
+    const aiModel = resolveModel(modelId, apiKeys);
+    if (aiModel instanceof Response) return aiModel;
+    const currentPackageContext = Array.isArray(currentFiles) ? currentFiles.slice(0, 30).map((file: { path?: unknown; content?: unknown }) => `FILE: ${typeof file.path === "string" ? file.path : "unknown-file"}\n${typeof file.content === "string" ? file.content.slice(0, 4000) : "[binary or empty]"}`).join("\n\n") : "No additional package files were provided.";
+    const systemPrompt = `You are the primary AI Copilot for an Agent Skill Builder. Create and improve complete agent skill packages using the ${FULL_PACKAGE_PROFILE_LABEL}.
 
-    if (!messages || !Array.isArray(messages)) {
-      return new Response("Missing or invalid messages", { status: 400 });
-    }
+CURRENT SKILL.MD:\n${typeof currentSkill === "string" && currentSkill.trim() ? currentSkill : "No current skill was provided."}
 
-    const apiKeysHeader = req.headers.get("x-api-keys");
-    const apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
+CURRENT SUPPORTING FILES:\n${currentPackageContext}
 
-    let aiModel;
-    if (requestedModel?.startsWith("anthropic/")) {
-      const anthropic = createAnthropic({ apiKey: apiKeys.anthropic || process.env.ANTHROPIC_API_KEY || "" });
-      aiModel = anthropic(requestedModel.replace("anthropic/", ""));
-    } else if (requestedModel?.startsWith("google/")) {
-      const google = createGoogleGenerativeAI({ apiKey: apiKeys.google || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
-      aiModel = google(requestedModel.replace("google/", ""));
-    } else if (requestedModel?.startsWith("xai/")) {
-      const xai = createXai({ apiKey: apiKeys.xai || process.env.XAI_API_KEY || "" });
-      aiModel = xai(requestedModel.replace("xai/", ""));
-    } else {
-      const openai = createOpenAI({ apiKey: apiKeys.openai || process.env.OPENAI_API_KEY || "" });
-      aiModel = openai(requestedModel ? requestedModel.replace("openai/", "") : "gpt-4o-mini");
-    }
-
-    const systemPrompt = `You are an expert AI Agent Skill creator and pair programmer.
-Your job is to help the user build an autonomous agent skill.
-When you are ready to update the skill code, or if the user asks you to create/update the skill, you MUST call the \`update_skill_markdown\` tool. Do NOT output raw markdown directly in your message if it's meant to be the final skill code; use the tool instead.
-You can converse with the user to clarify requirements before generating the skill.
-
-When calling the \`update_skill_markdown\` tool, the content MUST adhere to the Agent Skills Specification exactly:
-1. YAML frontmatter containing 'name' (lowercase, hyphenated), 'description' (short summary), 'license', 'compatibility', and 'metadata' (with 'author' and 'version').
-2. An H1 heading matching the human-readable name of the skill.
-3. A "## Workflow" section with a numbered list of steps.
-4. A "## Permissions" section with a bulleted list. Use only these keys: read_files, write_files, network, shell, browser, run_evals, install_deps.
-5. A "## Examples" section with a bulleted list of user queries that would trigger the skill.
-6. A "## Compatibility" section with a bulleted list (e.g. Codex, Claude, Antigravity).
-
-Never output markdown blocks in your conversational response if you intend to update the editor. Always use the tool.`;
-
-    const result = streamText({
-      model: aiModel,
-      system: systemPrompt,
-      messages: messages,
-      tools: {
-        update_skill_markdown: tool({
-          description: "Update the SKILL.md code editor with the generated markdown content.",
-          parameters: z.object({
-            markdown: z.string().describe("The fully formatted SKILL.md markdown content including YAML frontmatter."),
-          }),
-          // @ts-expect-error - AI SDK types for client-side tool execution are mismatched
-          execute: async ({ markdown }) => {
-            return { success: true, updatedContent: markdown };
-          },
+Rules:
+1. Use update_skill_markdown for every create, rewrite, repair, or improvement request.
+2. Return exactly one human-readable H1 title. Never use H1 for body sections.
+3. Use exact H2 headings for: ${requiredSections.join(", ")}.
+4. Put allowed-tools at the top level of YAML frontmatter, never inside metadata.
+5. metadata may contain author, version, and targets only.
+6. Frontmatter name must equal the lowercase hyphenated directory name.
+7. Description must begin with "Use this skill when..." and remain under 1024 characters.
+8. Supported permissions: read_files, write_files, network, shell, browser, api_keys.
+9. Supported targets: Codex, Claude, Antigravity, OpenCode, Grok, VS Code.
+10. Keep SKILL.md under 500 lines and provide a realistic test prompt.`;
+    const result = streamText({ model: aiModel, system: systemPrompt, messages: await convertToModelMessages(messages), tools: {
+      update_skill_markdown: tool({
+        description: `Create or replace a complete skill package conforming to ${FULL_PACKAGE_PROFILE_LABEL}.`,
+        inputSchema: z.object({
+          skillMd: z.string().min(200),
+          files: z.array(z.object({ path: z.string().min(1), content: z.string(), role: roleSchema })).default([]),
+          metadata: z.object({ displayName: z.string().min(4).max(64), directoryName: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), category: z.string().min(2).max(48), summary: z.string().min(40).max(1024), testPrompt: z.string().min(12).max(500), permissions: z.array(permissionSchema).min(1), targets: z.array(targetSchema).min(1) }),
         }),
-      },
-    });
-    
-    return result.toUIMessageStreamResponse();
+        execute: async ({ skillMd, files, metadata }) => {
+          const normalizedSkillMd = normalizeCopilotSkill(skillMd, metadata);
+          const generated = buildFullSkillPackage({ skillMd: normalizedSkillMd, files, metadata });
+          if (!generated.profile.valid) return { success: false, updatedContent: generated.skillMd, packageFiles: generated.files, metadata: generated.metadata, profile: generated.profile };
+          const record = await createSkillPackage({ owner: user, uploadSource: "paste", originalFilename: `${generated.metadata.directoryName}.zip`, blobPrefix: `skills/${user.id}/${generated.metadata.directoryName}/${Date.now()}`, manifest: generated.manifest, files: generated.files });
+          return { success: true, updatedContent: generated.skillMd, packageUploadId: record.id, packageFiles: record.files, metadata: generated.metadata, profile: generated.profile };
+        },
+      }),
+    }});
+    return result.toUIMessageStreamResponse({ onError: (error) => error instanceof Error ? error.message : "Copilot generation failed." });
   } catch (error) {
     console.error("AI Skill Chat Error:", error);
-    return new Response("Internal Server Error", { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : "Copilot generation failed." }, { status: 500 });
   }
+}
+
+function resolveModel(modelId: string, apiKeys: Record<string, string>) {
+  const provider = modelId.split("/")[0];
+  const model = modelId.slice(provider.length + 1);
+  const key = apiKeys[provider === "google" ? "google" : provider] || (provider === "google" ? process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY : provider === "xai" ? process.env.XAI_API_KEY : provider === "groq" ? process.env.GROQ_API_KEY : provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY) || "";
+  if (!key) return Response.json({ error: `An API key is required for ${provider}.` }, { status: 400 });
+  if (provider === "google") return createGoogleGenerativeAI({ apiKey: key })(model);
+  if (provider === "xai") return createXai({ apiKey: key })(model);
+  if (provider === "groq") return createGroq({ apiKey: key })(model);
+  if (provider === "anthropic") return createAnthropic({ apiKey: key })(model);
+  return createOpenAI({ apiKey: key })(model);
+}
+
+function normalizeCopilotSkill(skillMd: string, metadata: { displayName: string; directoryName: string; summary: string; permissions: string[]; targets: string[] }) {
+  let body = skillMd.replace(/^---\s*\r?\n[\s\S]*?\r?\n---\s*/m, "").trim();
+  for (const section of requiredSections) {
+    const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    body = body.replace(new RegExp(`^#\\s+${escaped}\\s*$`, "gim"), `## ${section}`);
+  }
+  body = body.replace(/^#\s+(Overview|Activation|Required Inputs|Workflow|Output Contract|Available Scripts|References|Safety and Permissions|Failure Handling|Gotchas|Examples|Validation|Compatibility)\s*$/gim, "## $1");
+  body = body.replace(/^#\s+.+$/gm, "").trim();
+  const safety = body.match(/^##\s+Safety and Permissions\s*$([\s\S]*?)(?=^##\s+|(?![\s\S]))/im)?.[1]?.trim() || metadata.permissions.map((permission) => `- ${permission}`).join("\n");
+  if (!/^##\s+Permissions\s*$/im.test(body)) body += `\n\n## Permissions\n${safety}`;
+  const frontmatter = `---\nname: ${metadata.directoryName}\ndescription: >-\n  ${metadata.summary.replace(/\s+/g, " ").trim()}\nlicense: MIT\ncompatibility: No external runtime dependencies unless documented below.\nmetadata:\n  author: marketplace-user\n  version: \"1.0.0\"\n  targets:\n${metadata.targets.map((target) => `    - ${target}`).join("\n")}\nallowed-tools:\n${metadata.permissions.map((permission) => `  - ${permission}`).join("\n")}\n---`;
+  return `${frontmatter}\n\n# ${metadata.displayName}\n\n${body}\n`;
 }

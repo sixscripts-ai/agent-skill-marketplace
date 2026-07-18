@@ -82,7 +82,7 @@ export async function processSkillUpload(files: File[], owner: MarketplaceUser):
 
   const skillMd = decodeText(primary.bytes, primary.path);
   const parsed = parseSkillMarkdown(skillMd);
-  const blobPrefix = `skills/${owner.id}/${parsed.slug || `upload-${Date.now()}`}`;
+  const blobPrefix = `skills/${owner.id}/${parsed.slug || "upload"}/${Date.now()}`;
   const storedFiles = await Promise.all(rawFiles.map((file) => storePackageFile(file, blobPrefix)));
   const packageFiles = storedFiles.map((file) => file.packageFile);
   const manifest = {

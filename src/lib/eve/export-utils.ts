@@ -35,7 +35,7 @@ export const generateEveZip = async (state: AgentState) => {
       const toolDef = AVAILABLE_TOOLS.find(t => t.id === toolId);
       // MCP tools like firecrawl_mcp don't have a .ts file, they are injected in agent.ts
       if (toolDef && !toolDef.isMcp && toolDef.code) {
-        toolsFolder.file(`\${toolId}.ts`, toolDef.code);
+        toolsFolder.file(`${toolId}.ts`, toolDef.code);
       }
     });
     // Add a placeholder to keep the directory if empty
@@ -49,5 +49,5 @@ export const generateEveZip = async (state: AgentState) => {
 
   // Generate zip file and download
   const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `\${state.agentName || 'agent'}-eve-agent.zip`);
+  saveAs(blob, `${state.agentName || 'agent'}-eve-agent.zip`);
 };

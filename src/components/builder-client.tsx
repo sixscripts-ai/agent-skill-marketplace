@@ -1,44 +1,140 @@
 "use client";
 
-import { useMemo, useState, useEffect, type ChangeEvent } from "react";
+import dynamic from "next/dynamic";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  FileArchive,
+  FileText,
+  FolderOpen,
+  KeyRound,
+  PackageCheck,
+  Play,
+  Rocket,
+  Save,
+  Sparkles,
+  Upload,
+  WandSparkles,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { executeSkillRunStream } from "@/lib/runner";
-import { Send, Upload, Sparkles, Settings } from "lucide-react";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
-import { parseSkillMarkdown } from "@/lib/skill-import";
-import type { ParsedSkillImport, SkillDraftInput, SkillPackageFile, SkillRun } from "@/lib/types";
-import { ActionGuide, FeatureWalkthrough } from "./feature-walkthrough";
+import { inferSkillTestPrompt, parseSkillMarkdown } from "@/lib/skill-import";
+import { FULL_PACKAGE_REQUIRED_SECTIONS } from "@/lib/skill-package-profile";
+import type {
+  CompatibilityTarget,
+  ParsedSkillImport,
+  PermissionKey,
+  SkillDraftInput,
+  SkillPackageFile,
+  SkillRun,
+} from "@/lib/types";
 import { SafeMessageResponse } from "./safe-message-response";
-import { Badge, Panel } from "./ui";
-import { CodeBlock } from "./code-block";
-import { ApiSettingsModal, type ApiKeys } from "./api-settings-modal";
-import dynamic from 'next/dynamic';
-const CanvasEditor = dynamic(() => import('./canvas-editor').then(mod => mod.CanvasEditor), { ssr: false });
-const MarkdownEditor = dynamic(() => import('./markdown-editor'), { ssr: false });
+import { ApiSettingsModal } from "./api-settings-modal";
+import { BuilderStudio, BuilderField, BuilderPanel, BuilderSectionLabel, BuilderStatus } from "./builder/builder-ui";
+import { BuilderEditor } from "./builder/builder-editor";
+import { BuilderCopilot, type BuilderCopilotMessage } from "./builder/builder-copilot";
+import type { BuilderSavedUrls, BuilderViewMode, BuilderVisibility } from "./builder/builder-types";
+import { Badge } from "./ui";
+
+const CanvasEditor = dynamic(() => import("./canvas-editor").then((mod) => mod.CanvasEditor), { ssr: false });
+const MarkdownEditor = dynamic(() => import("./markdown-editor"), { ssr: false });
+
+type BuilderPath = "create" | "import" | null;
+type BuilderStep = "source" | "instructions" | "package" | "configuration" | "test" | "finish";
+
+const modelOptions = [
+  ["google/gemini-2.5-flash", "Gemini 2.5 Flash"],
+  ["google/gemini-2.5-pro", "Gemini 2.5 Pro"],
+  ["xai/grok-4.3", "Grok 4.3"],
+  ["xai/grok-4.5", "Grok 4.5"],
+  ["groq/llama-3.3-70b-versatile", "Llama 3.3 (Groq)"],
+  ["groq/mixtral-8x7b-32768", "Mixtral (Groq)"],
+  ["deepseek/deepseek-v4-flash", "DeepSeek V4 Flash"],
+  ["deepseek/deepseek-v4-pro", "DeepSeek V4 Pro"],
+  ["openai/gpt-4o", "GPT-4o"],
+  ["anthropic/claude-3-5-sonnet-20240620", "Claude 3.5 Sonnet"],
+] as const;
+
+const createSteps: BuilderStep[] = ["source", "instructions", "package", "configuration", "test", "finish"];
+const importSteps: BuilderStep[] = ["source", "package", "instructions", "configuration", "test", "finish"];
+const stepLabels: Record<BuilderStep, string> = {
+  source: "Start",
+  instructions: "Instructions",
+  package: "Package",
+  configuration: "Configuration",
+  test: "Validate and test",
+  finish: "Finish",
+};
 
 const starterSkill = `---
-name: Incident Postmortem Assistant
-description: Use when the user needs to turn logs, traces, commits, and alerts into an incident timeline.
+name: incident-postmortem-assistant
+description: >-
+  Use this skill when the user needs to turn logs, traces, commits, and alerts into an incident timeline, root-cause hypotheses, and a reviewable postmortem draft.
+license: MIT
+compatibility: No external runtime dependencies. Network access is optional for approved incident references.
+metadata:
+  author: marketplace-user
+  version: "1.0.0"
+  targets:
+    - Codex
+    - Claude
+    - VS Code
+allowed-tools:
+  - read_files
+  - write_files
+  - network
 ---
 
 # Incident Postmortem Assistant
 
-Use this skill when debugging production incidents or writing postmortem drafts.
+## Overview
+Builds a source-backed incident timeline and postmortem draft from operational evidence.
+
+## Activation
+Use when the user asks to investigate an outage, reconstruct an incident, or draft a postmortem.
+
+## Required Inputs
+Request logs, alerts, trace snippets, relevant commits, and the known incident window.
 
 ## Workflow
-1. Ingest logs, alerts, trace snippets, and relevant commits.
+1. Ingest the supplied evidence.
 2. Build a timeline with confidence labels.
-3. Identify likely root cause and unresolved evidence gaps.
-4. Draft action items with owners and verification checks.
+3. Identify likely root causes and evidence gaps.
+4. Draft corrective actions with owners and verification checks.
 
-## Permissions
-- read_files: Read uploaded logs, traces, commits, and alert exports.
-- network: Inspect allowlisted incident references or docs when approved.
+## Output Contract
+Return a timeline, impact summary, root-cause analysis, unresolved questions, and corrective actions.
+
+## Available Scripts
+No bundled scripts are required for the default workflow.
+
+## References
+Read \`references/REFERENCE.md\` when the user supplies provider-specific incident documentation or error codes.
+
+## Safety and Permissions
+Use only approved files and network references. Do not expose secrets found in logs.
+
+## Failure Handling
+State which evidence is missing and avoid presenting uncertain hypotheses as confirmed facts.
+
+## Gotchas
+Clock skew and partial traces can make event ordering unreliable.
 
 ## Examples
 - "Create a postmortem from this deployment trace and alert timeline."
 - "Review these incident notes and produce root-cause hypotheses with confidence labels."
+
+## Validation
+Verify that every major claim points to supplied evidence and that action items are measurable.
 
 ## Compatibility
 - Codex
@@ -49,14 +145,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [name, setName] = useState(initialDraft?.name ?? "Incident Postmortem Assistant");
   const [slug, setSlug] = useState(initialDraft?.slug ?? "incident-postmortem-assistant");
   const [category, setCategory] = useState(initialDraft?.category ?? "Reliability");
-  const [summary, setSummary] = useState(
-    initialDraft?.summary ?? "Turns logs, traces, commits, and alerts into a source-backed incident timeline.",
-  );
+  const [summary, setSummary] = useState(initialDraft?.summary ?? "Turns logs, traces, commits, and alerts into a source-backed incident timeline.");
   const [skillMd, setSkillMd] = useState(initialDraft?.skillMd ?? starterSkill);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "write_files", "network", "shell"]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialDraft?.permissions ?? ["read_files", "write_files", "network"]);
   const [selectedTargets, setSelectedTargets] = useState<string[]>(initialDraft?.compatibilityTargets ?? ["Codex", "Claude", "VS Code"]);
-  const [visibility, setVisibility] = useState<"public" | "private" | "unlisted">(initialDraft?.visibility ?? "public");
-  const [testInput, setTestInput] = useState("Create a postmortem from a failed deployment trace.");
+  const [visibility, setVisibility] = useState<BuilderVisibility>(initialDraft?.visibility ?? "public");
+  const [testInput, setTestInput] = useState(() => inferSkillTestPrompt(initialDraft?.skillMd ?? starterSkill));
   const [publishedSlug, setPublishedSlug] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [importResult, setImportResult] = useState<ParsedSkillImport | null>(null);
@@ -64,119 +158,154 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [packageUploadId, setPackageUploadId] = useState(initialDraft?.packageUploadId ?? "");
   const [packageFiles, setPackageFiles] = useState<SkillPackageFile[]>([]);
   const [uploadError, setUploadError] = useState("");
+  const [packageError, setPackageError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [savedUrls, setSavedUrls] = useState<{ detail: string; marketplace: string; mySkills: string; run: string; edit: string } | null>(null);
+  const [savedUrls, setSavedUrls] = useState<BuilderSavedUrls | null>(null);
   const [testRun, setTestRun] = useState<SkillRun | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-  const [viewMode, setViewMode] = useState<"markdown" | "canvas">("markdown");
-
-  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-pro");
+  const [isPackaging, setIsPackaging] = useState(false);
+  const [viewMode, setViewMode] = useState<BuilderViewMode>("markdown");
+  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-flash");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsRevision, setSettingsRevision] = useState(0);
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/skills/generate",
-      body: {
-        model: copilotModel,
-      },
-      headers: {
-        "x-api-keys": typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
-      },
-    }),
+  const [copilotError, setCopilotError] = useState("");
+  const [builderPath, setBuilderPath] = useState<BuilderPath>(initialDraft ? "create" : null);
+  const [activeStep, setActiveStep] = useState<BuilderStep>(initialDraft ? "instructions" : "source");
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [downloadedPackage, setDownloadedPackage] = useState("");
+  const [activeApiKey, setActiveApiKey] = useState(false);
+
+  const copilotStateRef = useRef({
+    model: copilotModel,
+    currentSkill: skillMd,
+    currentFiles: packageFiles,
+    apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
   });
 
-  const isGenerating = status === 'streaming' || status === 'submitted';
+  useEffect(() => {
+    const apiKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}";
+    copilotStateRef.current = { model: copilotModel, currentSkill: skillMd, currentFiles: packageFiles, apiKeys };
+    setActiveApiKey(hasKeyForModel(copilotModel, apiKeys));
+  }, [copilotModel, packageFiles, settingsRevision, skillMd]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: "/api/skills/generate",
+    fetch: async (url, init) => {
+      const state = copilotStateRef.current;
+      const body = JSON.parse((init?.body as string) || "{}");
+      body.model = state.model;
+      body.currentSkill = state.currentSkill;
+      body.currentFiles = state.currentFiles;
+      return fetch(url, {
+        ...init,
+        body: JSON.stringify(body),
+        headers: { ...init?.headers, "x-api-keys": state.apiKeys },
+      });
+    },
+  }), []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isGenerating) return;
-    sendMessage({ text: input });
-    setInput('');
-  };
+  const { messages, sendMessage, status, stop } = useChat({
+    transport,
+    onError: (error) => setCopilotError(error.message || "Copilot could not complete the request."),
+  });
+  const isGenerating = status === "streaming" || status === "submitted";
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.parts) {
-      for (const part of lastMessage.parts) {
-        if (part.type === "tool-update_skill_markdown") {
-          const args = part.input as { markdown?: string };
-          if (args?.markdown) {
-            if (skillMd !== args.markdown) {
-              setSkillMd(args.markdown);
-              importSkill(args.markdown);
-            }
-          }
-        }
+    if (!lastMessage?.parts) return;
+    for (const part of lastMessage.parts) {
+      if (part.type !== "tool-update_skill_markdown") continue;
+      const toolPart = part as typeof part & {
+        input?: {
+          skillMd?: string;
+          markdown?: string;
+          files?: Array<{ path: string; content: string; role?: string }>;
+          metadata?: GeneratedBuilderMetadata;
+        };
+        output?: {
+          updatedContent?: string;
+          packageUploadId?: string;
+          packageFiles?: SkillPackageFile[];
+          metadata?: GeneratedBuilderMetadata;
+        };
+      };
+      const markdown = toolPart.output?.updatedContent ?? toolPart.input?.skillMd ?? toolPart.input?.markdown;
+      const metadata = toolPart.output?.metadata ?? toolPart.input?.metadata;
+      if (markdown && markdown !== skillMd) {
+        setSkillMd(markdown);
+        void importSkill(markdown);
+        setViewMode("markdown");
       }
+      if (toolPart.output?.packageFiles?.length) setPackageFiles(toolPart.output.packageFiles);
+      if (toolPart.output?.packageUploadId) setPackageUploadId(toolPart.output.packageUploadId);
+      if (metadata) applyGeneratedMetadata(metadata);
     }
   }, [messages, skillMd]);
 
   const issues = useMemo(() => {
     const next: string[] = [];
-    const lowerSkillMd = skillMd.toLowerCase();
-    if (name.trim().length < 4) next.push("Name must be at least 4 characters.");
-    if (name.trim().length > 64) next.push("Name must be 64 characters or less.");
-    if (!/^[a-z0-9-]+$/.test(slug)) next.push("Slug must use lowercase letters, numbers, and hyphens.");
-    if (summary.trim().length < 40) next.push("Summary should explain the skill in at least 40 characters.");
-    if (summary.trim().length > 1024) next.push("Summary must be 1024 characters or less.");
-    if (!skillMd.trim().startsWith("---")) next.push("SKILL.md needs YAML frontmatter with name and description.");
-    if (!/^description:\s*.+$/im.test(skillMd)) next.push("SKILL.md frontmatter needs a description field.");
-    if (!skillMd.includes("# ")) next.push("SKILL.md needs a top-level heading.");
-    if (!skillMd.includes("## Workflow")) next.push("SKILL.md needs a Workflow section.");
-    if (!lowerSkillMd.includes("## permissions")) next.push("SKILL.md needs a Permissions section.");
-    if (!lowerSkillMd.includes("## examples")) next.push("SKILL.md needs an Examples section.");
+    const h1Count = (skillMd.match(/^#\s+.+$/gm) ?? []).length;
+    if (name.trim().length < 4 || name.trim().length > 64) next.push("Name must use 4 to 64 characters.");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) next.push("Slug must use lowercase letters, numbers, and single hyphens.");
+    if (summary.trim().length < 40 || summary.trim().length > 1024) next.push("Summary must use 40 to 1024 characters.");
+    if (!skillMd.trim().startsWith("---")) next.push("SKILL.md needs YAML frontmatter.");
+    if (!/^description:\s*(?:.+|[>|][+-]?)$/im.test(skillMd)) next.push("SKILL.md frontmatter needs a description field.");
+    if (!/^allowed-tools:\s*$/im.test(skillMd)) next.push("allowed-tools must be a top-level frontmatter field.");
+    if (h1Count !== 1) next.push("SKILL.md needs exactly one human-readable H1 title.");
+    for (const section of FULL_PACKAGE_REQUIRED_SECTIONS) {
+      if (!new RegExp(`^##\\s+${escapeRegExp(section)}\\s*$`, "im").test(skillMd)) next.push(`SKILL.md needs a ## ${section} section.`);
+    }
     if (selectedPermissions.length === 0) next.push("Select at least one permission.");
     if (selectedTargets.length === 0) next.push("Select at least one install target.");
     return next;
   }, [name, selectedPermissions.length, selectedTargets.length, skillMd, slug, summary]);
 
-  async function runTest() {
-    const prompt = testInput.trim();
-    if (!prompt || isTesting) return;
-    setIsTesting(true);
-    setTestRun(null);
-
-    await executeSkillRunStream({
-      skillSlug: "agent-observer",
-      input: prompt,
-      deniedPermissions: [],
-      onRun: (payloadRun) => setTestRun(payloadRun),
-      onEvent: (event) => {
-        setTestRun((current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            events: [...current.events.filter((e) => e.order !== event.order), event].sort(
-              (a, b) => a.order - b.order,
-            ),
-          };
-        });
-      },
-      onOutput: (output) => {
-        setTestRun((current) => current ? { ...current, output } : null);
-      },
-      onComplete: (payloadRun) => setTestRun(payloadRun),
-      onError: (message) => {
-        setTestRun((current) => {
-          if (!current) return null;
-          return {
-            ...current,
-            status: "failed",
-            output: message,
-          };
-        });
-      },
-    });
-
-    setIsTesting(false);
-  }
+  const orderedSteps = builderPath === "import" ? importSteps : createSteps;
+  const currentStepIndex = orderedSteps.indexOf(activeStep);
+  const providerLabel = providerForModel(copilotModel);
 
   function toggle(value: string, selected: string[], setter: (value: string[]) => void) {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
+  }
+
+  function choosePath(path: Exclude<BuilderPath, null>) {
+    setBuilderPath(path);
+    if (path === "create") {
+      setPackageFiles([]);
+      setPackageUploadId("");
+      setUploadedFileName("");
+      setImportResult(null);
+    }
+    setActiveStep(path === "create" ? "instructions" : "source");
+  }
+
+  function goRelative(direction: -1 | 1) {
+    const target = orderedSteps[currentStepIndex + direction];
+    if (target) setActiveStep(target);
+  }
+
+  function applyGeneratedMetadata(metadata: GeneratedBuilderMetadata) {
+    if (metadata.displayName) setName(metadata.displayName);
+    if (metadata.directoryName) setSlug(metadata.directoryName);
+    if (metadata.category) setCategory(metadata.category);
+    if (metadata.summary) setSummary(metadata.summary);
+    if (metadata.testPrompt) setTestInput(metadata.testPrompt);
+    if (metadata.permissions?.length) setSelectedPermissions(metadata.permissions);
+    if (metadata.targets?.length) setSelectedTargets(metadata.targets);
+  }
+
+  function applyParsedSkill(parsed: ParsedSkillImport, sourceSkillMd: string) {
+    setImportResult(parsed);
+    setName(parsed.name);
+    setSlug(parsed.slug);
+    setCategory(parsed.category);
+    setSummary(parsed.description);
+    setSelectedPermissions(parsed.permissions);
+    setSelectedTargets(parsed.compatibilityTargets);
+    setTestInput(inferSkillTestPrompt(sourceSkillMd));
+    if (parsed.packageUploadId) setPackageUploadId(parsed.packageUploadId);
+    if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
   }
 
   async function importSkill(nextSkillMd = skillMd) {
@@ -188,41 +317,26 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     });
     const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
     const localParsed = parseSkillMarkdown(nextSkillMd);
-    const parsed =
-      response.ok && payload
-        ? payload
-        : {
-            ...localParsed,
-            suggestions: [
-              ...localParsed.suggestions,
-              response.status === 401
-                ? "Sign in to save, upload package files, or publish. Local formatting suggestions are available now."
-                : "The server parser was unavailable, so local formatting suggestions are shown.",
-            ],
-          };
-    if (!response.ok) {
-      setUploadError(payload?.error ?? "Server parser unavailable. Showing local formatting suggestions.");
-    }
-    setImportResult(parsed);
-    setName(parsed.name);
-    setSlug(parsed.slug);
-    setCategory(parsed.category);
-    setSummary(parsed.description);
-    setSelectedPermissions(parsed.permissions);
-    setSelectedTargets(parsed.compatibilityTargets);
-    if (parsed.packageUploadId) setPackageUploadId(parsed.packageUploadId);
-    if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
+    const parsed = response.ok && payload ? payload : {
+      ...localParsed,
+      suggestions: [
+        ...localParsed.suggestions,
+        response.status === 401
+          ? "Sign in to persist packages or publish. Local analysis is still available."
+          : "The server parser was unavailable, so local analysis is shown.",
+      ],
+    };
+    if (!response.ok) setUploadError(payload?.error ?? "Server parser unavailable. Showing local analysis.");
+    applyParsedSkill(parsed, nextSkillMd);
   }
 
   async function uploadSkillFile(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
+    setBuilderPath("import");
     setUploadError("");
     const form = new FormData();
-    for (const file of files) {
-      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      form.append("files", file, relativePath);
-    }
+    for (const file of files) form.append("files", file, (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
     const response = await fetch("/api/skills/upload", { method: "POST", body: form });
     const payload = (await response.json()) as ParsedSkillImport & { error?: string };
     if (!response.ok) {
@@ -230,29 +344,124 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
       event.target.value = "";
       return;
     }
+    const importedSkillMd = payload.primarySkillMd ?? payload.suggestedSkillMd;
     setUploadedFileName(files.length === 1 ? files[0].name : `${files.length} files`);
-    setImportResult(payload);
     setPackageUploadId(payload.packageUploadId ?? "");
     setPackageFiles(payload.packageFiles ?? []);
-    setSkillMd(payload.primarySkillMd ?? payload.suggestedSkillMd);
-    setName(payload.name);
-    setSlug(payload.slug);
-    setCategory(payload.category);
-    setSummary(payload.description);
-    setSelectedPermissions(payload.permissions);
-    setSelectedTargets(payload.compatibilityTargets);
+    setSkillMd(importedSkillMd);
+    applyParsedSkill(payload, importedSkillMd);
+    setActiveStep("package");
     event.target.value = "";
+  }
+
+  async function pasteSkill() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) return;
+      setBuilderPath("import");
+      setSkillMd(text);
+      await importSkill(text);
+      setActiveStep("package");
+    } catch {
+      setBuilderPath("import");
+      setActiveStep("instructions");
+      document.getElementById("builder-skill-md")?.focus();
+    }
   }
 
   function applySuggestedSkillMd() {
     if (!importResult) return;
     setSkillMd(importResult.suggestedSkillMd);
-    setName(importResult.name);
-    setSlug(importResult.slug);
-    setCategory(importResult.category);
-    setSummary(importResult.description);
-    setSelectedPermissions(importResult.permissions);
-    setSelectedTargets(importResult.compatibilityTargets);
+    applyParsedSkill(importResult, importResult.suggestedSkillMd);
+  }
+
+  async function syncPackage() {
+    setIsPackaging(true);
+    setPackageError("");
+    try {
+      const response = await fetch("/api/skills/package", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          skillMd,
+          files: packageFiles,
+          metadata: {
+            displayName: name,
+            directoryName: slug,
+            category,
+            summary,
+            testPrompt: testInput,
+            permissions: selectedPermissions,
+            targets: selectedTargets,
+          },
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as PackageResponse | null;
+      if (payload?.skillMd) setSkillMd(payload.skillMd);
+      if (payload?.packageUploadId) setPackageUploadId(payload.packageUploadId);
+      const files = payload?.files?.length ? payload.files : payload?.packageFiles ?? [];
+      if (files.length) setPackageFiles(files);
+      if (!response.ok || !payload) throw new Error(payload?.error ?? "Package generation failed.");
+      return files;
+    } catch (error) {
+      setPackageError(error instanceof Error ? error.message : "Package generation failed.");
+      return [];
+    } finally {
+      setIsPackaging(false);
+    }
+  }
+
+  async function downloadZip() {
+    const files = await syncPackage();
+    if (!files.length) return;
+    setIsPackaging(true);
+    setPackageError("");
+    try {
+      const zip = new JSZip();
+      const root = zip.folder(slug || "agent-skill");
+      if (!root) throw new Error("Could not create the package folder.");
+      for (const file of files) {
+        if (file.path.endsWith("/.gitkeep")) {
+          root.file(file.path, "");
+          continue;
+        }
+        if (file.content !== undefined) {
+          root.file(file.path, file.content);
+          continue;
+        }
+        if (file.blobUrl) {
+          const response = await fetch(file.blobUrl);
+          if (!response.ok) throw new Error(`Could not download ${file.path}.`);
+          root.file(file.path, await response.arrayBuffer());
+        }
+      }
+      if (!files.some((file) => file.path === "SKILL.md")) root.file("SKILL.md", skillMd);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const filename = `${slug || "agent-skill"}.zip`;
+      saveAs(blob, filename);
+      setDownloadedPackage(filename);
+    } catch (error) {
+      setPackageError(error instanceof Error ? error.message : "ZIP export failed.");
+    } finally {
+      setIsPackaging(false);
+    }
+  }
+
+  function saveDraft() {
+    const draft: SkillDraftInput = {
+      name,
+      slug,
+      category,
+      summary,
+      skillMd,
+      permissions: selectedPermissions as PermissionKey[],
+      compatibilityTargets: selectedTargets as CompatibilityTarget[],
+      visibility,
+      packageUploadId: packageUploadId || undefined,
+    };
+    localStorage.setItem(`skill-builder-draft:${slug}`, JSON.stringify({ draft, packageFiles, savedAt: new Date().toISOString() }));
+    setDraftSaved(true);
+    window.setTimeout(() => setDraftSaved(false), 2500);
   }
 
   async function publishSkill() {
@@ -274,547 +483,311 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         packageUploadId: packageUploadId || undefined,
       }),
     });
-    const payload = (await response.json()) as { skill?: { slug: string }; urls?: typeof savedUrls; error?: string };
+    const payload = (await response.json()) as { skill?: { slug: string }; urls?: BuilderSavedUrls; error?: string };
     if (response.ok && payload.skill && payload.urls) {
       setPublishedSlug(payload.skill.slug);
       setSavedUrls(payload.urls);
-    } else {
-      setSaveError(payload.error ?? "Skill save failed.");
-    }
+    } else setSaveError(payload.error ?? "Skill save failed.");
     setIsSaving(false);
   }
 
+  async function runTest() {
+    const prompt = testInput.trim();
+    if (!prompt || isTesting) return;
+    setIsTesting(true);
+    setTestRun(null);
+    await executeSkillRunStream({
+      skillSlug: slug,
+      draftSkill: {
+        name,
+        slug,
+        category,
+        summary,
+        skillMd,
+        permissions: selectedPermissions as PermissionKey[],
+        compatibilityTargets: selectedTargets as CompatibilityTarget[],
+        visibility,
+        packageUploadId: packageUploadId || undefined,
+      },
+      input: prompt,
+      deniedPermissions: [],
+      provider: sandboxProviderForModel(copilotModel),
+      onRun: setTestRun,
+      onEvent: (event) => setTestRun((current) => current ? {
+        ...current,
+        events: [...current.events.filter((item) => item.order !== event.order), event].sort((a, b) => a.order - b.order),
+      } : current),
+      onOutput: (output) => setTestRun((current) => current ? { ...current, output } : null),
+      onComplete: setTestRun,
+      onError: (message) => setTestRun((current) => current ? { ...current, status: "failed", output: message } : null),
+    });
+    setIsTesting(false);
+  }
+
+  function submitCopilot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!input.trim() || isGenerating) return;
+    setCopilotError("");
+    void sendMessage({ text: input });
+    setInput("");
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Skill Builder</h1>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Upload or write a SKILL.md package, repair the format, validate permissions, then publish when it is ready.
-          </p>
+    <BuilderStudio>
+      <header className="builder-guided-header">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Skill Studio</div>
+          <h1>Build a portable agent skill</h1>
+          <p>Choose how to start, complete one focused step at a time, then download the package or publish it.</p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 h-10 rounded-md border border-neutral-200 bg-[#39FF14] px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50 shadow-sm"
-          >
-            <Settings className="w-4 h-4" />
-            API Keys
-          </button>
-          <button
-            onClick={publishSkill}
-            data-testid="builder-publish"
-            className="h-10 rounded-md border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={issues.length > 0 || isSaving}
-          >
-            {isSaving ? "Saving..." : "Publish version"}
+        <div className="builder-model-bar" aria-label="AI model and API key settings">
+          <label>
+            <span>AI model</span>
+            <select value={copilotModel} onChange={(event) => setCopilotModel(event.target.value)}>
+              {modelOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={() => setIsSettingsOpen(true)} className={`builder-api-key-button ${activeApiKey ? "builder-api-key-active" : ""}`}>
+            {activeApiKey ? <CheckCircle2 className="size-4" /> : <KeyRound className="size-4" />}
+            <span>{activeApiKey ? `${providerLabel} key active` : `Activate ${providerLabel} key`}</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <ActionGuide
-        steps={[
-          { label: "1", title: "Upload", body: "Bring in SKILL.md, a .skill file, zip, or folder." },
-          { label: "2", title: "Format", body: "Parse the file and apply suggested structure fixes." },
-          { label: "3", title: "Validate", body: "Resolve missing workflow, permissions, examples, and targets." },
-          { label: "4", title: "Preview", body: "Check the marketplace card and README excerpt." },
-          { label: "5", title: "Publish", body: "Save an unlisted, private, or public version." },
-        ]}
-      />
+      <nav className="builder-progress" aria-label="Skill creation progress">
+        {orderedSteps.map((step, index) => {
+          const selected = activeStep === step;
+          const complete = builderPath !== null && index < currentStepIndex;
+          const disabled = builderPath === null && step !== "source";
+          return (
+            <button type="button" key={step} disabled={disabled} aria-current={selected ? "step" : undefined} onClick={() => setActiveStep(step)}>
+              <span className={`builder-progress-index ${complete ? "is-complete" : ""}`}>{complete ? <Check className="size-3.5" /> : index + 1}</span>
+              <span>{stepLabels[step]}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      <FeatureWalkthrough
-        title="Builder turns an idea or uploaded package into a marketplace skill."
-        description="Use this page to create the skill record, normalize SKILL.md formatting, attach package files, choose permissions, and publish a version that can appear in My Skills or Marketplace."
-        example="Upload a folder with SKILL.md, README, scripts, references, and assets. Then click Parse / suggest edits before publishing."
-        why="Good skills need a clear workflow, explicit permissions, examples, and compatibility targets so users know when to trust and run them."
-        items={[
-          {
-            title: "Metadata",
-            body: "Name, slug, category, summary, and visibility decide how the skill appears and who can find it.",
-          },
-          {
-            title: "Package upload",
-            body: "Use .md, .skill, .zip, or folder upload to bring in the real skill files instead of typing everything manually.",
-          },
-          {
-            title: "SKILL.md editor",
-            body: "This is the source of truth for the agent instructions: workflow, permissions, examples, and compatibility.",
-          },
-          {
-            title: "Validation",
-            body: "Warnings show what is missing. Suggested formatting can repair common structure issues before publish.",
-          },
-        ]}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-        <Panel className="p-4">
-          <div className="grid grid-cols-4 gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-2 text-center text-xs font-semibold text-neutral-700">
-            {["Upload", "Format", "Validate", "Publish"].map((step) => (
-              <div key={step} className="rounded bg-[#39FF14] px-2 py-2">{step}</div>
-            ))}
+      <main className="builder-guided-main">
+        <div className="builder-step-heading">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Step {Math.max(1, currentStepIndex + 1)} of {orderedSteps.length}</div>
+            <h2>{stepTitle(activeStep, builderPath)}</h2>
+            <p>{stepDescription(activeStep, builderPath)}</p>
           </div>
-          <h2 className="mt-5 text-base font-semibold text-neutral-950">Metadata</h2>
-          <div className="mt-5 flex flex-col gap-4">
-            <Field
-              error={name.trim().length > 64 || name.trim().length < 4}
-              helper="4-64 characters. This becomes the marketplace card title."
-              label="Name"
-              maxLength={64}
-              testId="builder-name"
-              value={name}
-              onChange={setName}
-            />
-            <Field
-              error={!/^[a-z0-9-]+$/.test(slug)}
-              helper="Lowercase letters, numbers, and hyphens only."
-              label="Slug"
-              testId="builder-slug"
-              value={slug}
-              onChange={setSlug}
-            />
-            <Field
-              helper="Use a short grouping such as Research, Reliability, Security, or Automation."
-              label="Category"
-              testId="builder-category"
-              value={category}
-              onChange={setCategory}
-            />
-            <Field
-              error={summary.trim().length > 1024 || summary.trim().length < 40}
-              helper="40-1024 characters. Explain what the skill does and when to use it."
-              label="Summary"
-              maxLength={1024}
-              testId="builder-summary"
-              value={summary}
-              onChange={setSummary}
-            />
-            <label className="block text-sm font-medium text-neutral-700">
-              Visibility
-              <select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as "public" | "private" | "unlisted")}
-                data-testid="builder-visibility"
-                className="mt-2 h-9 w-full rounded-md border border-neutral-200 bg-[#39FF14] px-3 text-[13px] outline-none transition-all focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
-              >
-                <option value="public">public</option>
-                <option value="private">private</option>
-                <option value="unlisted">unlisted</option>
-              </select>
-            </label>
-          </div>
-          <div className="mt-6 flex flex-col gap-5">
-            <Checklist
-              title="Permissions"
-              values={permissionKeys}
-              labels={permissionLabels}
-              selected={selectedPermissions}
-              toggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)}
-            />
-            <Checklist
-              title="Install targets"
-              values={compatibilityTargets}
-              selected={selectedTargets}
-              toggle={(value) => toggle(value, selectedTargets, setSelectedTargets)}
-            />
-          </div>
-          <div className="mt-6 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-            <div className="font-semibold text-neutral-950">Upload Skill Package</div>
-            <p className="mt-1 text-xs leading-5 text-neutral-500">
-              Upload `.md`, `.skill`, `.zip`, or a folder with docs, scripts, references, assets, and config.
-            </p>
-            <label className="mt-4 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
-              <span className="font-semibold text-neutral-950">File / zip</span>
-              <span className="mt-1 block text-xs leading-5 text-neutral-500">Accepts `.md`, `.skill`, and `.zip` packages.</span>
-              <input accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} data-testid="builder-file-upload" className="mt-3 block w-full text-xs" />
-            </label>
-            <label className="mt-3 block rounded-md border border-dashed border-neutral-300 bg-[#39FF14] p-3 text-sm text-neutral-700 transition hover:border-neutral-950">
-              <span className="font-semibold text-neutral-950">Folder</span>
-              <span className="mt-1 block text-xs leading-5 text-neutral-500">Preserves nested docs, references, scripts, configs, and assets.</span>
-              <input
-                type="file"
-                multiple
-                onChange={uploadSkillFile}
-                data-testid="builder-folder-upload"
-                className="mt-3 block w-full text-xs"
-                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
-              />
-            </label>
-          </div>
-          {uploadError ? (
-            <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">{uploadError}</div>
-          ) : null}
-          {uploadedFileName ? (
-            <div className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
-              Uploaded: <span className="font-mono text-neutral-950">{uploadedFileName}</span>
-              {packageUploadId ? <div className="mt-1 font-mono text-neutral-500">Package: {packageUploadId}</div> : null}
-            </div>
-          ) : null}
-          {packageFiles.length ? (
-            <div className="mt-3 rounded-md border border-neutral-200 bg-[#39FF14] p-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Package preview</div>
-              <div className="mt-3 max-h-44 overflow-auto rounded-md border border-neutral-200">
-                {packageFiles.map((file) => (
-                  <div key={file.path} className="grid grid-cols-[1fr_76px_72px] gap-2 border-b border-neutral-100 px-3 py-2 text-xs last:border-b-0">
-                    <span className="truncate font-mono text-neutral-950">{file.path}</span>
-                    <span className="text-neutral-500">{file.role}</span>
-                    <span className="text-right text-neutral-500">{file.size.toLocaleString()} B</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <button
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                if (text.trim()) {
-                  setSkillMd(text);
-                  await importSkill(text);
-                }
-              } catch {
-                document.getElementById("builder-skill-md")?.focus();
-              }
-            }}
-            className="mt-6 block w-full rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-left text-sm text-neutral-700 transition hover:border-neutral-950 hover:bg-[#39FF14] cursor-pointer"
-          >
-            <span className="font-semibold text-neutral-950">Paste SKILL.md</span>
-            <span className="mt-1 block text-xs leading-5 text-neutral-500">
-              Click to paste from clipboard, then parse and suggest edits before publishing.
-            </span>
-          </button>
-          <button
-            onClick={() => importSkill()}
-            data-testid="builder-parse"
-            className="mt-6 h-10 w-full rounded-md border border-neutral-300 bg-[#39FF14] text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
-          >
-            Parse / suggest edits
-          </button>
-        </Panel>
-
-        <Panel className="min-w-0 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold text-neutral-950">
-              {viewMode === "markdown" ? "SKILL.md editor" : "AI Elements Canvas"}
-            </h2>
-            <div className="flex items-center gap-4">
-              <div className="flex rounded-md border border-neutral-300 bg-neutral-100 p-1">
-                <button
-                  onClick={() => setViewMode("markdown")}
-                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
-                    viewMode === "markdown"
-                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-                >
-                  Markdown
-                </button>
-                <button
-                  onClick={() => setViewMode("canvas")}
-                  className={`rounded px-3 py-1 text-xs font-semibold transition ${
-                    viewMode === "canvas"
-                      ? "bg-[#39FF14] text-neutral-900 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-                >
-                  Canvas
-                </button>
-              </div>
-              <Badge tone={issues.length ? "amber" : "green"}>{issues.length ? "needs review" : "valid"}</Badge>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex flex-col rounded-md border border-blue-200 bg-blue-50 overflow-hidden">
-            <div className="flex items-center justify-between gap-4 p-4 border-b border-blue-100 bg-blue-50/50">
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
-                <Sparkles className="size-4" />
-                AI Skill Copilot
-              </div>
-              <select
-                value={copilotModel}
-                onChange={(e) => setCopilotModel(e.target.value)}
-                className="h-8 rounded-md border border-blue-200 bg-[#39FF14] px-2 text-xs font-medium text-blue-900 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="xai/grok-2-latest">Grok 2</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
-                <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                <option value="grok-2-latest">Grok 2</option>
-              </select>
-            </div>
-            
-            <div className="flex-1 max-h-[400px] min-h-[150px] overflow-y-auto p-4 flex flex-col gap-3">
-              {messages.length === 0 ? (
-                <p className="text-sm text-blue-800 opacity-70">Describe the skill you want to build or how you want to modify it, and the AI will chat with you and update the code automatically.</p>
-              ) : (
-                messages.map(m => (
-                  <div key={m.id} className={`flex flex-col max-w-[90%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}>
-                    <div className={`px-3 py-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-[#39FF14] border border-blue-200 text-blue-950 rounded-bl-sm'}`}>
-                      {m.parts.map((part, i) => {
-                        if (part.type === 'text') {
-                          return <div key={i}>{part.text}</div>;
-                        }
-                        if (part.type === 'tool-update_skill_markdown') {
-                          return (
-                            <div key={part.toolCallId} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
-                              <Settings className="size-3 animate-spin-slow" />
-                              Updating skill editor...
-                            </div>
-                          );
-                        }
-                        if (part.type.startsWith('tool-')) {
-                          return (
-                            <div key={i} className="mt-2 text-xs opacity-80 border-t border-blue-200/30 pt-2 flex items-center gap-1">
-                              <Settings className="size-3 animate-spin-slow" />
-                              Running tool...
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-3 bg-[#39FF14] border-t border-blue-100 flex gap-2 items-center">
-              <input
-                value={input}
-                onChange={handleInputChange}
-                placeholder="e.g. Add a workflow step for checking API keys..."
-                className="h-10 flex-1 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none placeholder:text-neutral-400 focus:border-blue-400 focus:bg-[#39FF14] focus:ring-2 focus:ring-blue-100 transition-all"
-                disabled={isGenerating}
-              />
-              <button
-                type="submit"
-                disabled={!input || isGenerating}
-                className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Send className="size-4" />
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-4 min-h-[620px] w-full overflow-hidden rounded-md border bg-[#39FF14] text-sm outline-none  focus-within:ring-2 focus-within:ring-neutral-200 focus-within:border-neutral-400 transition-all">
-            {viewMode === "markdown" ? (
-              <MarkdownEditor
-                value={skillMd}
-                onValueChange={(code) => setSkillMd(code)}
-                textareaId="builder-skill-md"
-                textareaClassName="focus:outline-none"
-              />
-            ) : (
-              <CanvasEditor />
-            )}
-          </div>
-          <details className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-neutral-950">Preview rendered SKILL.md</summary>
-            <div className="mt-4 max-h-[420px] overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-4">
-              <SafeMessageResponse>{skillMd}</SafeMessageResponse>
-            </div>
-          </details>
-        </Panel>
-
-        <div className="flex flex-col gap-6 lg:col-span-2 2xl:col-span-1">
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Validation</h2>
-            <div className="mt-4 flex flex-col gap-2">
-              {issues.length ? (
-                issues.map((issue) => (
-                  <div key={issue} className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-                    {issue}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                  Ready to publish. Required metadata, workflow, permissions, and targets are present.
-                </div>
-              )}
-              {importResult ? (
-                <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
-                  <div>
-                    Parsed import: {importResult.permissions.length} permission(s), {importResult.compatibilityTargets.length} target(s),{" "}
-                    {importResult.issues.length} warning(s).
-                  </div>
-                  {importResult.suggestions.length ? (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Suggested edits</div>
-                      <ul className="mt-2 list-disc space-y-1 pl-5">
-                        {importResult.suggestions.map((suggestion) => (
-                          <li key={suggestion}>{suggestion}</li>
-                        ))}
-                      </ul>
-                      <button
-                        onClick={applySuggestedSkillMd}
-                        data-testid="builder-apply-suggestions"
-                        className="mt-3 h-9 rounded-md border border-neutral-950 bg-neutral-950 px-3 text-xs font-semibold text-white transition hover:bg-neutral-800"
-                      >
-                        Apply suggested formatting
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-2 text-xs font-medium text-green-800">
-                      Format matches the required SKILL.md structure.
-                    </div>
-                  )}
-                </div>
-              ) : null}
-              {publishedSlug ? (
-                <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                  Saved. View it at /skills/{publishedSlug} or find it in the marketplace.
-                  {savedUrls ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <a className="rounded-md border border-neutral-950 bg-neutral-950 px-2 py-1 text-xs font-semibold text-white" href={`${savedUrls.run}?mode=autopilot`}>⚡ Quick Run</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.detail}>Detail</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.mySkills}>My Skills</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.run}>Run</a>
-                      <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.edit}>Edit</a>
-                      {visibility === "public" ? (
-                        <a className="rounded-md border border-blue-300 bg-[#39FF14] px-2 py-1 text-xs font-semibold text-blue-900" href={savedUrls.marketplace}>Marketplace</a>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {saveError ? (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">{saveError}</div>
-              ) : null}
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Live marketplace preview</h2>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold text-neutral-950">{name}</h3>
-                  <p className="mt-1 text-sm text-neutral-500">{category}</p>
-                </div>
-                <Badge tone="amber">Experimental</Badge>
-              </div>
-              <p className="mt-4 text-sm leading-6 text-neutral-600">{summary}</p>
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">Test skill</h2>
-            <div className="mt-4 flex gap-2">
-              <input
-                value={testInput}
-                onChange={(event) => setTestInput(event.target.value)}
-                data-testid="builder-test-input"
-                className="h-10 flex-1 rounded-md border px-3 text-sm outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isTesting) runTest();
-                }}
-              />
-              <button
-                onClick={runTest}
-                disabled={isTesting || !testInput.trim()}
-                className="flex h-10 items-center justify-center rounded-md bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
-              >
-                {isTesting ? "Testing..." : "Run test"}
-              </button>
-            </div>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">test output</div>
-                {testRun?.status && <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge>}
-              </div>
-              <p className="mt-2 text-sm leading-6 text-neutral-600 min-h-6">
-                {testRun?.output || (isTesting ? "Streaming..." : "Enter a test prompt to preview output.")}
-              </p>
-            </div>
-          </Panel>
-
-          <Panel className="p-4">
-            <h2 className="font-semibold text-neutral-950">README excerpt</h2>
-            <div className="mt-3">
-              <CodeBlock
-                code={`# ${name}\n\n${summary}\n\n## Compatibility\n${selectedTargets.map((target) => `- ${target}`).join("\n")}\n\n## Permissions\n${selectedPermissions.map((permission) => `- ${permission}`).join("\n")}\n\nVisibility: ${visibility}`}
-              />
-            </div>
-          </Panel>
+          {builderPath ? <button className="builder-secondary-button" type="button" onClick={() => { setBuilderPath(null); setActiveStep("source"); }}>Change starting path</button> : null}
         </div>
-      </div>
-    </div>
-  );
-}
 
-function Field({
-  error = false,
-  helper,
-  label,
-  maxLength,
-  testId,
-  value,
-  onChange,
-}: {
-  error?: boolean;
-  helper?: string;
-  label: string;
-  maxLength?: number;
-  testId: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm font-medium text-neutral-700">
-      <span className="flex items-center justify-between gap-3">
-        <span>{label}</span>
-        {maxLength ? (
-          <span className={`font-mono text-xs ${value.length > maxLength ? "text-red-600" : "text-neutral-500"}`}>
-            {value.length}/{maxLength}
-          </span>
+        {activeStep === "source" ? (
+          <section className="builder-start-grid">
+            <article className={`builder-start-card ${builderPath === "create" ? "is-selected" : ""}`}>
+              <span className="builder-start-icon"><WandSparkles className="size-6" /></span>
+              <div><div className="builder-card-kicker">Create new</div><h3>Start with an idea</h3><p>Describe the outcome. Copilot creates SKILL.md, package files, metadata, and a test prompt.</p></div>
+              <button type="button" className="builder-primary-button" onClick={() => choosePath("create")}><Sparkles className="size-4" />Create with AI</button>
+            </article>
+            <article className={`builder-start-card ${builderPath === "import" ? "is-selected" : ""}`}>
+              <span className="builder-start-icon"><Upload className="size-6" /></span>
+              <div><div className="builder-card-kicker">Import existing</div><h3>Upload a skill package</h3><p>Import SKILL.md, a ZIP or .skill package, or a complete folder. The Builder detects and repairs the structure.</p></div>
+              <div className="builder-start-actions">
+                <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" />File or ZIP<input className="sr-only" data-testid="builder-file-upload" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
+                <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" />Folder<input className="sr-only" data-testid="builder-folder-upload" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
+                <button type="button" className="builder-secondary-button" onClick={() => { setBuilderPath("import"); void pasteSkill(); }}><FileText className="size-4" />Paste SKILL.md</button>
+              </div>
+            </article>
+            <div className="builder-ai-setup-card">
+              <div><BuilderSectionLabel>AI setup</BuilderSectionLabel><h3>{activeApiKey ? `${providerLabel} is ready` : `Activate a ${providerLabel} API key`}</h3><p>The selected model powers Copilot generation. Keys are stored only in this browser and can be changed at any time.</p></div>
+              <button type="button" className={activeApiKey ? "builder-secondary-button" : "builder-primary-button"} onClick={() => setIsSettingsOpen(true)}><KeyRound className="size-4" />{activeApiKey ? "Manage API keys" : "Add API key"}</button>
+            </div>
+            {uploadError ? <div className="builder-error-banner">{uploadError}</div> : null}
+          </section>
         ) : null}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        data-testid={testId}
-        className={`mt-2 h-9 w-full rounded-md border px-3 text-[13px] outline-none transition-all ${
-          error ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-neutral-200 bg-[#39FF14] focus:border-neutral-400 focus:ring-2 focus:ring-neutral-100"
-        }`}
-      />
-      {helper ? <span className={`mt-1 block text-xs ${error ? "text-red-700" : "text-neutral-500"}`}>{helper}</span> : null}
-    </label>
+
+        {activeStep === "instructions" ? (
+          <div className="builder-step-stack">
+            <BuilderCopilot
+              messages={messages as BuilderCopilotMessage[]}
+              input={input}
+              model={copilotModel}
+              isGenerating={isGenerating}
+              error={copilotError}
+              showControls={false}
+              onInputChange={setInput}
+              onModelChange={setCopilotModel}
+              onSubmit={submitCopilot}
+              onStop={() => void stop()}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+            <BuilderEditor
+              viewMode={viewMode}
+              issueCount={issues.length}
+              editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
+              preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
+              onViewModeChange={setViewMode}
+            />
+          </div>
+        ) : null}
+
+        {activeStep === "package" ? (
+          <div className="builder-step-stack">
+            <BuilderPanel title="Skill package" description="Review the exact files that will be downloaded or published." action={<button type="button" onClick={() => void syncPackage()} disabled={isPackaging} className="builder-primary-button"><PackageCheck className="size-4" />{isPackaging ? "Building..." : "Generate missing files"}</button>}>
+              <div className="builder-upload-zone">
+                <div><Upload className="size-6 text-primary" /><h3>Upload or add package files</h3><p>Existing files are preserved. Missing required directories are scaffolded automatically.</p></div>
+                <div className="builder-start-actions">
+                  <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" />Add file or ZIP<input className="sr-only" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
+                  <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" />Add folder<input className="sr-only" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
+                  <button type="button" className="builder-secondary-button" data-testid="builder-parse" onClick={() => void importSkill()}><WandSparkles className="size-4" />Parse and repair</button>
+                </div>
+              </div>
+              {uploadedFileName ? <div className="builder-info-banner">Imported <strong>{uploadedFileName}</strong>{packageUploadId ? ` · Package ${packageUploadId}` : ""}</div> : null}
+              {packageError || uploadError ? <div className="builder-error-banner">{packageError || uploadError}</div> : null}
+              <PackageTree slug={slug} files={packageFiles} skillMd={skillMd} />
+            </BuilderPanel>
+          </div>
+        ) : null}
+
+        {activeStep === "configuration" ? (
+          <div className="builder-step-stack">
+            <BuilderPanel title="Marketplace listing" description="Control how the skill appears in search, detail pages, and My Skills.">
+              <div className="builder-form-grid">
+                <BuilderField label="Display name" helper={`${name.length}/64 characters`}><input className="builder-input" data-testid="builder-name" value={name} onChange={(event) => setName(event.target.value)} /></BuilderField>
+                <BuilderField label="Directory name" helper="Lowercase letters, numbers, and single hyphens."><input className="builder-input font-mono" data-testid="builder-slug" value={slug} onChange={(event) => setSlug(event.target.value)} /></BuilderField>
+                <BuilderField label="Category"><input className="builder-input" data-testid="builder-category" value={category} onChange={(event) => setCategory(event.target.value)} /></BuilderField>
+                <BuilderField label="Visibility"><select className="builder-input" data-testid="builder-visibility" value={visibility} onChange={(event) => setVisibility(event.target.value as BuilderVisibility)}><option value="public">Public</option><option value="private">Private</option><option value="unlisted">Unlisted</option></select></BuilderField>
+                <div className="sm:col-span-2"><BuilderField label="Summary" helper={`${summary.length}/1024 characters`}><textarea className="builder-textarea min-h-28" data-testid="builder-summary" value={summary} onChange={(event) => setSummary(event.target.value)} /></BuilderField></div>
+              </div>
+            </BuilderPanel>
+            <BuilderPanel title="Access and compatibility" description="Declare the permissions the skill uses and where users can install it.">
+              <div className="space-y-6">
+                <ToggleList title="Permissions" values={permissionKeys} labels={permissionLabels} selected={selectedPermissions} onToggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)} />
+                <ToggleList title="Install targets" values={compatibilityTargets} selected={selectedTargets} onToggle={(value) => toggle(value, selectedTargets, setSelectedTargets)} />
+              </div>
+            </BuilderPanel>
+          </div>
+        ) : null}
+
+        {activeStep === "test" ? (
+          <div className="builder-step-stack">
+            <BuilderPanel title="Profile validation" description="Resolve blocking issues before downloading or publishing.">
+              <div className="space-y-2">{issues.length ? issues.map((issue) => <BuilderStatus key={issue} valid={false}>{issue}</BuilderStatus>) : <BuilderStatus valid>The Full Package Profile requirements are satisfied.</BuilderStatus>}</div>
+              {importResult?.suggestions.length ? <div className="builder-import-analysis"><strong>Repair suggestions</strong><ul>{importResult.suggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}</ul><button type="button" onClick={applySuggestedSkillMd} data-testid="builder-apply-suggestions" className="builder-secondary-button">Apply suggested formatting</button></div> : null}
+            </BuilderPanel>
+            <BuilderPanel title="Test the current draft" description="This runs the unsaved Builder state, not a different marketplace skill.">
+              <div className="builder-test-controls"><input value={testInput} onChange={(event) => setTestInput(event.target.value)} data-testid="builder-test-input" className="builder-input flex-1" onKeyDown={(event) => { if (event.key === "Enter" && !isTesting) void runTest(); }} /><button type="button" onClick={() => void runTest()} disabled={isTesting || !testInput.trim()} className="builder-primary-button"><Play className="size-4" />{isTesting ? "Running..." : "Run draft"}</button></div>
+              <div className="builder-test-output"><div className="flex items-center justify-between gap-3"><BuilderSectionLabel>Output</BuilderSectionLabel>{testRun?.status ? <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge> : null}</div><p>{testRun?.output || (isTesting ? "Streaming the current draft..." : "Run a realistic prompt to verify the skill before finishing.")}</p></div>
+            </BuilderPanel>
+          </div>
+        ) : null}
+
+        {activeStep === "finish" ? (
+          <div className="builder-step-stack">
+            <BuilderPanel title="Finish your skill" description="Saving, downloading, and publishing are separate actions so the result is always clear.">
+              <div className="builder-finish-grid">
+                <FinishCard icon={<Save className="size-5" />} title="Save browser draft" description="Keep the current Builder state in this browser without publishing it." action={<button type="button" className="builder-secondary-button" onClick={saveDraft}>{draftSaved ? <Check className="size-4" /> : <Save className="size-4" />}{draftSaved ? "Draft saved" : "Save draft"}</button>} />
+                <FinishCard icon={<Download className="size-5" />} title="Download skill package" description={`Create ${slug || "agent-skill"}.zip with SKILL.md, scripts, references, assets, and examples.`} action={<button type="button" className="builder-secondary-button" onClick={() => void downloadZip()} disabled={isPackaging || issues.length > 0}><Download className="size-4" />{isPackaging ? "Preparing..." : "Download ZIP"}</button>} />
+                <FinishCard icon={<Rocket className="size-5" />} title="Publish to Marketplace" description={`Publish a ${visibility} marketplace version with the selected targets and permissions.`} action={<button type="button" data-testid="builder-publish" className="builder-primary-button" onClick={() => void publishSkill()} disabled={isSaving || issues.length > 0}><Rocket className="size-4" />{isSaving ? "Publishing..." : "Publish to Marketplace"}</button>} />
+              </div>
+              {issues.length ? <div className="builder-warning-banner">Resolve {issues.length} validation issue{issues.length === 1 ? "" : "s"} in the previous step before downloading or publishing.</div> : null}
+              {downloadedPackage ? <div className="builder-success-banner"><CheckCircle2 className="size-4" />Downloaded {downloadedPackage}</div> : null}
+              {publishedSlug ? <div className="builder-success-banner"><PackageCheck className="size-4" /><span>Published <strong>{publishedSlug}</strong>.</span>{savedUrls ? <a href={savedUrls.detail}>Open skill</a> : null}</div> : null}
+              {packageError || saveError ? <div className="builder-error-banner">{packageError || saveError}</div> : null}
+            </BuilderPanel>
+          </div>
+        ) : null}
+
+        {activeStep !== "source" ? (
+          <footer className="builder-flow-actions">
+            <button type="button" className="builder-secondary-button" onClick={() => goRelative(-1)} disabled={currentStepIndex <= 0}><ArrowLeft className="size-4" />Back</button>
+            <div className="builder-step-status"><span>{issues.length ? `${issues.length} validation issue${issues.length === 1 ? "" : "s"}` : "Ready"}</span><ChevronRight className="size-4" /><span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed for AI`}</span></div>
+            {currentStepIndex < orderedSteps.length - 1 ? <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>Continue<ArrowRight className="size-4" /></button> : null}
+          </footer>
+        ) : null}
+      </main>
+
+      <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => { setIsSettingsOpen(false); setSettingsRevision((value) => value + 1); }} />
+    </BuilderStudio>
   );
 }
 
-function Checklist({
-  title,
-  values,
-  labels,
-  selected,
-  toggle,
-}: {
-  title: string;
-  values: readonly string[];
-  labels?: Record<string, string>;
-  selected: string[];
-  toggle: (value: string) => void;
-}) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-neutral-950">{title}</h3>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {values.map((value) => (
-          <button
-            key={value}
-            onClick={() => toggle(value)}
-            data-testid={`builder-toggle-${value.toLowerCase().replaceAll(" ", "-")}`}
-            className={`rounded-md border px-3 py-2 text-xs font-medium transition ${
-              selected.includes(value)
-                ? "border-neutral-950 bg-neutral-950 text-white"
-                : "border-neutral-200 bg-[#39FF14] text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            {labels?.[value] ?? value}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+type GeneratedBuilderMetadata = {
+  displayName?: string;
+  directoryName?: string;
+  category?: string;
+  summary?: string;
+  testPrompt?: string;
+  permissions?: string[];
+  targets?: string[];
+};
+
+type PackageResponse = {
+  error?: string;
+  skillMd?: string;
+  files?: SkillPackageFile[];
+  packageFiles?: SkillPackageFile[];
+  packageUploadId?: string;
+};
+
+function PackageTree({ slug, files, skillMd }: { slug: string; files: SkillPackageFile[]; skillMd: string }) {
+  const visibleFiles = files.length ? files : [
+    { path: "SKILL.md", role: "skill_md", size: new TextEncoder().encode(skillMd).byteLength, mimeType: "text/markdown" },
+    { path: "scripts/.gitkeep", role: "script", size: 0, mimeType: "text/plain" },
+    { path: "references/REFERENCE.md", role: "reference", size: 0, mimeType: "text/markdown" },
+    { path: "assets/.gitkeep", role: "asset", size: 0, mimeType: "text/plain" },
+    { path: "examples/.gitkeep", role: "example", size: 0, mimeType: "text/plain" },
+  ] satisfies SkillPackageFile[];
+  return <div className="builder-package-tree"><div className="builder-package-root"><FolderOpen className="size-4" />{slug || "agent-skill"}/</div>{visibleFiles.map((file) => <div className="builder-package-file" key={file.path}><span className="font-mono">{file.path}</span><span>{file.role}</span><span>{file.size.toLocaleString()} B</span></div>)}</div>;
+}
+
+function ToggleList({ title, values, labels, selected, onToggle }: { title: string; values: readonly string[]; labels?: Record<string, string>; selected: string[]; onToggle: (value: string) => void }) {
+  return <div><BuilderSectionLabel>{title}</BuilderSectionLabel><div className="mt-3 flex flex-wrap gap-2">{values.map((value) => { const active = selected.includes(value); return <button type="button" key={value} onClick={() => onToggle(value)} data-testid={`builder-toggle-${value.toLowerCase().replaceAll(" ", "-")}`} aria-pressed={active} className={`builder-chip ${active ? "builder-chip-active" : ""}`}>{active ? <CheckCircle2 className="size-3.5" /> : null}{labels?.[value] ?? value}</button>; })}</div></div>;
+}
+
+function FinishCard({ icon, title, description, action }: { icon: ReactNode; title: string; description: string; action: ReactNode }) {
+  return <article className="builder-finish-card"><span>{icon}</span><h3>{title}</h3><p>{description}</p><div>{action}</div></article>;
+}
+
+function stepTitle(step: BuilderStep, path: BuilderPath) {
+  if (step === "source") return "How do you want to start?";
+  if (step === "instructions") return path === "import" ? "Review and repair the instructions" : "Describe and build the instructions";
+  if (step === "package") return path === "import" ? "Review the imported package" : "Build the full package";
+  if (step === "configuration") return "Configure the marketplace listing";
+  if (step === "test") return "Validate and test the current draft";
+  return "Download, save, or publish";
+}
+
+function stepDescription(step: BuilderStep, path: BuilderPath) {
+  if (step === "source") return "Create a new skill with AI or import an existing package. The rest of the workflow adapts to your choice.";
+  if (step === "instructions") return path === "import" ? "Confirm what the imported skill does, repair its structure, and refine SKILL.md." : "Use Copilot or edit SKILL.md directly. This file controls when and how the skill runs.";
+  if (step === "package") return path === "import" ? "Inspect detected files and generate any missing required folders." : "Turn the instructions into a portable package with the required scaffold.";
+  if (step === "configuration") return "Set the display metadata, permissions, install targets, and visibility.";
+  if (step === "test") return "Resolve profile issues and run the exact unsaved draft before distribution.";
+  return "Choose the result you need. Downloading does not publish, and saving a draft does not create a marketplace listing.";
+}
+
+function providerForModel(model: string) {
+  if (model.startsWith("google/")) return "Google Gemini";
+  if (model.startsWith("anthropic/")) return "Anthropic";
+  if (model.startsWith("xai/")) return "xAI";
+  if (model.startsWith("groq/")) return "Groq";
+  return "OpenAI";
+}
+
+function hasKeyForModel(model: string, serialized: string) {
+  try {
+    const keys = JSON.parse(serialized) as Record<string, string>;
+    const provider = model.split("/")[0];
+    const keyName = provider === "google" ? "google" : provider;
+    return Boolean(keys[keyName]?.trim());
+  } catch {
+    return false;
+  }
+}
+
+function sandboxProviderForModel(model: string): "openai" | "gemini" | "groq" {
+  if (model.startsWith("google/")) return "gemini";
+  if (model.startsWith("groq/")) return "groq";
+  return "openai";
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

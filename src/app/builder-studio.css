@@ -1,0 +1,349 @@
+.builder-studio {
+  color: var(--foreground);
+}
+
+.builder-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--card);
+  padding: 1.25rem;
+}
+
+.builder-copilot-hero {
+  margin-bottom: 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--primary) 14%, transparent), transparent 38%),
+    var(--card);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.08);
+}
+
+.builder-copilot-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+}
+
+.builder-copilot-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-copilot-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.builder-copilot-prompts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.builder-prompt-card {
+  display: flex;
+  min-height: 5.5rem;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--background) 80%, var(--card));
+  padding: 0.9rem;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.builder-prompt-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  transform: translateY(-1px);
+}
+
+.builder-prompt-card span {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.builder-prompt-card strong {
+  color: var(--foreground);
+  font-size: 0.82rem;
+}
+
+.builder-prompt-card small {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.builder-copilot-thread {
+  min-height: 10rem;
+  max-height: 24rem;
+  margin-top: 0.9rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--background);
+  padding: 1rem;
+}
+
+.builder-copilot-empty {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.builder-copilot-message {
+  max-width: min(88%, 48rem);
+  margin-bottom: 0.65rem;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.builder-copilot-message-user {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-copilot-message-agent {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.builder-copilot-error {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.65rem;
+  background: #fef2f2;
+  padding: 0.75rem;
+  color: #991b1b;
+  font-size: 0.8rem;
+}
+
+.builder-copilot-error button {
+  margin-left: auto;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.builder-copilot-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.builder-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr) minmax(18rem, 22rem);
+  align-items: start;
+  gap: 1rem;
+}
+
+.builder-input,
+.builder-textarea,
+.builder-compact-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.builder-input,
+.builder-compact-select {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
+
+.builder-textarea {
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+}
+
+.builder-compact-select {
+  min-height: 2.5rem;
+  width: auto;
+  font-size: 0.75rem;
+}
+
+.builder-input:focus,
+.builder-textarea:focus,
+.builder-compact-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.builder-primary-button,
+.builder-secondary-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.builder-primary-button {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-primary-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.builder-primary-button:disabled,
+.builder-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.builder-secondary-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.builder-secondary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+
+.builder-chip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  padding: 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.builder-chip:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--foreground);
+}
+
+.builder-chip-active {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  color: var(--primary);
+}
+
+.builder-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--muted);
+  padding: 0.2rem;
+}
+
+.builder-segmented button {
+  min-height: 1.9rem;
+  border-radius: 0.35rem;
+  padding: 0 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.builder-segmented button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.builder-studio input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card);
+  padding: 0.4rem 0.65rem;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+@media (max-width: 1380px) {
+  .builder-workspace-grid {
+    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .builder-toolbar,
+  .builder-copilot-composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .builder-copilot-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .builder-copilot-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .builder-copilot-prompts {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: auto;
+    display: block;
+  }
+
+  .builder-workspace-grid > :last-child > * + * {
+    margin-top: 1rem;
+  }
+}
