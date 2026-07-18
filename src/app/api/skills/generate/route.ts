@@ -9,7 +9,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { createSkillPackage } from "@/lib/repository";
 import { buildFullSkillPackage, FULL_PACKAGE_PROFILE_LABEL } from "@/lib/skill-package-profile";
 
-const allowedModels = new Set(["google/gemini-2.5-flash", "google/gemini-2.5-pro", "xai/grok-2-latest", "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20240620", "groq/llama-3.3-70b-versatile", "groq/mixtral-8x7b-32768"]);
+const allowedModels = new Set(["google/gemini-2.5-flash", "google/gemini-2.5-pro", "xai/grok-4.3", "xai/grok-4.5", "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20240620", "groq/llama-3.3-70b-versatile", "groq/mixtral-8x7b-32768", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"]);
 const permissionSchema = z.enum(["read_files", "write_files", "network", "shell", "browser", "api_keys"]);
 const targetSchema = z.enum(["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"]);
 const roleSchema = z.enum(["readme", "script", "asset", "reference", "config", "doc", "example", "other"]);

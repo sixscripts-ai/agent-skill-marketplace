@@ -54,9 +54,12 @@ type BuilderStep = "source" | "instructions" | "package" | "configuration" | "te
 const modelOptions = [
   ["google/gemini-2.5-flash", "Gemini 2.5 Flash"],
   ["google/gemini-2.5-pro", "Gemini 2.5 Pro"],
-  ["xai/grok-2-latest", "Grok 2"],
+  ["xai/grok-4.3", "Grok 4.3"],
+  ["xai/grok-4.5", "Grok 4.5"],
   ["groq/llama-3.3-70b-versatile", "Llama 3.3 (Groq)"],
   ["groq/mixtral-8x7b-32768", "Mixtral (Groq)"],
+  ["deepseek/deepseek-v4-flash", "DeepSeek V4 Flash"],
+  ["deepseek/deepseek-v4-pro", "DeepSeek V4 Pro"],
   ["openai/gpt-4o", "GPT-4o"],
   ["anthropic/claude-3-5-sonnet-20240620", "Claude 3.5 Sonnet"],
 ] as const;

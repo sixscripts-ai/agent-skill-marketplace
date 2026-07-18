@@ -10,9 +10,12 @@ import { generateText } from "ai";
 const allowedModels = new Set([
   "google/gemini-2.5-flash",
   "google/gemini-2.5-pro",
-  "xai/grok-2-latest",
+  "xai/grok-4.3",
+  "xai/grok-4.5",
   "groq/llama-3.3-70b-versatile",
   "groq/mixtral-8x7b-32768",
+  "deepseek/deepseek-v4-flash",
+  "deepseek/deepseek-v4-pro",
   "openai/gpt-4o",
   "anthropic/claude-3-5-sonnet-20240620",
 ]);

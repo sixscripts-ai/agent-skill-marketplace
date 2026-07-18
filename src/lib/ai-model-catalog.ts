@@ -1,6 +1,7 @@
 export const AI_MODEL_OPTIONS = [
   ["google/gemini-2.5-flash", "Gemini 2.5 Flash"],
   ["google/gemini-2.5-pro", "Gemini 2.5 Pro"],
+  ["xai/grok-4.3", "Grok 4.3"],
   ["xai/grok-4.5", "Grok 4.5"],
   ["groq/llama-3.3-70b-versatile", "Llama 3.3 (Groq)"],
   ["groq/mixtral-8x7b-32768", "Mixtral (Groq)"],
