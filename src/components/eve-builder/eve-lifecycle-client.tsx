@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronRight, Download, FileCode2, KeyRound, Play, RotateCcw, Save, Sparkles, WandSparkles } from "lucide-react";
 import { architectAgentProject } from "@/app/actions/agent-project-architect";
 import { ApiSettingsModal } from "../api-settings-modal";
-import { AGENT_MODEL_OPTIONS, AGENT_TOOL_CATALOG, MARKETPLACE_SKILL_CATALOG, createDefaultAgentProject, downloadAgentProject, runAgentTest, synchronizeAgentProject, validateAgentProject, type AgentPermissionDecision, type AgentProject } from "@/lib/eve/agent-project";
+import { AGENT_MODEL_OPTIONS, AGENT_TOOL_CATALOG, MARKETPLACE_SKILL_CATALOG, createDefaultAgentProject, downloadAgentProject, mergeArchitectProject, runAgentTest, synchronizeAgentProject, validateAgentProject, type AgentPermissionDecision, type AgentProject } from "@/lib/eve/agent-project";
 
 type Step = "brief" | "models" | "capabilities" | "instructions" | "safety" | "test" | "finish";
 const steps: Array<[Step, string]> = [["brief","Agent brief"],["models","Models and runtime"],["capabilities","Tools and skills"],["instructions","Project files"],["safety","Safety and memory"],["test","Test and debug"],["finish","Export and deploy"]];
@@ -32,10 +32,13 @@ export function EveLifecycleClient() {
     if (!architectPrompt.trim() || architectBusy) return;
     setArchitectBusy(true); setArchitectError(""); setCheckpoint(project);
     try {
-      const result = await architectAgentProject(architectPrompt, project, project.architectModel, JSON.parse(localStorage.getItem("ai_api_keys") || "{}"));
-      const merged: AgentProject = { ...project, ...result, metadata: { ...project.metadata, ...(result.metadata ?? {}) }, brief: { ...project.brief, ...(result.brief ?? {}) }, runtime: { ...project.runtime, ...(result.runtime ?? {}) } };
-      update({ ...merged, changes: [{ id: crypto.randomUUID(), label: architectPrompt, createdAt: new Date().toISOString(), files: merged.files.map((file) => file.path) }, ...project.changes] });
+      const storedKeys = JSON.parse(localStorage.getItem("ai_api_keys") || "{}") as Record<string, string>;
+      const result = await architectAgentProject(architectPrompt, project, project.architectModel, storedKeys);
+      const merged = mergeArchitectProject(project, result);
+      const changedFiles = Array.isArray(result.files) && result.files.length ? result.files.map((file) => file.path).filter(Boolean) : merged.files.map((file) => file.path);
+      update({ ...merged, changes: [{ id: crypto.randomUUID(), label: architectPrompt, createdAt: new Date().toISOString(), files: changedFiles }, ...project.changes] });
       setArchitectPrompt("");
+      if (changedFiles[0]) setSelectedFile(changedFiles[0]);
     } catch (error) { setArchitectError(error instanceof Error ? error.message : String(error)); }
     finally { setArchitectBusy(false); }
   }

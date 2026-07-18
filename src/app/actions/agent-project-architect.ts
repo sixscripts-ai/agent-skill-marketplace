@@ -12,10 +12,18 @@ export async function architectAgentProject(prompt: string, current: AgentProjec
   const model = resolveModel(modelId, apiKeys);
   const { text } = await generateText({
     model,
-    system: `You are an Agent Architect. Return only a JSON object with optional keys: metadata, brief, runtimeModel, runtime, tools, skills, permissions, tests. Improve the existing project without deleting unrelated configuration. Do not return markdown fences. Current project: ${JSON.stringify(current)}`,
+    system: `You are Eve's production Agent Architect. Return one valid JSON object and nothing else. You may update these keys: metadata, brief, runtimeModel, runtime, tools, skills, permissions, tests, files. Preserve unrelated configuration. Every skill must contain slug, name, summary, and permissions. Every file must contain path and content. When the user asks for a complete implementation, include the actual runnable files in files rather than only describing them. Do not include secrets. Do not use markdown fences. Current project: ${JSON.stringify(current)}`,
     prompt,
   });
-  return JSON.parse(text.trim().replace(/^```json\s*/i, "").replace(/```$/, "")) as Partial<AgentProject>;
+  const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error("Architect returned invalid JSON. Retry the request or shorten it into architecture and implementation phases.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Architect returned an invalid project update.");
+  return parsed as Partial<AgentProject>;
 }
 
 function resolveModel(modelId: string, apiKeys: Record<string, string>) {
