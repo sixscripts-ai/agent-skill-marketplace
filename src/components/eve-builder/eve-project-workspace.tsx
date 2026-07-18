@@ -56,10 +56,9 @@ export function EveProjectWorkspace(props: Props) {
   const statusChip = titleCase(props.status);
 
   return (
-    <aside className="eve-project-workspace" id="eve-project-workspace-panel" aria-label="Project workspace">
+    <aside className="eve-project-workspace" id="eve-project-workspace-panel" aria-label="Project">
       <header className="eve-workspace-header">
         <div className="eve-workspace-title-block">
-          <div className="eve-eyebrow">Project workspace</div>
           <h2 className="eve-workspace-title" title={props.project.metadata.displayName}>
             {props.project.metadata.displayName}
           </h2>
@@ -71,24 +70,35 @@ export function EveProjectWorkspace(props: Props) {
             <span className={`eve-save-chip eve-save-${props.saveState}`}>{saveChip}</span>
           </div>
         </div>
-        {props.onCollapse ? (
+        <div className="eve-workspace-header-actions">
           <button
+            className="builder-secondary-button"
             type="button"
-            className="builder-secondary-button eve-collapse-button"
-            onClick={props.onCollapse}
-            aria-expanded={true}
-            aria-controls="eve-project-workspace-panel"
-            aria-label="Hide project workspace"
+            onClick={props.onNewProject}
+            disabled={props.busy}
           >
-            <PanelLeftClose className="size-4" aria-hidden="true" />
-            Hide
+            <FolderPlus className="size-4" aria-hidden="true" />
+            New project
           </button>
-        ) : null}
+          {props.onCollapse ? (
+            <button
+              type="button"
+              className="builder-secondary-button eve-collapse-button"
+              onClick={props.onCollapse}
+              aria-expanded={true}
+              aria-controls="eve-project-workspace-panel"
+              aria-label="Hide project section"
+            >
+              <PanelLeftClose className="size-4" aria-hidden="true" />
+              Hide
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <div className="eve-workspace-toolbar">
         <label className="eve-workspace-project-select">
-          <span>Current project</span>
+          <span>Project</span>
           <select
             className="builder-input"
             value={props.projectId}
@@ -101,38 +111,28 @@ export function EveProjectWorkspace(props: Props) {
             ))}
           </select>
         </label>
-        <button
-          className="builder-secondary-button"
-          type="button"
-          onClick={props.onNewProject}
-          disabled={props.busy}
-        >
-          <FolderPlus className="size-4" aria-hidden="true" />
-          New project
-        </button>
-      </div>
-
-      <div className="eve-workspace-action-groups" role="group" aria-label="Project actions">
-        <div className="eve-action-group eve-action-primary">
-          <button className="builder-secondary-button" type="button" onClick={props.onSave} disabled={!props.projectId || props.busy || props.saveState === "saving"}>
-            <Save className="size-4" aria-hidden="true" /> Save
-          </button>
-          <button className="builder-secondary-button" type="button" onClick={props.onReload} disabled={!props.projectId || props.busy}>
-            <RefreshCw className="size-4" aria-hidden="true" /> Reload
-          </button>
-          <button className="builder-secondary-button" type="button" onClick={props.onDownload} disabled={!props.project.files.length}>
-            <Download className="size-4" aria-hidden="true" /> ZIP
-          </button>
-        </div>
-        <div className="eve-action-group eve-action-secondary">
-          <button type="button" className="builder-secondary-button" onClick={props.onReset} disabled={!props.projectId || props.busy}>
-            Reset files
-          </button>
-        </div>
-        <div className="eve-action-group eve-action-danger">
-          <button type="button" className="builder-secondary-button eve-danger-button" onClick={props.onDelete} disabled={!props.projectId || props.busy}>
-            <Trash2 className="size-4" aria-hidden="true" /> Delete
-          </button>
+        <div className="eve-workspace-action-groups" role="group" aria-label="Project actions">
+          <div className="eve-action-group eve-action-primary">
+            <button className="builder-secondary-button" type="button" onClick={props.onSave} disabled={!props.projectId || props.busy || props.saveState === "saving"}>
+              <Save className="size-4" aria-hidden="true" /> Save
+            </button>
+            <button className="builder-secondary-button" type="button" onClick={props.onReload} disabled={!props.projectId || props.busy}>
+              <RefreshCw className="size-4" aria-hidden="true" /> Reload
+            </button>
+            <button className="builder-secondary-button" type="button" onClick={props.onDownload} disabled={!props.project.files.length}>
+              <Download className="size-4" aria-hidden="true" /> ZIP
+            </button>
+          </div>
+          <div className="eve-action-group eve-action-secondary">
+            <button type="button" className="builder-secondary-button" onClick={props.onReset} disabled={!props.projectId || props.busy}>
+              Reset
+            </button>
+          </div>
+          <div className="eve-action-group eve-action-danger">
+            <button type="button" className="builder-secondary-button eve-danger-button" onClick={props.onDelete} disabled={!props.projectId || props.busy}>
+              <Trash2 className="size-4" aria-hidden="true" /> Delete
+            </button>
+          </div>
         </div>
       </div>
 

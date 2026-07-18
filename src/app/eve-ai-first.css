@@ -2,13 +2,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: min(72vh, calc(100vh - 7rem));
-  max-height: calc(100vh - 6.5rem);
+  min-height: 0;
+  max-height: none;
   margin-bottom: 0;
-  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border));
-  border-radius: 1rem;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 6%, var(--card)), var(--card));
-  padding: 0.85rem 1rem 1rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -62,7 +62,8 @@
   flex-direction: column;
   gap: 0.75rem;
   flex: 1 1 auto;
-  min-height: 12rem;
+  min-height: 14rem;
+  max-height: min(48vh, 28rem);
   margin-top: 0.85rem;
   overflow-x: hidden;
   overflow-y: auto;
@@ -287,12 +288,11 @@
   display: grid;
   gap: 0.45rem;
   flex: 0 0 auto;
-  margin-top: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  margin-top: 0.85rem;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 35%, var(--border));
   border-radius: 0.85rem;
-  background: var(--card);
-  padding: 0.75rem;
-  box-shadow: 0 -4px 16px color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: var(--background);
+  padding: 0.85rem;
 }
 
 .eve-composer-label {
@@ -395,13 +395,6 @@
 
 .eve-architect {
   display: none !important;
-}
-
-@media (max-width: 1100px) {
-  .eve-ai-workspace {
-    max-height: none;
-    min-height: 28rem;
-  }
 }
 
 @media (max-width: 760px) {

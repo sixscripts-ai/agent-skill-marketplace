@@ -1,15 +1,19 @@
-.eve-builder-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(420px, 440px);
-  gap: 0.85rem;
-  align-items: stretch;
+.eve-builder-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   width: 100%;
-  max-width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
   overflow-x: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 1rem 1.1rem 1.15rem;
 }
 
-.eve-builder-layout.is-workspace-collapsed {
-  grid-template-columns: minmax(0, 1fr);
+.eve-builder-shell.is-workspace-collapsed {
+  max-width: 52rem;
 }
 
 .eve-builder-chat-column {
@@ -24,50 +28,68 @@
   justify-content: flex-end;
 }
 
+.eve-builder-section-rule {
+  height: 1px;
+  margin: 1.1rem 0 0.95rem;
+  background: var(--border);
+  border: 0;
+}
+
 .eve-project-workspace {
-  position: sticky;
-  top: 4.5rem;
+  position: static;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.7rem;
   width: 100%;
-  max-width: 460px;
+  max-width: none;
   min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  background: var(--card);
-  padding: 0.85rem;
-  max-height: calc(100vh - 5.5rem);
-  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  max-height: none;
+  overflow: visible;
 }
 
 .eve-workspace-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 .eve-workspace-title-block {
   min-width: 0;
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
 }
 
 .eve-workspace-title {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
+  font-size: 0.95rem;
+  font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: min(100%, 18rem);
 }
 
 .eve-workspace-status-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-top: 0.4rem;
+  margin-top: 0;
+}
+
+.eve-workspace-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .eve-save-chip {
@@ -109,18 +131,21 @@
 }
 
 .eve-workspace-toolbar {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.55rem 0.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .eve-workspace-project-select {
   display: grid;
-  gap: 0.3rem;
-  min-width: 0;
+  gap: 0.25rem;
+  min-width: min(100%, 14rem);
+  flex: 1 1 12rem;
 }
 
 .eve-workspace-project-select > span {
@@ -129,16 +154,13 @@
   color: var(--muted-foreground);
 }
 
-.eve-workspace-toolbar .builder-secondary-button {
-  width: 100%;
-  cursor: pointer;
-}
-
 .eve-workspace-action-groups {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
   align-items: center;
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
 .eve-action-group {
@@ -435,42 +457,26 @@
   border-color: #fca5a5 !important;
 }
 
-.eve-builder-layout .builder-secondary-button:focus-visible,
-.eve-builder-layout .builder-primary-button:focus-visible,
-.eve-builder-layout .builder-input:focus-visible,
-.eve-builder-layout select:focus-visible {
+.eve-builder-shell .builder-secondary-button:focus-visible,
+.eve-builder-shell .builder-primary-button:focus-visible,
+.eve-builder-shell .builder-input:focus-visible,
+.eve-builder-shell select:focus-visible {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
-.eve-builder-layout button,
-.eve-builder-layout select {
+.eve-builder-shell button,
+.eve-builder-shell select {
   cursor: pointer;
 }
 
-.eve-builder-layout button:disabled,
-.eve-builder-layout select:disabled {
+.eve-builder-shell button:disabled,
+.eve-builder-shell select:disabled {
   cursor: not-allowed;
 }
 
-@media (max-width: 1280px) {
-  .eve-builder-layout {
-    grid-template-columns: minmax(0, 1.55fr) minmax(400px, 420px);
-  }
-}
-
 @media (max-width: 1100px) {
-  .eve-builder-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .eve-project-workspace {
-    position: static;
-    max-height: none;
-    max-width: none;
-  }
-
   .eve-action-primary {
     border-right: 0;
     padding-right: 0;
@@ -510,7 +516,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .eve-builder-layout,
+  .eve-builder-shell,
   .eve-project-workspace {
     transition: none !important;
   }
