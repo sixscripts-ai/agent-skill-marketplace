@@ -1,1 +1,426 @@
-.eve-ai-workspace{margin-bottom:1rem;border:1px solid color-mix(in srgb,var(--primary) 45%,var(--border));border-radius:1rem;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 6%,var(--card)),var(--card));padding:1rem}.eve-chat-heading{display:flex;align-items:flex-start;gap:.8rem;flex-wrap:wrap}.eve-chat-heading>span{display:grid;width:2.5rem;height:2.5rem;place-items:center;border-radius:.7rem;background:var(--primary);color:var(--primary-foreground)}.eve-chat-heading>div{min-width:0;flex:1}.eve-chat-heading h2{font-size:1.2rem;font-weight:750}.eve-chat-heading p{margin-top:.25rem;color:var(--muted-foreground);font-size:.82rem}.eve-chat-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(16rem,.8fr);gap:.75rem;margin-top:1rem}@media(max-width:960px){.eve-chat-layout{grid-template-columns:1fr}}.eve-chat-thread{display:grid;gap:.75rem;max-height:34rem;overflow-y:auto;border:1px solid var(--border);border-radius:.85rem;background:var(--background);padding:.85rem}.eve-build-activity{display:grid;align-content:start;gap:.65rem;max-height:34rem;overflow-y:auto;border:1px solid var(--border);border-radius:.85rem;background:var(--background);padding:.85rem}.eve-build-activity-heading{display:flex;align-items:center;gap:.4rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground)}.eve-build-empty{color:var(--muted-foreground);font-size:.78rem;line-height:1.45}.eve-build-run{display:grid;gap:.55rem}.eve-build-run-meta{display:flex;align-items:center;justify-content:space-between;gap:.4rem}.eve-build-status{display:inline-flex;border-radius:999px;padding:.15rem .45rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:color-mix(in srgb,var(--primary) 12%,var(--card));color:var(--foreground)}.eve-build-status.failed,.eve-build-status.error{background:#fef2f2;color:#b91c1c}.eve-build-status.completed{background:#ecfdf5;color:#047857}.eve-build-prompt,.eve-build-error,.eve-build-event p,.eve-build-event small,.eve-build-history{font-size:.72rem;line-height:1.45}.eve-build-prompt{color:var(--foreground)}.eve-build-error{color:#b91c1c}.eve-build-events{display:grid;gap:.45rem;margin:0;padding:0;list-style:none}.eve-build-event{border:1px solid var(--border);border-radius:.65rem;background:var(--card);padding:.55rem .65rem}.eve-build-event>div{display:flex;justify-content:space-between;gap:.4rem;align-items:baseline}.eve-build-event strong{font-size:.74rem}.eve-build-event>div>span{color:var(--muted-foreground);font-size:.66rem;text-transform:uppercase;letter-spacing:.06em}.eve-build-event ul{margin:.35rem 0 0;padding-left:1rem;font-size:.7rem;color:var(--muted-foreground)}.eve-build-event.failed{border-color:#fca5a5;background:#fef2f2}.eve-chat-message{display:flex;align-items:flex-start;gap:.65rem;max-width:88%}.eve-chat-message.user{justify-self:end;flex-direction:row-reverse}.eve-chat-avatar{display:grid;width:1.8rem;height:1.8rem;flex:0 0 auto;place-items:center;border:1px solid var(--border);border-radius:999px;background:var(--card)}.eve-chat-message>div{display:grid;gap:.55rem;border:1px solid var(--border);border-radius:.8rem;background:var(--card);padding:.75rem .85rem}.eve-chat-message.user>div{background:color-mix(in srgb,var(--primary) 10%,var(--card));border-color:color-mix(in srgb,var(--primary) 35%,var(--border))}.eve-chat-message.error>div{border-color:#fca5a5;background:#fef2f2}.eve-chat-message p{white-space:pre-wrap;font-size:.82rem;line-height:1.55}.eve-chat-working{display:flex;align-items:center;gap:.45rem;color:var(--muted-foreground)}.eve-chat-plan{display:grid;gap:.35rem;border-top:1px solid var(--border);padding-top:.55rem}.eve-chat-plan strong{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-foreground)}.eve-chat-plan span{display:flex;align-items:flex-start;gap:.35rem;font-size:.75rem}.eve-chat-message small{color:var(--muted-foreground);font-size:.72rem}.eve-chat-composer{display:grid;gap:.55rem;margin-top:.75rem}.eve-chat-composer textarea{min-height:7rem}.eve-chat-composer>div{display:flex;justify-content:space-between;gap:.55rem;flex-wrap:wrap}.eve-chat-composer select{min-width:13rem}.eve-architect{display:none!important}@media(max-width:760px){.eve-chat-message{max-width:100%}.eve-chat-composer>div>*{width:100%}}
+.eve-ai-workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: min(72vh, calc(100vh - 7rem));
+  max-height: calc(100vh - 6.5rem);
+  margin-bottom: 0;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 6%, var(--card)), var(--card));
+  padding: 0.85rem 1rem 1rem;
+  overflow: hidden;
+}
+
+.eve-chat-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.eve-chat-heading > span {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.eve-chat-heading > div:not(.eve-chat-heading-actions) {
+  min-width: 0;
+  flex: 1;
+}
+
+.eve-chat-heading h2 {
+  font-size: 1.15rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.eve-chat-heading p {
+  margin-top: 0.3rem;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.eve-chat-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.eve-chat-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 12rem;
+  margin-top: 0.85rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--background);
+  padding: 0.85rem;
+}
+
+.eve-chat-thread {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.eve-build-activity-inline {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.eve-build-activity-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+.eve-build-empty {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.eve-build-run {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.eve-build-run-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.eve-build-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--foreground);
+}
+
+.eve-build-status.failed,
+.eve-build-status.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.eve-build-status.completed {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.eve-build-status.running,
+.eve-build-status.building {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.eve-build-prompt,
+.eve-build-error,
+.eve-build-event p,
+.eve-build-event small,
+.eve-build-history-note {
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.eve-build-prompt {
+  color: var(--foreground);
+}
+
+.eve-build-error {
+  color: #b91c1c;
+}
+
+.eve-build-events {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eve-build-event {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--card);
+  padding: 0.55rem 0.65rem;
+}
+
+.eve-build-event > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.eve-build-event strong {
+  font-size: 0.74rem;
+}
+
+.eve-build-event > div > span {
+  color: var(--muted-foreground);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+
+.eve-build-event ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+.eve-build-event.failed {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.eve-chat-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  max-width: 92%;
+}
+
+.eve-chat-message.user {
+  justify-self: end;
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+.eve-chat-avatar {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.eve-chat-message > div {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--card);
+  padding: 0.75rem 0.85rem;
+}
+
+.eve-chat-message.user > div {
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.eve-chat-message.error > div {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.eve-chat-message p {
+  white-space: pre-wrap;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.eve-chat-working {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted-foreground);
+}
+
+.eve-chat-plan {
+  display: grid;
+  gap: 0.35rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.55rem;
+}
+
+.eve-chat-plan strong {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.eve-chat-plan span {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.eve-chat-message small {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.eve-chat-composer {
+  display: grid;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  margin-top: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: 0.85rem;
+  background: var(--card);
+  padding: 0.75rem;
+  box-shadow: 0 -4px 16px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.eve-composer-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.eve-composer-textarea {
+  min-height: 120px !important;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 40%, var(--border)) !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  opacity: 1 !important;
+  cursor: text !important;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.eve-composer-textarea:focus,
+.eve-composer-textarea:focus-visible {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+.eve-composer-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.eve-composer-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.eve-composer-model {
+  display: grid;
+  gap: 0.3rem;
+  min-width: min(100%, 14rem);
+}
+
+.eve-composer-model > span {
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+}
+
+.eve-composer-footer .builder-compact-select,
+.eve-composer-footer .builder-primary-button,
+.eve-composer-footer .builder-secondary-button {
+  cursor: pointer;
+}
+
+.eve-composer-footer .builder-compact-select:focus-visible,
+.eve-composer-footer .builder-primary-button:focus-visible,
+.eve-chat-heading-actions .builder-secondary-button:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.eve-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.eve-status-draft {
+  background: color-mix(in srgb, var(--muted) 80%, var(--card));
+}
+
+.eve-status-building {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.eve-status-ready {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.eve-status-failed {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.eve-architect {
+  display: none !important;
+}
+
+@media (max-width: 1100px) {
+  .eve-ai-workspace {
+    max-height: none;
+    min-height: 28rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .eve-chat-message {
+    max-width: 100%;
+  }
+
+  .eve-composer-footer > * {
+    width: 100%;
+  }
+
+  .eve-composer-footer .builder-primary-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eve-ai-workspace,
+  .eve-chat-composer {
+    transition: none !important;
+  }
+}

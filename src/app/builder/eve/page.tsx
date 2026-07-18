@@ -3,8 +3,7 @@ import "@/app/eve-ai-first.css";
 import "@/app/eve-project-workspace.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
-import { EveAiChat } from "@/components/eve-builder/eve-ai-chat";
-import { EveProjectWorkspaceClient } from "@/components/eve-builder/eve-project-workspace-client";
+import { EveBuilderLayout } from "@/components/eve-builder/eve-builder-layout";
 import { EveWorkspaceProvider } from "@/components/eve-builder/eve-workspace-context";
 
 export const metadata: Metadata = {
@@ -16,10 +15,7 @@ export default function EveBuilderPage() {
   return (
     <AppShell mode="wide">
       <EveWorkspaceProvider>
-        <div className="eve-builder-layout">
-          <EveAiChat />
-          <EveProjectWorkspaceClient />
-        </div>
+        <EveBuilderLayout />
       </EveWorkspaceProvider>
     </AppShell>
   );

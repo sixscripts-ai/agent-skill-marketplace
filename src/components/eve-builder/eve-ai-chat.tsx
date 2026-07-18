@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Activity, Bot, Check, KeyRound, LoaderCircle, RotateCcw, Send, Sparkles, User } from "lucide-react";
 import { AGENT_MODEL_OPTIONS, runAgentTest, synchronizeAgentProject, type AgentProject } from "@/lib/eve/agent-project";
 import { ApiSettingsModal, type ApiKeys } from "../api-settings-modal";
@@ -80,8 +80,8 @@ export function EveAiChat() {
     return { apiKeys, byok: enabled };
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function submit(event?: FormEvent) {
+    event?.preventDefault();
     const request = input.trim();
     if (!request || busy) return;
     const userMessage: Message = { id: crypto.randomUUID(), role: "user", content: request };
@@ -179,51 +179,83 @@ export function EveAiChat() {
     }
   }
 
+  function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey)) return;
+    event.preventDefault();
+    void submit();
+  }
+
   const latestRun = runs[0];
+  const statusLabel = titleCase(status);
 
   return (
     <section className="eve-ai-workspace">
       <header className="eve-chat-heading">
-        <span><Sparkles className="size-5" /></span>
+        <span aria-hidden="true"><Sparkles className="size-5" /></span>
         <div>
           <div className="eve-eyebrow">AI-first builder</div>
           <h2>Describe the agent. Eve does the work.</h2>
           <p>
             {projectId
-              ? `Connected to persistent Eve workspace · ${status}`
+              ? <>Connected to persistent Eve workspace · <span className={`eve-status-chip eve-status-${status}`}>{statusLabel}</span></>
               : "Sign in to save projects, messages, files, and build history to Neon."}
           </p>
         </div>
-        <button className="builder-secondary-button" onClick={() => setSettingsOpen(true)}><KeyRound className="size-4" />API keys</button>
-        {checkpoint ? <button className="builder-secondary-button" onClick={() => setLocalProject(checkpoint)}><RotateCcw className="size-4" />Undo</button> : null}
+        <div className="eve-chat-heading-actions">
+          <button type="button" className="builder-secondary-button" onClick={() => setSettingsOpen(true)}>
+            <KeyRound className="size-4" aria-hidden="true" />
+            API keys
+          </button>
+          {checkpoint ? (
+            <button type="button" className="builder-secondary-button" onClick={() => setLocalProject(checkpoint)}>
+              <RotateCcw className="size-4" aria-hidden="true" />
+              Undo
+            </button>
+          ) : null}
+        </div>
       </header>
-      {persistWarning ? <div className="eve-workspace-error">{persistWarning}</div> : null}
-      <div className="eve-chat-layout">
-        <div className="eve-chat-thread" aria-live="polite">
+
+      {persistWarning ? <div className="eve-workspace-error" role="alert">{persistWarning}</div> : null}
+
+      <div className="eve-chat-scroll" aria-live="polite">
+        <div className="eve-chat-thread">
           {messages.map((message) => (
             <article key={message.id} className={`eve-chat-message ${message.role} ${message.error ? "error" : ""}`}>
-              <span className="eve-chat-avatar">{message.role === "user" ? <User className="size-4" /> : <Bot className="size-4" />}</span>
+              <span className="eve-chat-avatar" aria-hidden="true">{message.role === "user" ? <User className="size-4" /> : <Bot className="size-4" />}</span>
               <div>
                 <p>{message.content}</p>
-                {message.plan?.length ? <div className="eve-chat-plan"><strong>Work completed</strong>{message.plan.map((item) => <span key={item}><Check className="size-3.5" />{item}</span>)}</div> : null}
+                {message.plan?.length ? <div className="eve-chat-plan"><strong>Work completed</strong>{message.plan.map((item) => <span key={item}><Check className="size-3.5" aria-hidden="true" />{item}</span>)}</div> : null}
                 {message.files?.length ? <small>{message.files.length} project files created or changed</small> : null}
                 {message.skills?.length ? <small>Skills: {message.skills.join(", ")}</small> : null}
                 {message.requestId ? <small>Reference: {message.requestId}</small> : null}
               </div>
             </article>
           ))}
-          {busy || progress ? <article className="eve-chat-message assistant"><span className="eve-chat-avatar"><Bot className="size-4" /></span><div><p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin" />{progress || "Working"}</p></div></article> : null}
+          {busy || progress ? (
+            <article className="eve-chat-message assistant">
+              <span className="eve-chat-avatar" aria-hidden="true"><Bot className="size-4" /></span>
+              <div><p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin" aria-hidden="true" />{progress || "Working"}</p></div>
+            </article>
+          ) : null}
         </div>
-        <aside className="eve-build-activity" aria-label="Build activity">
-          <div className="eve-build-activity-heading"><Activity className="size-4" /><strong>Build activity</strong></div>
-          {!latestRun ? <p className="eve-build-empty">Build runs, thoughts, errors, and file batches appear here after you start a project.</p> : (
+
+        <aside className="eve-build-activity eve-build-activity-inline" aria-label="Build activity">
+          <div className="eve-build-activity-heading">
+            <Activity className="size-4" aria-hidden="true" />
+            <strong>Build activity</strong>
+          </div>
+          {!latestRun ? (
+            <p className="eve-build-empty">
+              No build activity yet. Describe what you want Eve to build below, then press Build with Eve.
+            </p>
+          ) : (
             <div className="eve-build-run">
               <div className="eve-build-run-meta">
                 <span className={`eve-build-status ${latestRun.status}`}>{latestRun.status}</span>
                 <small>{latestRun.model}</small>
               </div>
               <p className="eve-build-prompt">{latestRun.prompt}</p>
-              {latestRun.error ? <p className="eve-build-error">{latestRun.error}</p> : null}
+              {latestRun.error ? <p className="eve-build-error" role="alert">{latestRun.error}</p> : null}
               <ol className="eve-build-events">
                 {latestRun.events.map((event) => {
                   const meta = event.metadata ?? {};
@@ -243,21 +275,60 @@ export function EveAiChat() {
                   );
                 })}
               </ol>
-              {runs.length > 1 ? <small className="eve-build-history">{runs.length} recent runs stored in Neon</small> : null}
+              {runs.length > 1 ? <small className="eve-build-history-note">{runs.length} recent runs stored in Neon</small> : null}
             </div>
           )}
         </aside>
       </div>
-      <form className="eve-chat-composer" onSubmit={submit}>
-        <textarea className="builder-textarea" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Build a customer support agent that searches our docs, drafts replies, asks before sending, and deploys to Vercel." disabled={busy} />
-        <div>
-          <select className="builder-compact-select" value={project.architectModel} onChange={(event) => setLocalProject({ ...project, architectModel: event.target.value })}>
-            {AGENT_MODEL_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          <button className="builder-primary-button" type="submit" disabled={!input.trim() || busy}><Send className="size-4" />{busy ? "Building..." : "Build with Eve"}</button>
+
+      <form className="eve-chat-composer" onSubmit={(event) => void submit(event)}>
+        <label className="eve-composer-label" htmlFor="eve-composer-input">
+          Describe what you want Eve to build
+        </label>
+        <textarea
+          id="eve-composer-input"
+          className="builder-textarea eve-composer-textarea"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={onComposerKeyDown}
+          placeholder="Build a customer support agent that searches our docs, drafts replies, asks before sending, and deploys to Vercel."
+          rows={5}
+          aria-describedby="eve-composer-hint"
+        />
+        <p id="eve-composer-hint" className="eve-composer-hint">
+          Press Cmd or Ctrl + Enter to build. Enter adds a new line.
+        </p>
+        <div className="eve-composer-footer">
+          <label className="eve-composer-model">
+            <span>Model</span>
+            <select
+              className="builder-compact-select"
+              value={project.architectModel}
+              onChange={(event) => setLocalProject({ ...project, architectModel: event.target.value })}
+              aria-label="Architect model"
+            >
+              {AGENT_MODEL_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="builder-primary-button"
+            type="submit"
+            disabled={!input.trim() || busy}
+            aria-busy={busy}
+          >
+            <Send className="size-4" aria-hidden="true" />
+            {busy ? "Building…" : "Build with Eve"}
+          </button>
         </div>
       </form>
+
       <ApiSettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </section>
   );
+}
+
+function titleCase(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "Draft";
 }

@@ -4,7 +4,11 @@ import { downloadWorkspaceProject, normalizeWorkspaceProject, type WorkspaceAgen
 import { EveProjectWorkspace } from "./eve-project-workspace";
 import { useEveWorkspace } from "./eve-workspace-context";
 
-export function EveProjectWorkspaceClient() {
+type Props = {
+  onCollapse?: () => void;
+};
+
+export function EveProjectWorkspaceClient({ onCollapse }: Props) {
   const {
     projects,
     projectId,
@@ -68,6 +72,7 @@ export function EveProjectWorkspaceClient() {
       onReset={() => void resetFiles()}
       onSelectFile={setSelectedFile}
       onEditFile={editFile}
+      onCollapse={onCollapse}
     />
   );
 }
