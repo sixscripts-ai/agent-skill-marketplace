@@ -9,11 +9,10 @@ import { DEFAULT_TERMINAL_MODEL } from "@/lib/terminal-models";
 import type { SandboxReadiness } from "@/lib/sandbox-status";
 import type { Skill } from "@/lib/types";
 import { PtyBridge } from "@/components/terminal/pty-bridge";
-import "@wterm/react/css";
 import "@/app/terminal/terminal.css";
 
-const WTerm = dynamic(
-  () => import("@wterm/react").then((mod) => mod.Terminal),
+const WtermPane = dynamic(
+  () => import("@/components/terminal/wterm-pane").then((mod) => mod.WtermPane),
   { ssr: false, loading: () => <div className="lt-term-loading">Loading wterm…</div> },
 );
 
@@ -70,11 +69,27 @@ export function LiveTerminalClient({
   const writeRef = useRef<((data: string | Uint8Array) => void) | null>(null);
   const bridgeRef = useRef<PtyBridge | null>(null);
   const termApiRef = useRef<{ write: (data: string | Uint8Array) => void; resize: (cols: number, rows: number) => void; focus: () => void } | null>(null);
-
   const realReady = readiness.realShellEnabled && readiness.sandboxAuthStatus !== "missing";
 
   const mirror = useCallback((chunk: string) => {
     writeRef.current?.(chunk);
+  }, []);
+
+  const onTermReady = useCallback(
+    (api: { write: (data: string | Uint8Array) => void; focus: () => void; resize: (cols: number, rows: number) => void }) => {
+      writeRef.current = api.write;
+      termApiRef.current = api;
+    },
+    [],
+  );
+
+  const onUserData = useCallback((data: string) => {
+    // Documented wterm pattern: onData forwards to transport (https://wterm.dev/configuration).
+    bridgeRef.current?.send(data);
+  }, []);
+
+  const onTermResize = useCallback((cols: number, rows: number) => {
+    bridgeRef.current?.resize(cols, rows);
   }, []);
 
   useEffect(() => {
@@ -392,29 +407,18 @@ export function LiveTerminalClient({
             </label>
           </div>
 
-          <div className="lt-term lt-term--wterm">
-            <WTerm
+          <div className="lt-term lt-term--wterm" role="presentation">
+            <WtermPane
               className="lt-wterm"
-              theme="light"
               cols={100}
               rows={28}
-              autoResize
-              cursorBlink
-              onReady={(wt) => {
-                writeRef.current = (data) => wt.write(data);
-                termApiRef.current = {
-                  write: (data) => wt.write(data),
-                  resize: (cols, rows) => wt.resize(cols, rows),
-                  focus: () => wt.focus(),
-                };
-                wt.write("# wterm ready — Connect to open a Vercel Sandbox PTY\r\n");
-              }}
-              onData={(data) => {
-                bridgeRef.current?.send(data);
-              }}
-              onResize={(cols, rows) => {
-                bridgeRef.current?.resize(cols, rows);
-              }}
+              // onData disables wterm's built-in echo (https://wterm.dev/react).
+              // Always local-echo so typing works even when PTY WS is down/misframed.
+              // Remote output is still written via PtyBridge → write().
+              localEcho
+              onReadyWrite={onTermReady}
+              onUserData={onUserData}
+              onResize={onTermResize}
             />
           </div>
 
