@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Live Terminal | Agent Skill Marketplace",
-  description: "Browser sandbox console for streaming real-shell and agent skill runs.",
+  description: "Interactive wterm sandbox with Grok agent tools for running code in Vercel Sandbox.",
 };
 
 export default async function TerminalPage({
