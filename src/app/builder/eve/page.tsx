@@ -1,7 +1,7 @@
 import "@/app/eve-lifecycle.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
-import { EveLifecycleClient } from "@/components/eve-builder/eve-lifecycle-client";
+import { EveLifecycleModelBridge } from "@/components/eve-builder/eve-lifecycle-model-bridge";
 
 export const metadata: Metadata = {
   title: "Eve Agent Architect",
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function EveBuilderPage() {
-  return <AppShell mode="wide"><EveLifecycleClient /></AppShell>;
+  return <AppShell mode="wide"><EveLifecycleModelBridge /></AppShell>;
 }
