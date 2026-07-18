@@ -3,19 +3,35 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, KeyRound, X } from "lucide-react";
 
-export type ApiKeys = { openai?: string; anthropic?: string; google?: string; xai?: string; groq?: string };
+export type ApiKeys = {
+  openai?: string;
+  anthropic?: string;
+  google?: string;
+  xai?: string;
+  groq?: string;
+  deepseek?: string;
+};
+
+const emptyKeys: ApiKeys = {
+  openai: "",
+  anthropic: "",
+  google: "",
+  xai: "",
+  groq: "",
+  deepseek: "",
+};
 
 export function ApiSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [keys, setKeys] = useState<ApiKeys>({ openai: "", anthropic: "", google: "", xai: "", groq: "" });
+  const [keys, setKeys] = useState<ApiKeys>(emptyKeys);
   const activeCount = Object.values(keys).filter((value) => value?.trim()).length;
 
   useEffect(() => {
     if (!isOpen) return;
     try {
       const stored = localStorage.getItem("ai_api_keys");
-      if (stored) setKeys(JSON.parse(stored) as ApiKeys);
+      setKeys(stored ? { ...emptyKeys, ...(JSON.parse(stored) as ApiKeys) } : emptyKeys);
     } catch {
-      setKeys({ openai: "", anthropic: "", google: "", xai: "", groq: "" });
+      setKeys(emptyKeys);
     }
   }, [isOpen]);
 
@@ -25,9 +41,10 @@ export function ApiSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose
   }
 
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="api-settings-title">
-      <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-2xl">
         <button type="button" onClick={onClose} className="absolute right-4 top-4 grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close API settings"><X className="size-5" /></button>
         <div className="flex items-center gap-3">
           <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary"><KeyRound className="size-5" /></span>
@@ -40,6 +57,7 @@ export function ApiSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose
           <KeyField label="Google Gemini" placeholder="AIza..." value={keys.google ?? ""} onChange={(value) => setKeys({ ...keys, google: value })} />
           <KeyField label="xAI Grok" placeholder="xai-..." value={keys.xai ?? ""} onChange={(value) => setKeys({ ...keys, xai: value })} />
           <KeyField label="Groq" placeholder="gsk_..." value={keys.groq ?? ""} onChange={(value) => setKeys({ ...keys, groq: value })} />
+          <KeyField label="DeepSeek" placeholder="sk-..." value={keys.deepseek ?? ""} onChange={(value) => setKeys({ ...keys, deepseek: value })} />
         </div>
         <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="builder-secondary-button">Cancel</button><button type="button" onClick={save} className="builder-primary-button">Save and activate</button></div>
       </div>

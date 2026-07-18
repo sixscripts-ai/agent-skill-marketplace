@@ -18,4 +18,11 @@ export function providerKeyName(modelId: string) {
 }
 
 export function providerLabel(modelId: string) {
-  const provider =
+  const provider = modelId.split("/")[0];
+  if (provider === "google") return "Google Gemini";
+  if (provider === "anthropic") return "Anthropic";
+  if (provider === "xai") return "xAI";
+  if (provider === "groq") return "Groq";
+  if (provider === "deepseek") return "DeepSeek";
+  return "OpenAI";
+}
