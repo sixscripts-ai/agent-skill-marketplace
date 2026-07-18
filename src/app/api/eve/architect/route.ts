@@ -8,7 +8,8 @@ import { createXai } from "@ai-sdk/xai";
 import { requireCurrentUser } from "@/lib/auth";
 import { securityErrorResponse } from "@/lib/api-errors";
 import { getEveProject, saveEveProject, updateEveRun } from "@/lib/eve/persistence";
-import { mergeArchitectProject, type AgentProject } from "@/lib/eve/agent-project";
+import type { AgentProject } from "@/lib/eve/agent-project";
+import { mergeWorkspaceProject } from "@/lib/eve/workspace-project";
 
 export const maxDuration = 60;
 
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     const result = parseResult(text);
     let project = stored.project;
     if (result.status === "update") {
-      project = mergeArchitectProject(project, result.update);
+      project = mergeWorkspaceProject(project, result.update);
       await saveEveProject(body.projectId, user, project);
       await updateEveRun(body.runId, user, {
         status: "running",
