@@ -1,16 +1,13 @@
+import "@/app/eve-lifecycle.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
-import { EveBuilderClient } from "@/components/eve-builder/eve-builder-client";
+import { EveLifecycleClient } from "@/components/eve-builder/eve-lifecycle-client";
 
 export const metadata: Metadata = {
-  title: "Eve Agent Studio",
-  description: "Design, validate, test, and export a runnable Eve filesystem-first agent project.",
+  title: "Eve Agent Architect",
+  description: "Design, test, validate, and export a complete filesystem-first agent project.",
 };
 
 export default function EveBuilderPage() {
-  return (
-    <AppShell mode="wide">
-      <EveBuilderClient />
-    </AppShell>
-  );
+  return <AppShell mode="wide"><EveLifecycleClient /></AppShell>;
 }
