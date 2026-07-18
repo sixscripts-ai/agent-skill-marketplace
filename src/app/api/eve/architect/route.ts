@@ -103,7 +103,12 @@ export async function POST(request: Request) {
           metadata: { requestId, modelId: body.modelId },
         },
       }).catch((persistError) => {
-        console.error("[eve-architect] failed to persist error event", { requestId, error: persistError instanceof Error ? persistError.message : String(persistError) });
+        console.error("[eve-architect] failed to persist error event", {
+          requestId,
+          runId: body?.runId,
+          projectId: body?.projectId,
+          error: redactErrorMessage(persistError instanceof Error ? persistError.message : String(persistError)),
+        });
       });
     }
     const security = securityErrorResponse(error);
