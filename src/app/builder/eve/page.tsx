@@ -3,7 +3,6 @@ import "@/app/eve-ai-first.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EveAiChat } from "@/components/eve-builder/eve-ai-chat";
-import { EveLifecycleModelBridge } from "@/components/eve-builder/eve-lifecycle-model-bridge";
 
 export const metadata: Metadata = {
   title: "Eve AI Agent Builder",
@@ -11,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function EveBuilderPage() {
-  return <AppShell mode="wide"><EveAiChat /><EveLifecycleModelBridge /></AppShell>;
+  return <AppShell mode="wide"><EveAiChat /></AppShell>;
 }

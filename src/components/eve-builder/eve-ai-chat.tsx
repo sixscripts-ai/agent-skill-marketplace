@@ -2,12 +2,12 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Bot, Check, KeyRound, LoaderCircle, RotateCcw, Send, Sparkles, User } from "lucide-react";
-import { architectAgentProject, type EveArchitectMessage } from "@/app/actions/agent-project-architect";
-import { AGENT_MODEL_OPTIONS, createDefaultAgentProject, mergeArchitectProject, runAgentTest, synchronizeAgentProject, type AgentProject } from "@/lib/eve/agent-project";
+import { AGENT_MODEL_OPTIONS, createDefaultAgentProject, runAgentTest, synchronizeAgentProject, type AgentProject } from "@/lib/eve/agent-project";
 import { ApiSettingsModal } from "../api-settings-modal";
 
-type Message = EveArchitectMessage & { id: string; plan?: string[]; files?: string[]; error?: boolean };
+type Message = { id: string; role: "user" | "assistant"; content: string; plan?: string[]; files?: string[]; error?: boolean };
 type StoredProject = { id: string; project: AgentProject; conversation?: { messages?: Array<{ id: string; role: string; content: string; metadata?: { plan?: string[]; files?: string[] } }> } };
+type ArchitectResponse = { result: { status: "clarify"; message: string; questions: string[]; plan: string[] } | { status: "update"; update: Partial<AgentProject>; plan: string[]; complete: boolean; continuationPrompt?: string }; project: AgentProject; requestId: string };
 const welcome: Message = { id: "welcome", role: "assistant", content: "Describe the agent you need. I will create the brief, models, tools, permissions, tests, and runnable project files. Work is checkpointed to your account after every successful batch." };
 
 export function EveAiChat() {
@@ -25,7 +25,7 @@ export function EveAiChat() {
   async function loadWorkspace() {
     try {
       const list = await api<Array<{ id: string }>>("/api/eve/projects");
-      if (!list[0]) { setProgress(""); return; }
+      if (!list[0]) return;
       const stored = await api<StoredProject>(`/api/eve/projects?id=${encodeURIComponent(list[0].id)}`);
       setProjectId(stored.id);
       setProject(synchronizeAgentProject(stored.project));
@@ -64,7 +64,10 @@ export function EveAiChat() {
       do {
         batches += 1;
         setProgress(continuation ? `Continuing build · batch ${batches}` : "Interpreting request and generating the project");
-        const result = await architectAgentProject(request, working, working.architectModel, keys, history.map(({ role, content }) => ({ role, content })), continuation);
+        const response = await api<ArchitectResponse>("/api/eve/architect", { method: "POST", body: JSON.stringify({ projectId: id, runId, prompt: request, modelId: working.architectModel, apiKeys: keys, history: history.map(({ role, content }) => ({ role, content })), continuation }) });
+        const result = response.result;
+        working = synchronizeAgentProject(response.project);
+        setProject(working);
         if (result.status === "clarify") {
           const text = [result.message, ...result.questions].filter(Boolean).join("\n\n");
           await api("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "assistant", content: text, metadata: { plan: result.plan } }) });
@@ -72,16 +75,13 @@ export function EveAiChat() {
           setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, plan: result.plan }]);
           return;
         }
-        working = mergeArchitectProject(working, result.update);
         plans.push(...result.plan);
         if (Array.isArray(result.update.files)) files.push(...result.update.files.map((file) => file.path).filter(Boolean));
-        await api("/api/eve/projects", { method: "PATCH", body: JSON.stringify({ projectId: id, project: working }) });
-        await api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "running", currentBatch: batches, event: { type: "batch", status: "completed", title: `Batch ${batches} saved`, detail: `${files.length} files created or changed` } }) });
         continuation = result.complete ? undefined : result.continuationPrompt;
       } while (continuation && batches < 5);
 
       working = working.tests.reduce((state, test) => runAgentTest(state, test.id), working);
-      const finalProject = synchronizeAgentProject({ ...working, changes: [{ id: crypto.randomUUID(), label: request, createdAt: new Date().toISOString(), files: [...new Set(files)] }, ...project.changes] });
+      const finalProject = synchronizeAgentProject({ ...working, changes: [{ id: crypto.randomUUID(), label: request, createdAt: new Date().toISOString(), files: [...new Set(files)] }, ...working.changes] });
       const text = continuation ? "I saved five build batches. Send ‘continue building’ to add the remaining modules." : "The project is built, tested, and saved to your Eve workspace.";
       const metadata = { plan: [...new Set(plans)], files: [...new Set(files)] };
       await api("/api/eve/projects", { method: "PATCH", body: JSON.stringify({ projectId: id, project: finalProject }) });
@@ -90,7 +90,6 @@ export function EveAiChat() {
       setProject(finalProject); setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, ...metadata }]);
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
-      if (runId) void api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "failed", error: text, event: { type: "error", status: "failed", title: "Build failed", detail: text } }) }).catch(() => undefined);
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: text, error: true }]);
     } finally { setBusy(false); setProgress(""); }
   }
@@ -106,6 +105,9 @@ export function EveAiChat() {
 async function api<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Request failed with ${response.status}.`);
+  if (!response.ok) {
+    const reference = typeof data.requestId === "string" ? ` Reference: ${data.requestId}.` : "";
+    throw new Error(`${typeof data.error === "string" ? data.error : `Request failed with ${response.status}.`}${reference}`);
+  }
   return data as T;
 }
