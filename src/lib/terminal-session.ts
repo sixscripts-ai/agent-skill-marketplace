@@ -85,4 +85,6 @@ async function packageFileContent(content?: string, blobUrl?: string) {
 }
 
 function executableMode(path: string) { return /\.(sh|js|mjs|ts|py)$/.test(path.toLowerCase()) ? 0o755 : undefined; }
-function fullNetworkPolicy(): NetworkPolicy { return { allow: { "*": [] } }; }
+function fullNetworkPolicy(): NetworkPolicy {
+  return "allow-all";
+}

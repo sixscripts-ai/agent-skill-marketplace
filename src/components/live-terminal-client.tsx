@@ -4,8 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, PlugZap, SquareTerminal, Unplug } from "lucide-react";
-import { AI_MODEL_OPTIONS } from "@/lib/ai-model-catalog";
-import { DEFAULT_TERMINAL_MODEL } from "@/lib/terminal-models";
+import { DEFAULT_TERMINAL_MODEL, TERMINAL_MODEL_OPTIONS, type TerminalModelId } from "@/lib/terminal-models";
 import type { SandboxReadiness } from "@/lib/sandbox-status";
 import type { Skill } from "@/lib/types";
 import { PtyBridge } from "@/components/terminal/pty-bridge";
@@ -55,7 +54,7 @@ export function LiveTerminalClient({
   const [command, setCommand] = useState('node -e "console.log(\'sandbox ok\', process.version)"');
   const [executing, setExecuting] = useState(false);
   const [confirmDestructive, setConfirmDestructive] = useState(false);
-  const [model, setModel] = useState(DEFAULT_TERMINAL_MODEL);
+  const [model, setModel] = useState<TerminalModelId>(DEFAULT_TERMINAL_MODEL);
   const [agentInput, setAgentInput] = useState("");
   const [agentBusy, setAgentBusy] = useState(false);
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([
@@ -84,13 +83,47 @@ export function LiveTerminalClient({
   );
 
   const onUserData = useCallback((data: string) => {
-    // Documented wterm pattern: onData forwards to transport (https://wterm.dev/configuration).
     bridgeRef.current?.send(data);
   }, []);
 
   const onTermResize = useCallback((cols: number, rows: number) => {
     bridgeRef.current?.resize(cols, rows);
   }, []);
+
+  const onSubmitLine = useCallback(
+    async (line: string) => {
+      if (!session) {
+        mirror(`# Connect a sandbox session first, then press Enter to run.\r\n$ `);
+        return;
+      }
+      setCommand(line);
+      setExecuting(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/terminal/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sandboxName: session.sandboxName,
+            command: line,
+            confirmDestructive,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload.error) {
+          throw new Error(payload.message || "Exec failed.");
+        }
+        mirror(`${payload.output || ""}\r\n# exit ${payload.exitCode}\r\n$ `);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Exec failed.";
+        setError(message);
+        mirror(`[error] ${message}\r\n$ `);
+      } finally {
+        setExecuting(false);
+      }
+    },
+    [session, confirmDestructive, mirror],
+  );
 
   useEffect(() => {
     return () => {
@@ -412,13 +445,13 @@ export function LiveTerminalClient({
               className="lt-wterm"
               cols={100}
               rows={28}
-              // onData disables wterm's built-in echo (https://wterm.dev/react).
-              // Always local-echo so typing works even when PTY WS is down/misframed.
-              // Remote output is still written via PtyBridge → write().
-              localEcho
+              // Line-mode: type + Enter runs via /api/terminal/exec (reliable).
+              // PTY keystrokes still forward when the bridge is connected.
+              forwardInput={Boolean(session) && ptyStatus === "connected"}
               onReadyWrite={onTermReady}
               onUserData={onUserData}
               onResize={onTermResize}
+              onSubmitLine={(line) => void onSubmitLine(line)}
             />
           </div>
 
@@ -426,8 +459,8 @@ export function LiveTerminalClient({
           <p className="lt-note">
             {realReady ? (
               <>
-                Interactive channel uses <code>openInteractive</code> → wterm. Agent/exec uses <code>runCommand</code> on the
-                same sandbox and mirrors output here. Network default: deny-all.
+                Type in the terminal and press Enter to run a command in the sandbox (after Connect). PTY is best-effort;
+                Exec/Agent use <code>runCommand</code> on the same sandbox.
               </>
             ) : (
               <>
@@ -448,8 +481,12 @@ export function LiveTerminalClient({
           </div>
           <div className="lt-field">
             <label htmlFor="lt-model">Model</label>
-            <select id="lt-model" value={model} onChange={(event) => setModel(event.target.value)}>
-              {AI_MODEL_OPTIONS.map(([value, label]) => (
+            <select
+              id="lt-model"
+              value={model}
+              onChange={(event) => setModel(event.target.value as TerminalModelId)}
+            >
+              {TERMINAL_MODEL_OPTIONS.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>

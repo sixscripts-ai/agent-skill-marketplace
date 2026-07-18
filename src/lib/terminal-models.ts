@@ -6,7 +6,7 @@ export const TERMINAL_MODEL_OPTIONS = [
 ] as const;
 
 export type TerminalModelId = (typeof TERMINAL_MODEL_OPTIONS)[number][0];
-export const DEFAULT_TERMINAL_MODEL: TerminalModelId = "xai/grok-4.5";
+export const DEFAULT_TERMINAL_MODEL: TerminalModelId = "xai/grok-4.3";
 const TERMINAL_MODEL_IDS = new Set<string>(TERMINAL_MODEL_OPTIONS.map(([value]) => value));
 
 export function resolveTerminalModelId(requested?: string): TerminalModelId {

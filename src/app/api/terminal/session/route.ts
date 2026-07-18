@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     const user = await requireCurrentUser();
     const body = (await request.json().catch(() => ({}))) as {
       skillSlug?: string;
-      networkAllowlist?: string[];
     };
     const skillSlug = typeof body.skillSlug === "string" && body.skillSlug.trim() ? body.skillSlug.trim() : "";
     if (!skillSlug) {
@@ -29,7 +28,6 @@ export async function POST(request: Request) {
     const session = await createTerminalSandbox({
       owner: user,
       skillSlug,
-      networkAllowlist: Array.isArray(body.networkAllowlist) ? body.networkAllowlist.filter((h) => typeof h === "string") : [],
     });
 
     return Response.json({
