@@ -717,7 +717,7 @@ type GeneratedBuilderMetadata = {
 
 type PackageResponse = {
   error?: string;
-  skilmMd?: string;
+  skillMd?: string;
   files?: SkillPackageFile[];
   packageFiles?: SkillPackageFile[];
   packageUploadId?: string;
