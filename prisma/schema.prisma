@@ -8,232 +8,318 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String?  @unique
-  name      String
-  email     String   @unique
-  role      String   @default("author")
-  skills    Skill[]
-  reviews   Review[]
-  createdAt DateTime @default(now())
+  id          String       @id @default(cuid())
+  clerkId     String?      @unique
+  name        String
+  email       String       @unique
+  role        String       @default("author")
+  skills      Skill[]
+  reviews     Review[]
+  eveProjects EveProject[]
+  createdAt   DateTime     @default(now())
 }
 
 model Skill {
-  id             String            @id @default(cuid())
-  slug           String            @unique
-  name           String
-  summary        String
-  category       String
-  trustLevel     String
-  installCount   Int               @default(0)
-  rating         Float             @default(0)
-  authorId       String
-  ownerId        String?
-  visibility     String            @default("public")
-  author         User              @relation(fields: [authorId], references: [id])
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  summary String
+  category String
+  trustLevel String
+  installCount Int @default(0)
+  rating Float @default(0)
+  authorId String
+  ownerId String?
+  visibility String @default("public")
+  author User @relation(fields: [authorId], references: [id])
   currentVersion String
-  versions       SkillVersion[]
-  permissions    SkillPermission[]
-  runs           SkillRun[]
-  evalSuites     EvaluationSuite[]
+  versions SkillVersion[]
+  permissions SkillPermission[]
+  runs SkillRun[]
+  evalSuites EvaluationSuite[]
   installTargets InstallTarget[]
-  reviews        Review[]
+  reviews Review[]
   packageExports PackageExport[]
-  packages       SkillPackage[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  packages SkillPackage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SkillVersion {
-  id                   String            @id @default(cuid())
-  skillId              String
-  skill                Skill             @relation(fields: [skillId], references: [id])
-  version              String
-  skillMd              String
-  readme               String
-  changelog            String
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
+  version String
+  skillMd String
+  readme String
+  changelog String
   compatibilityTargets Json
-  permissions          SkillPermission[]
-  runs                 SkillRun[]
-  packages             SkillPackage[]
-  createdAt            DateTime          @default(now())
-
+  permissions SkillPermission[]
+  runs SkillRun[]
+  packages SkillPackage[]
+  createdAt DateTime @default(now())
   @@unique([skillId, version])
 }
 
 model SkillPermission {
-  id             String        @id @default(cuid())
-  skillId        String
-  skill          Skill         @relation(fields: [skillId], references: [id])
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
   skillVersionId String?
-  skillVersion   SkillVersion? @relation(fields: [skillVersionId], references: [id])
-  key            String
-  reason         String
-  risk           String
+  skillVersion SkillVersion? @relation(fields: [skillVersionId], references: [id])
+  key String
+  reason String
+  risk String
 }
 
 model SkillRun {
-  id             String            @id @default(cuid())
-  ownerId        String?
-  skillId        String
-  skill          Skill             @relation(fields: [skillId], references: [id])
+  id String @id @default(cuid())
+  ownerId String?
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
   skillVersionId String
-  skillVersion   SkillVersion      @relation(fields: [skillVersionId], references: [id])
-  input          String
-  status         String
-  output         String
-  latencyMs      Int
-  estimatedCost  Float
-  provider       String            @default("virtual")
-  model          String            @default("sandbox-model")
-  replayOf       String?
+  skillVersion SkillVersion @relation(fields: [skillVersionId], references: [id])
+  input String
+  status String
+  output String
+  latencyMs Int
+  estimatedCost Float
+  provider String @default("virtual")
+  model String @default("sandbox-model")
+  replayOf String?
   workspaceFiles Json?
-  artifacts      Json?
-  events         SkillTraceEvent[]
-  createdAt      DateTime          @default(now())
-
+  artifacts Json?
+  events SkillTraceEvent[]
+  createdAt DateTime @default(now())
   @@index([ownerId])
 }
 
 model SkillTraceEvent {
-  id        String   @id @default(cuid())
-  runId     String
-  run       SkillRun @relation(fields: [runId], references: [id])
-  order     Int
-  type      String
-  title     String
-  detail    String
-  status    String
-  metadata  Json?
+  id String @id @default(cuid())
+  runId String
+  run SkillRun @relation(fields: [runId], references: [id])
+  order Int
+  type String
+  title String
+  detail String
+  status String
+  metadata Json?
   createdAt DateTime @default(now())
-
   @@index([runId])
 }
 
 model EvaluationSuite {
-  id        String             @id @default(cuid())
-  skillId   String
-  skill     Skill              @relation(fields: [skillId], references: [id])
-  name      String
-  cases     EvaluationCase[]
-  results   EvaluationResult[]
-  createdAt DateTime           @default(now())
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
+  name String
+  cases EvaluationCase[]
+  results EvaluationResult[]
+  createdAt DateTime @default(now())
 }
 
 model EvaluationCase {
-  id            String          @id @default(cuid())
-  suiteId       String
-  suite         EvaluationSuite @relation(fields: [suiteId], references: [id])
-  input         String
-  expected      String
+  id String @id @default(cuid())
+  suiteId String
+  suite EvaluationSuite @relation(fields: [suiteId], references: [id])
+  input String
+  expected String
   assertionType String
-  status        String          @default("pass")
-  modelOutput   String?
-
+  status String @default("pass")
+  modelOutput String?
   @@index([suiteId])
 }
 
 model EvaluationResult {
-  id          String          @id @default(cuid())
-  suiteId     String
-  suite       EvaluationSuite @relation(fields: [suiteId], references: [id])
-  version     String
-  score       Int
-  passed      Int
-  failed      Int
+  id String @id @default(cuid())
+  suiteId String
+  suite EvaluationSuite @relation(fields: [suiteId], references: [id])
+  version String
+  score Int
+  passed Int
+  failed Int
   regressions Int
   modelOutput String?
-  createdAt   DateTime        @default(now())
+  createdAt DateTime @default(now())
 }
 
 model InstallTarget {
-  id             String @id @default(cuid())
-  skillId        String
-  skill          Skill  @relation(fields: [skillId], references: [id])
-  platform       String
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
+  platform String
   installCommand String
-  configSnippet  String
-  packageFormat  String
-  notes          String
+  configSnippet String
+  packageFormat String
+  notes String
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  skillId   String
-  skill     Skill    @relation(fields: [skillId], references: [id])
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  rating    Int
-  comment   String
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  rating Int
+  comment String
   createdAt DateTime @default(now())
 }
 
 model PackageExport {
-  id        String   @id @default(cuid())
-  skillId   String
-  skill     Skill    @relation(fields: [skillId], references: [id])
-  userId    String
-  version   String
-  target    String
-  filename  String
+  id String @id @default(cuid())
+  skillId String
+  skill Skill @relation(fields: [skillId], references: [id])
+  userId String
+  version String
+  target String
+  filename String
   createdAt DateTime @default(now())
 }
 
 model SkillPackage {
-  id               String             @id @default(cuid())
-  skillId          String?
-  skill            Skill?             @relation(fields: [skillId], references: [id])
-  skillVersionId   String?
-  skillVersion     SkillVersion?      @relation(fields: [skillVersionId], references: [id])
-  ownerId          String
-  uploadSource     String
+  id String @id @default(cuid())
+  skillId String?
+  skill Skill? @relation(fields: [skillId], references: [id])
+  skillVersionId String?
+  skillVersion SkillVersion? @relation(fields: [skillVersionId], references: [id])
+  ownerId String
+  uploadSource String
   originalFilename String
-  blobPrefix       String
-  manifest         Json
-  fileCount        Int
-  totalBytes       Int
-  importStatus     String             @default("parsed")
-  files            SkillPackageFile[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  blobPrefix String
+  manifest Json
+  fileCount Int
+  totalBytes Int
+  importStatus String @default("parsed")
+  files SkillPackageFile[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SkillPackageFile {
-  id        String       @id @default(cuid())
+  id String @id @default(cuid())
   packageId String
-  package   SkillPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  path      String
-  blobUrl   String?
-  content   String?
-  mimeType  String
-  size      Int
-  role      String
-  createdAt DateTime     @default(now())
+  package SkillPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  path String
+  blobUrl String?
+  content String?
+  mimeType String
+  size Int
+  role String
+  createdAt DateTime @default(now())
 }
 
 model GraphCheckpoint {
-  id                 String   @id @default(cuid())
-  threadId           String
-  checkpointId       String
+  id String @id @default(cuid())
+  threadId String
+  checkpointId String
   parentCheckpointId String?
-  checkpoint         Json
-  metadata           Json
-  createdAt          DateTime @default(now())
-
+  checkpoint Json
+  metadata Json
+  createdAt DateTime @default(now())
   @@unique([threadId, checkpointId])
   @@index([threadId])
 }
 
 model GraphCheckpointWrite {
-  id           String   @id @default(cuid())
-  threadId     String
+  id String @id @default(cuid())
+  threadId String
   checkpointId String
-  taskId       String
-  idx          Int
-  channel      String
-  value        Json
-  createdAt    DateTime @default(now())
-
+  taskId String
+  idx Int
+  channel String
+  value Json
+  createdAt DateTime @default(now())
   @@unique([threadId, checkpointId, taskId, idx])
   @@index([threadId, checkpointId])
+}
+
+model EveProject {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name String
+  slug String
+  description String @default("")
+  status String @default("draft")
+  config Json
+  conversations EveConversation[]
+  files EveProjectFile[]
+  runs EveBuildRun[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([ownerId, slug])
+  @@index([ownerId, updatedAt])
+}
+
+model EveConversation {
+  id String @id @default(cuid())
+  projectId String
+  project EveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title String?
+  messages EveMessage[]
+  runs EveBuildRun[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([projectId, updatedAt])
+}
+
+model EveMessage {
+  id String @id @default(cuid())
+  conversationId String
+  conversation EveConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role String
+  content String
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([conversationId, createdAt])
+}
+
+model EveProjectFile {
+  id String @id @default(cuid())
+  projectId String
+  project EveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path String
+  content String
+  generated Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([projectId, path])
+  @@index([projectId])
+}
+
+model EveBuildRun {
+  id String @id @default(cuid())
+  projectId String
+  project EveProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation EveConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  status String @default("queued")
+  model String
+  prompt String
+  currentBatch Int @default(0)
+  totalBatches Int?
+  error String?
+  startedAt DateTime?
+  completedAt DateTime?
+  events EveBuildEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([projectId, createdAt])
+  @@index([conversationId])
+}
+
+model EveBuildEvent {
+  id String @id @default(cuid())
+  runId String
+  run EveBuildRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  sequence Int
+  type String
+  status String
+  title String
+  detail String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@unique([runId, sequence])
+  @@index([runId, createdAt])
 }

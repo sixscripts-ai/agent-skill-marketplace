@@ -7,25 +7,40 @@ import { AGENT_MODEL_OPTIONS, createDefaultAgentProject, mergeArchitectProject, 
 import { ApiSettingsModal } from "../api-settings-modal";
 
 type Message = EveArchitectMessage & { id: string; plan?: string[]; files?: string[]; error?: boolean };
-const welcome: Message = { id: "welcome", role: "assistant", content: "Describe the agent you need. I will create the brief, models, tools, permissions, tests, and runnable project files. I will ask only when a missing detail blocks a safe build." };
+type StoredProject = { id: string; project: AgentProject; conversation?: { messages?: Array<{ id: string; role: string; content: string; metadata?: { plan?: string[]; files?: string[] } }> } };
+const welcome: Message = { id: "welcome", role: "assistant", content: "Describe the agent you need. I will create the brief, models, tools, permissions, tests, and runnable project files. Work is checkpointed to your account after every successful batch." };
 
 export function EveAiChat() {
   const [project, setProject] = useState<AgentProject>(() => createDefaultAgentProject());
+  const [projectId, setProjectId] = useState("");
   const [messages, setMessages] = useState<Message[]>([welcome]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState("");
+  const [progress, setProgress] = useState("Loading your Eve workspace");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [checkpoint, setCheckpoint] = useState<AgentProject | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void loadWorkspace(); }, []);
+
+  async function loadWorkspace() {
     try {
-      const saved = localStorage.getItem("eve_agent_project");
-      const chat = localStorage.getItem("eve_agent_chat");
-      if (saved) setProject(synchronizeAgentProject(JSON.parse(saved) as AgentProject));
-      if (chat) setMessages(JSON.parse(chat) as Message[]);
-    } catch { /* ignore malformed browser data */ }
-  }, []);
+      const list = await api<Array<{ id: string }>>("/api/eve/projects");
+      if (!list[0]) { setProgress(""); return; }
+      const stored = await api<StoredProject>(`/api/eve/projects?id=${encodeURIComponent(list[0].id)}`);
+      setProjectId(stored.id);
+      setProject(synchronizeAgentProject(stored.project));
+      const restored = stored.conversation?.messages?.map((message) => ({ id: message.id, role: message.role === "user" ? "user" as const : "assistant" as const, content: message.content, plan: message.metadata?.plan, files: message.metadata?.files })) ?? [];
+      if (restored.length) setMessages([welcome, ...restored]);
+    } catch { /* signed-out users see the default workspace */ }
+    finally { setProgress(""); }
+  }
+
+  async function ensureProject(current: AgentProject) {
+    if (projectId) return projectId;
+    const stored = await api<StoredProject>("/api/eve/projects", { method: "POST", body: JSON.stringify({ project: current }) });
+    setProjectId(stored.id);
+    return stored.id;
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -36,10 +51,15 @@ export function EveAiChat() {
     setMessages(history); setInput(""); setBusy(true); setCheckpoint(project);
     let working = project;
     let continuation: string | undefined;
+    let runId = "";
     let batches = 0;
     const plans: string[] = [];
     const files: string[] = [];
     try {
+      const id = await ensureProject(working);
+      await api("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "user", content: request }) });
+      const run = await api<{ id: string }>("/api/eve/runs", { method: "POST", body: JSON.stringify({ projectId: id, prompt: request, model: working.architectModel }) });
+      runId = run.id;
       const keys = JSON.parse(localStorage.getItem("ai_api_keys") || "{}") as Record<string, string>;
       do {
         batches += 1;
@@ -47,32 +67,45 @@ export function EveAiChat() {
         const result = await architectAgentProject(request, working, working.architectModel, keys, history.map(({ role, content }) => ({ role, content })), continuation);
         if (result.status === "clarify") {
           const text = [result.message, ...result.questions].filter(Boolean).join("\n\n");
-          const next = [...history, { id: crypto.randomUUID(), role: "assistant" as const, content: text, plan: result.plan }];
-          setMessages(next); localStorage.setItem("eve_agent_chat", JSON.stringify(next)); return;
+          await api("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "assistant", content: text, metadata: { plan: result.plan } }) });
+          await api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "completed", currentBatch: batches, event: { type: "clarification", status: "waiting", title: "Clarification requested", detail: text } }) });
+          setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, plan: result.plan }]);
+          return;
         }
         working = mergeArchitectProject(working, result.update);
         plans.push(...result.plan);
         if (Array.isArray(result.update.files)) files.push(...result.update.files.map((file) => file.path).filter(Boolean));
+        await api("/api/eve/projects", { method: "PATCH", body: JSON.stringify({ projectId: id, project: working }) });
+        await api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "running", currentBatch: batches, event: { type: "batch", status: "completed", title: `Batch ${batches} saved`, detail: `${files.length} files created or changed` } }) });
         continuation = result.complete ? undefined : result.continuationPrompt;
       } while (continuation && batches < 5);
 
       working = working.tests.reduce((state, test) => runAgentTest(state, test.id), working);
       const finalProject = synchronizeAgentProject({ ...working, changes: [{ id: crypto.randomUUID(), label: request, createdAt: new Date().toISOString(), files: [...new Set(files)] }, ...project.changes] });
-      const text = continuation ? "I completed five build batches. Send ‘continue building’ to add the remaining modules." : "The project is built, tested, and synchronized with the inspector below.";
-      const next = [...history, { id: crypto.randomUUID(), role: "assistant" as const, content: text, plan: [...new Set(plans)], files: [...new Set(files)] }];
-      localStorage.setItem("eve_agent_project", JSON.stringify(finalProject));
-      localStorage.setItem("eve_agent_chat", JSON.stringify(next));
-      setProject(finalProject); setMessages(next);
-      window.setTimeout(() => window.location.reload(), 700);
+      const text = continuation ? "I saved five build batches. Send ‘continue building’ to add the remaining modules." : "The project is built, tested, and saved to your Eve workspace.";
+      const metadata = { plan: [...new Set(plans)], files: [...new Set(files)] };
+      await api("/api/eve/projects", { method: "PATCH", body: JSON.stringify({ projectId: id, project: finalProject }) });
+      await api("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "assistant", content: text, metadata }) });
+      await api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "completed", currentBatch: batches, event: { type: "complete", status: "completed", title: "Project saved", detail: text } }) });
+      setProject(finalProject); setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, ...metadata }]);
     } catch (error) {
-      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: error instanceof Error ? error.message : String(error), error: true }]);
+      const text = error instanceof Error ? error.message : String(error);
+      if (runId) void api("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "failed", error: text, event: { type: "error", status: "failed", title: "Build failed", detail: text } }) }).catch(() => undefined);
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: text, error: true }]);
     } finally { setBusy(false); setProgress(""); }
   }
 
   return <section className="eve-ai-workspace">
-    <header className="eve-chat-heading"><span><Sparkles className="size-5"/></span><div><div className="eve-eyebrow">AI-first builder</div><h2>Describe the agent. Eve does the work.</h2><p>The inspector below is for review and overrides; it is not required setup.</p></div><button className="builder-secondary-button" onClick={() => setSettingsOpen(true)}><KeyRound className="size-4"/>API keys</button>{checkpoint ? <button className="builder-secondary-button" onClick={() => { localStorage.setItem("eve_agent_project", JSON.stringify(checkpoint)); window.location.reload(); }}><RotateCcw className="size-4"/>Undo</button> : null}</header>
-    <div className="eve-chat-thread" aria-live="polite">{messages.map((message) => <article key={message.id} className={`eve-chat-message ${message.role} ${message.error ? "error" : ""}`}><span className="eve-chat-avatar">{message.role === "user" ? <User className="size-4"/> : <Bot className="size-4"/>}</span><div><p>{message.content}</p>{message.plan?.length ? <div className="eve-chat-plan"><strong>Work completed</strong>{message.plan.map((item) => <span key={item}><Check className="size-3.5"/>{item}</span>)}</div> : null}{message.files?.length ? <small>{message.files.length} project files created or changed</small> : null}</div></article>)}{busy ? <article className="eve-chat-message assistant"><span className="eve-chat-avatar"><Bot className="size-4"/></span><div><p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin"/>{progress}</p></div></article> : null}</div>
-    <form className="eve-chat-composer" onSubmit={submit}><textarea className="builder-textarea" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Build a customer support agent that searches our docs, drafts replies, asks before sending, uses Grok for complex cases, and deploys to Vercel." disabled={busy}/><div><select className="builder-compact-select" value={project.architectModel} onChange={(event) => setProject({ ...project, architectModel: event.target.value })}>{AGENT_MODEL_OPTIONS.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="builder-primary-button" type="submit" disabled={!input.trim() || busy}><Send className="size-4"/>{busy ? "Building..." : "Build with Eve"}</button></div></form>
+    <header className="eve-chat-heading"><span><Sparkles className="size-5"/></span><div><div className="eve-eyebrow">AI-first builder</div><h2>Describe the agent. Eve does the work.</h2><p>{projectId ? "Connected to persistent Eve workspace." : "Sign in to save projects, messages, files, and build history to Neon."}</p></div><button className="builder-secondary-button" onClick={() => setSettingsOpen(true)}><KeyRound className="size-4"/>API keys</button>{checkpoint ? <button className="builder-secondary-button" onClick={() => setProject(checkpoint)}><RotateCcw className="size-4"/>Undo</button> : null}</header>
+    <div className="eve-chat-thread" aria-live="polite">{messages.map((message) => <article key={message.id} className={`eve-chat-message ${message.role} ${message.error ? "error" : ""}`}><span className="eve-chat-avatar">{message.role === "user" ? <User className="size-4"/> : <Bot className="size-4"/>}</span><div><p>{message.content}</p>{message.plan?.length ? <div className="eve-chat-plan"><strong>Work completed</strong>{message.plan.map((item) => <span key={item}><Check className="size-3.5"/>{item}</span>)}</div> : null}{message.files?.length ? <small>{message.files.length} project files created or changed</small> : null}</div></article>)}{busy || progress ? <article className="eve-chat-message assistant"><span className="eve-chat-avatar"><Bot className="size-4"/></span><div><p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin"/>{progress || "Working"}</p></div></article> : null}</div>
+    <form className="eve-chat-composer" onSubmit={submit}><textarea className="builder-textarea" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Build a customer support agent that searches our docs, drafts replies, asks before sending, and deploys to Vercel." disabled={busy}/><div><select className="builder-compact-select" value={project.architectModel} onChange={(event) => setProject({ ...project, architectModel: event.target.value })}>{AGENT_MODEL_OPTIONS.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select><button className="builder-primary-button" type="submit" disabled={!input.trim() || busy}><Send className="size-4"/>{busy ? "Building..." : "Build with Eve"}</button></div></form>
     <ApiSettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)}/>
   </section>;
+}
+
+async function api<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Request failed with ${response.status}.`);
+  return data as T;
 }
