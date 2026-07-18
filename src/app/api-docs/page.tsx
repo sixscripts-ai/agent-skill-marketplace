@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
 import { ActionGuide } from "@/components/feature-walkthrough";
-import { Badge, Panel } from "@/components/ui";
+import {
+  FirebenchHeroCard,
+  FirebenchHeroIntro,
+  FirebenchPage,
+  FirebenchTag,
+} from "@/components/firebench";
 
 export const metadata: Metadata = {
   title: "API Reference | Agent Skill Marketplace",
@@ -19,46 +25,66 @@ const endpoints = [
   ["POST", "/api/evals/[skillSlug]/run", "Save and run eval cases for a skill version."],
   ["GET", "/api/packages/[skillId]", "Download an installable skill package zip."],
   ["GET", "/api/cli", "Download the portable CLI package."],
-];
+] as const;
 
 export default function ApiDocsPage() {
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">API Reference</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">
-            The app uses these routes for uploads, parsing, publishing, streamed runs, traces, evals, packages, and CLI downloads.
-          </p>
-        </div>
-
-        <ActionGuide
-          steps={[
-            { label: "1", title: "Check health", body: "Use /api/health/ui first to confirm production readiness labels." },
-            { label: "2", title: "Import", body: "Parse SKILL.md before publish so formatting issues are visible." },
-            { label: "3", title: "Run", body: "Use the SSE run route for live sandbox events and persisted traces." },
-            { label: "4", title: "Export", body: "Download traces, workspaces, packages, or the CLI after the run completes." },
-          ]}
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
+      <FirebenchPage heat="bold" canvas>
+        <FirebenchHeroIntro
+          kicker="// API //"
+          title="Routes for"
+          accent="agents"
+          lead="Upload, parse, publish, stream runs, export traces, evals, packages, and the CLI — one heat-consistent reference."
         />
 
-        <Panel className="overflow-hidden">
-          <div className="border-b border-neutral-200 px-5 py-4">
-            <h2 className="font-semibold text-neutral-950">Routes</h2>
-          </div>
-          <div className="divide-y divide-neutral-200">
-            {endpoints.map(([method, path, description]) => (
-              <div key={path} className="grid gap-3 px-5 py-4 md:grid-cols-[90px_1fr_2fr]">
-                <Badge tone={method === "GET" ? "blue" : "amber"}>{method}</Badge>
-                <code className="font-mono text-sm text-neutral-950">{path}</code>
-                <p className="text-sm leading-6 text-neutral-600">{description}</p>
-              </div>
-            ))}
-          </div>
-        </Panel>
+        <div className="fb-tags">
+          <FirebenchTag>[ GET ]</FirebenchTag>
+          <FirebenchTag>[ POST ]</FirebenchTag>
+          <FirebenchTag>[ SSE ]</FirebenchTag>
+        </div>
 
-        <Panel className="p-5">
-          <h2 className="font-semibold text-neutral-950">Example</h2>
-          <div className="mt-4">
+        <FirebenchHeroCard
+          actionsLeft={<FirebenchTag>[ FLOW ]</FirebenchTag>}
+          actionsRight={
+            <Link href="/cli" className="fb-cta fb-cta--primary">
+              Get CLI
+            </Link>
+          }
+        >
+          <ActionGuide
+            steps={[
+              { label: "1", title: "Check health", body: "Use /api/health/ui first to confirm production readiness labels." },
+              { label: "2", title: "Import", body: "Parse SKILL.md before publish so formatting issues are visible." },
+              { label: "3", title: "Run", body: "Use the SSE run route for live sandbox events and persisted traces." },
+              { label: "4", title: "Export", body: "Download traces, workspaces, packages, or the CLI after the run completes." },
+            ]}
+          />
+        </FirebenchHeroCard>
+
+        <div className="fb-list" aria-label="API routes">
+          {endpoints.map(([method, path, description]) => (
+            <article key={path} className="fb-row">
+              <div>
+                <h3 className="fb-row__name">{path}</h3>
+                <div className="fb-row__meta">
+                  <FirebenchTag>{`[ ${method} ]`}</FirebenchTag>
+                </div>
+              </div>
+              <p className="fb-row__desc">{description}</p>
+              <div />
+            </article>
+          ))}
+        </div>
+
+        <div className="fb-stage">
+          <div className="fb-stage__label">
+            <h2 className="fb-section-title" style={{ fontSize: "1rem" }}>
+              Example
+            </h2>
+            <FirebenchTag>[ FETCH ]</FirebenchTag>
+          </div>
+          <div className="fb-stage__body">
             <CodeBlock
               code={`fetch("/api/skills/import", {
   method: "POST",
@@ -67,8 +93,8 @@ export default function ApiDocsPage() {
 }).then((response) => response.json())`}
             />
           </div>
-        </Panel>
-      </div>
+        </div>
+      </FirebenchPage>
     </AppShell>
   );
 }

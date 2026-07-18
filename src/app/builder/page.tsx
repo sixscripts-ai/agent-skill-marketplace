@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { BuilderClient } from "@/components/builder-client";
 import { BuilderRuntimeBridge } from "@/components/builder-runtime-bridge";
-import "../builder-guided.css";
 
 export const metadata: Metadata = {
   title: "Skill Builder",
