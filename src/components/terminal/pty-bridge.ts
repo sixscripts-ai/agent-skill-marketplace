@@ -1,87 +1,65 @@
 export type PtyBridgeHandlers = {
   onData: (data: string | Uint8Array) => void;
   onOpen?: () => void;
+  onExit?: (code?: number) => void;
   onClose?: (reason?: string) => void;
   onError?: (message: string) => void;
   onStatus?: (message: string) => void;
 };
 
-/**
- * Browser adapter for Vercel Sandbox openInteractive() WebSocket credentials.
- * Speaks ready/resize control frames; treats non-JSON payloads as PTY bytes.
- */
+type PtyBridgeOptions = { cols?: number; rows?: number; command?: string; args?: string[]; cwd?: string; env?: Record<string, string> };
+
+/** Browser adapter for the documented Vercel Sandbox openInteractive protocol. */
 export class PtyBridge {
   private ws: WebSocket | null = null;
   private closedByUser = false;
   private cols: number;
   private rows: number;
+  private command: string;
+  private args: string[];
+  private cwd: string;
+  private env: Record<string, string>;
 
-  constructor(
-    private readonly url: string,
-    private readonly token: string,
-    private readonly handlers: PtyBridgeHandlers,
-    size?: { cols?: number; rows?: number },
-  ) {
-    this.cols = size?.cols ?? 100;
-    this.rows = size?.rows ?? 32;
+  constructor(private readonly url: string, private readonly token: string, private readonly handlers: PtyBridgeHandlers, options: PtyBridgeOptions = {}) {
+    this.cols = options.cols ?? 100;
+    this.rows = options.rows ?? 32;
+    this.command = options.command ?? "bash";
+    this.args = options.args ?? ["-l"];
+    this.cwd = options.cwd ?? "/vercel/sandbox";
+    this.env = { TERM: "xterm-256color", ...options.env };
   }
 
   connect() {
     this.closedByUser = false;
-    const endpoint = withToken(this.url, this.token);
-    this.handlers.onStatus?.(`Connecting PTY…`);
-    const ws = new WebSocket(endpoint);
+    this.handlers.onStatus?.("Connecting PTY…");
+    const ws = new WebSocket(withToken(this.url, this.token));
     ws.binaryType = "arraybuffer";
     this.ws = ws;
-
     ws.onopen = () => {
-      this.sendJson({ type: "auth", token: this.token });
-      this.sendJson({ type: "ready" });
-      this.sendJson({ type: "resize", cols: this.cols, rows: this.rows });
+      this.sendJson({ type: "start", command: this.command, args: this.args, env: Object.entries(this.env).map(([key, value]) => `${key}=${value}`), cwd: this.cwd, cols: this.cols, rows: this.rows });
       this.handlers.onOpen?.();
       this.handlers.onStatus?.("PTY connected");
     };
-
     ws.onmessage = (event) => {
-      const payload = event.data;
-      if (typeof payload === "string") {
-        if (tryParseControl(payload)) return;
-        this.handlers.onData(payload);
-        return;
-      }
-      if (payload instanceof ArrayBuffer) {
-        const bytes = new Uint8Array(payload);
-        const asText = decodeUtf8(bytes);
-        if (tryParseControl(asText)) return;
-        this.handlers.onData(bytes);
-        return;
-      }
-      if (payload instanceof Blob) {
-        void payload.arrayBuffer().then((buffer) => {
-          const bytes = new Uint8Array(buffer);
-          const asText = decodeUtf8(bytes);
-          if (tryParseControl(asText)) return;
-          this.handlers.onData(bytes);
-        });
+      if (typeof event.data === "string") {
+        if (this.handleControl(event.data)) return;
+        this.handlers.onData(event.data);
+      } else if (event.data instanceof ArrayBuffer) {
+        this.handlers.onData(new Uint8Array(event.data));
+      } else if (event.data instanceof Blob) {
+        void event.data.arrayBuffer().then((buffer) => this.handlers.onData(new Uint8Array(buffer)));
       }
     };
-
-    ws.onerror = () => {
-      this.handlers.onError?.("PTY WebSocket error");
-    };
-
+    ws.onerror = () => this.handlers.onError?.("PTY WebSocket error");
     ws.onclose = (event) => {
       this.ws = null;
-      if (!this.closedByUser) {
-        this.handlers.onClose?.(event.reason || `closed (${event.code})`);
-      }
+      if (!this.closedByUser) this.handlers.onClose?.(event.reason || `closed (${event.code})`);
     };
   }
 
-  send(data: string) {
+  send(data: string | Uint8Array) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    // Raw PTY stdin. Control frames are only used for auth/ready/resize.
-    this.ws.send(data);
+    this.ws.send(typeof data === "string" ? new TextEncoder().encode(data) : data);
   }
 
   resize(cols: number, rows: number) {
@@ -96,48 +74,26 @@ export class PtyBridge {
     this.ws = null;
   }
 
-  get connected() {
-    return this.ws?.readyState === WebSocket.OPEN;
+  get connected() { return this.ws?.readyState === WebSocket.OPEN; }
+
+  private handleControl(payload: string) {
+    try {
+      const message = JSON.parse(payload) as { type?: string; code?: number };
+      if (message.type === "exit") {
+        this.handlers.onExit?.(typeof message.code === "number" ? message.code : undefined);
+        return true;
+      }
+      return typeof message.type === "string";
+    } catch { return false; }
   }
 
   private sendJson(value: Record<string, unknown>) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    try {
-      this.ws.send(JSON.stringify(value));
-    } catch {
-      // ignore send failures during teardown
-    }
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(value));
   }
 }
 
 function withToken(url: string, token: string) {
-  try {
-    const parsed = new URL(url);
-    if (!parsed.searchParams.has("token")) {
-      parsed.searchParams.set("token", token);
-    }
-    return parsed.toString();
-  } catch {
-    const join = url.includes("?") ? "&" : "?";
-    return `${url}${join}token=${encodeURIComponent(token)}`;
-  }
-}
-
-function tryParseControl(text: string) {
-  const trimmed = text.trim();
-  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return false;
-  try {
-    const value = JSON.parse(trimmed) as { type?: string };
-    return typeof value.type === "string" && ["ready", "resize", "ping", "pong", "auth", "ack"].includes(value.type);
-  } catch {
-    return false;
-  }
-}
-
-function decodeUtf8(bytes: Uint8Array) {
-  try {
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return "";
-  }
+  const parsed = new URL(url);
+  parsed.searchParams.set("token", token);
+  return parsed.toString();
 }

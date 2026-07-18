@@ -1,53 +1,28 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createGroq } from "@ai-sdk/groq";
-import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
-import { AI_MODEL_IDS, AI_MODEL_OPTIONS } from "@/lib/ai-model-catalog";
 
-export const DEFAULT_TERMINAL_MODEL = "xai/grok-4.3";
+export const TERMINAL_MODEL_OPTIONS = [
+  ["xai/grok-4.5", "Grok 4.5"],
+  ["xai/grok-4.3", "Grok 4.3"],
+] as const;
 
-export function resolveTerminalModelId(requested?: string) {
-  if (requested && AI_MODEL_IDS.has(requested as (typeof AI_MODEL_OPTIONS)[number][0])) {
-    return requested;
+export type TerminalModelId = (typeof TERMINAL_MODEL_OPTIONS)[number][0];
+export const DEFAULT_TERMINAL_MODEL: TerminalModelId = "xai/grok-4.5";
+const TERMINAL_MODEL_IDS = new Set<string>(TERMINAL_MODEL_OPTIONS.map(([value]) => value));
+
+export function resolveTerminalModelId(requested?: string): TerminalModelId {
+  if (!requested) return DEFAULT_TERMINAL_MODEL;
+  if (!TERMINAL_MODEL_IDS.has(requested)) {
+    throw Object.assign(new Error(`Unsupported terminal model: ${requested}. Choose Grok 4.5 or Grok 4.3.`), { code: "UNSUPPORTED_MODEL", status: 400 });
   }
-  return DEFAULT_TERMINAL_MODEL;
+  return requested as TerminalModelId;
 }
 
 export function resolveTerminalModel(modelId: string, apiKeys: Record<string, string> = {}) {
-  const provider = modelId.split("/")[0];
-  const model = modelId.slice(provider.length + 1);
-  const key =
-    apiKeys[provider === "google" ? "google" : provider] ||
-    (provider === "google"
-      ? process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || ""
-      : provider === "xai"
-        ? process.env.XAI_API_KEY || ""
-        : provider === "groq"
-          ? process.env.GROQ_API_KEY || ""
-          : provider === "anthropic"
-            ? process.env.ANTHROPIC_API_KEY || ""
-            : provider === "deepseek"
-              ? process.env.DEEPSEEK_API_KEY || ""
-              : process.env.OPENAI_API_KEY || "");
-
+  const resolvedId = resolveTerminalModelId(modelId);
+  const model = resolvedId.slice("xai/".length);
+  const key = apiKeys.xai?.trim() || process.env.XAI_API_KEY || "";
   if (!key) {
-    return {
-      error: {
-        error: true,
-        code: "MISSING_API_KEY",
-        message: `An API key is required for ${provider}.`,
-        suggestion: `Set ${provider === "deepseek" ? "DEEPSEEK_API_KEY" : provider === "xai" ? "XAI_API_KEY" : `${provider.toUpperCase()}_API_KEY`} in env or pass BYOK headers.`,
-      },
-    } as const;
+    return { error: { error: true, code: "MISSING_API_KEY", message: "An xAI API key is required for the terminal agent.", suggestion: "Set XAI_API_KEY in the server environment or provide the xAI key through API settings." } } as const;
   }
-
-  if (provider === "google") return { model: createGoogleGenerativeAI({ apiKey: key })(model) } as const;
-  if (provider === "xai") return { model: createXai({ apiKey: key })(model) } as const;
-  if (provider === "groq") return { model: createGroq({ apiKey: key })(model) } as const;
-  if (provider === "anthropic") return { model: createAnthropic({ apiKey: key })(model) } as const;
-  if (provider === "deepseek") {
-    return { model: createOpenAI({ apiKey: key, baseURL: "https://api.deepseek.com" })(model) } as const;
-  }
-  return { model: createOpenAI({ apiKey: key })(model) } as const;
+  return { model: createXai({ apiKey: key })(model), modelId: resolvedId } as const;
 }
