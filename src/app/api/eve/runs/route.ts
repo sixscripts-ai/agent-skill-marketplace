@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const user = await requireCurrentUser();
-    const body = await request.json() as { runId: string; status?: string; currentBatch?: number; error?: string | null; event?: { type: string; status: string; title: string; detail?: string } };
+    const body = await request.json() as { runId: string; status?: string; currentBatch?: number; error?: string | null; event?: { type: string; status: string; title: string; detail?: string; metadata?: Record<string, unknown> } };
     const { runId, ...data } = body;
     return NextResponse.json(await updateEveRun(runId, user, data));
   } catch (error) {

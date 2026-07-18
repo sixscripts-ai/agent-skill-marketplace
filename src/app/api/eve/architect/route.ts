@@ -36,12 +36,45 @@ export async function POST(request: Request) {
     });
     const result = parseResult(text);
     let project = stored.project;
+    if (result.status === "clarify") {
+      await updateEveRun(body.runId, user, {
+        status: "running",
+        event: {
+          type: "thought",
+          status: "waiting",
+          title: "Architect needs clarification",
+          detail: result.message,
+          metadata: { requestId, plan: result.plan, questions: result.questions },
+        },
+      });
+    }
     if (result.status === "update") {
       project = mergeWorkspaceProject(project, result.update);
       await saveEveProject(body.projectId, user, project);
+      const filePaths = (result.update.files ?? []).map((file) => file.path).filter(Boolean);
+      const skillIds = Array.isArray(result.update.skills)
+        ? result.update.skills.map((skill) => {
+            if (typeof skill === "string") return skill;
+            const item = skill as { slug?: string; name?: string; id?: string };
+            return item.slug || item.name || item.id || "";
+          }).filter(Boolean)
+        : [];
       await updateEveRun(body.runId, user, {
         status: "running",
-        event: { type: "batch", status: "completed", title: "Architect batch saved", detail: `${result.update.files?.length ?? 0} files created or changed` },
+        event: {
+          type: "batch",
+          status: "completed",
+          title: "Architect batch saved",
+          detail: `${filePaths.length} files created or changed`,
+          metadata: {
+            requestId,
+            plan: result.plan,
+            files: filePaths,
+            skills: skillIds,
+            complete: result.complete,
+            modelId: body.modelId,
+          },
+        },
       });
     }
     return NextResponse.json({ result, project, requestId });
@@ -49,7 +82,17 @@ export async function POST(request: Request) {
     console.error("[eve-architect] request failed", { requestId, projectId: body?.projectId, runId: body?.runId, error });
     if (user && body?.runId) {
       const detail = error instanceof Error ? error.message : String(error);
-      await updateEveRun(body.runId, user, { status: "failed", error: detail, event: { type: "error", status: "failed", title: "Architect request failed", detail } }).catch(() => undefined);
+      await updateEveRun(body.runId, user, {
+        status: "failed",
+        error: detail,
+        event: {
+          type: "error",
+          status: "failed",
+          title: "Architect request failed",
+          detail,
+          metadata: { requestId, modelId: body.modelId },
+        },
+      }).catch(() => undefined);
     }
     const security = securityErrorResponse(error);
     if (security) return security;

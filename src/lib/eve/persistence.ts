@@ -42,10 +42,20 @@ export async function createEveRun(projectId: string, user: MarketplaceUser, pro
   return prisma.eveBuildRun.create({ data: { projectId, conversationId: conversation?.id, prompt, model, status: "running", startedAt: new Date(), events: { create: { sequence: 1, type: "started", status: "running", title: "Build started" } } } });
 }
 
-export async function updateEveRun(runId: string, user: MarketplaceUser, data: { status?: string; currentBatch?: number; error?: string | null; event?: { type: string; status: string; title: string; detail?: string } }) {
+export async function updateEveRun(runId: string, user: MarketplaceUser, data: { status?: string; currentBatch?: number; error?: string | null; event?: { type: string; status: string; title: string; detail?: string; metadata?: Record<string, unknown> } }) {
   const run = await prisma.eveBuildRun.findFirst({ where: { id: runId, project: { ownerId: user.id } }, include: { events: { orderBy: { sequence: "desc" }, take: 1 } } });
   if (!run) throw new AuthorizationError("Eve build run not found or not owned by this user.");
-  if (data.event) await prisma.eveBuildEvent.create({ data: { runId, sequence: (run.events[0]?.sequence ?? 0) + 1, ...data.event } });
+  if (data.event) {
+    const { metadata, ...event } = data.event;
+    await prisma.eveBuildEvent.create({
+      data: {
+        runId,
+        sequence: (run.events[0]?.sequence ?? 0) + 1,
+        ...event,
+        metadata: metadata as Prisma.InputJsonValue | undefined,
+      },
+    });
+  }
   return prisma.eveBuildRun.update({ where: { id: runId }, data: { status: data.status, currentBatch: data.currentBatch, error: data.error, completedAt: data.status === "completed" || data.status === "failed" ? new Date() : undefined }, include: { events: { orderBy: { sequence: "asc" } } } });
 }
 
