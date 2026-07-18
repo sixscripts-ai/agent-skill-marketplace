@@ -2,7 +2,17 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { BuilderClient } from "@/components/builder-client";
 import { BuilderRuntimeBridge } from "@/components/builder-runtime-bridge";
-import { BuilderStudio } from "@/components/builder/builder-ui";
+import "../builder-guided.css";
 
-export const metadata: Metadata = { title: "Skill Builder", description: "Upload, write, validate, and publish portable AI agent skills using the SKILL.md format.", openGraph: { title: "Skill Builder | Agent Skill Marketplace", description: "Upload, write, validate, and publish portable AI agent skills using the SKILL.md format." } };
-export default function BuilderPage() { return <AppShell mode="wide"><BuilderStudio><BuilderRuntimeBridge><BuilderClient /></BuilderRuntimeBridge></BuilderStudio></AppShell>; }
+export const metadata: Metadata = {
+  title: "Skill Builder",
+  description: "Create or import, validate, test, download, and publish portable AI agent skills using a guided workflow.",
+  openGraph: {
+    title: "Skill Builder | Agent Skill Marketplace",
+    description: "Create or import, validate, test, download, and publish portable AI agent skills using a guided workflow.",
+  },
+};
+
+export default function BuilderPage() {
+  return <AppShell mode="wide"><BuilderRuntimeBridge><BuilderClient /></BuilderRuntimeBridge></AppShell>;
+}

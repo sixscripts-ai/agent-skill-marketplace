@@ -35,6 +35,7 @@ export function BuilderCopilot({
   model,
   isGenerating,
   error,
+  showControls = true,
   onInputChange,
   onModelChange,
   onSubmit,
@@ -46,6 +47,7 @@ export function BuilderCopilot({
   model: string;
   isGenerating: boolean;
   error: string;
+  showControls?: boolean;
   onInputChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -59,20 +61,22 @@ export function BuilderCopilot({
         <div className="min-w-0">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Primary creation workspace</div>
           <h2 id="builder-copilot-title" className="mt-1 text-xl font-semibold text-foreground sm:text-2xl">Build the skill with AI Copilot</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Describe the outcome you need. Copilot reads the current SKILL.md, asks for essential details, and updates the editor directly.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Describe the outcome you need. Copilot reads the current SKILL.md and package files, then updates the draft directly.</p>
         </div>
-        <div className="builder-copilot-controls">
-          <select aria-label="Copilot model" className="builder-compact-select" value={model} onChange={(event) => onModelChange(event.target.value)}>
-            <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
-            <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
-            <option value="xai/grok-2-latest">Grok 2</option>
-            <option value="groq/llama-3.3-70b-versatile">Llama 3.3 (Groq)</option>
-            <option value="groq/mixtral-8x7b-32768">Mixtral (Groq)</option>
-            <option value="openai/gpt-4o">GPT-4o</option>
-            <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-          </select>
-          <button type="button" className="builder-secondary-button" onClick={onOpenSettings}><KeyRound className="size-4" />API keys</button>
-        </div>
+        {showControls ? (
+          <div className="builder-copilot-controls">
+            <select aria-label="Copilot model" className="builder-compact-select" value={model} onChange={(event) => onModelChange(event.target.value)}>
+              <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+              <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="xai/grok-2-latest">Grok 2</option>
+              <option value="groq/llama-3.3-70b-versatile">Llama 3.3 (Groq)</option>
+              <option value="groq/mixtral-8x7b-32768">Mixtral (Groq)</option>
+              <option value="openai/gpt-4o">GPT-4o</option>
+              <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+            </select>
+            <button type="button" className="builder-secondary-button" onClick={onOpenSettings}><KeyRound className="size-4" />API keys</button>
+          </div>
+        ) : null}
       </div>
 
       <div className="builder-copilot-prompts" aria-label="Suggested prompts">
@@ -129,7 +133,7 @@ function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
           return (
             <div key={part.toolCallId ?? index} className="builder-copilot-tool-status">
               {complete ? <CheckCircle2 className="size-3.5" /> : <Sparkles className="size-3.5" />}
-              {complete ? "SKILL.md updated and synchronized." : "Updating SKILL.md..."}
+              {complete ? "SKILL.md and package synchronized." : "Updating the skill package..."}
             </div>
           );
         })}
