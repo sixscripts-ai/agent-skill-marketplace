@@ -106,6 +106,8 @@ model SkillTraceEvent {
   status    String
   metadata  Json?
   createdAt DateTime @default(now())
+
+  @@index([runId])
 }
 
 model EvaluationSuite {
@@ -127,6 +129,8 @@ model EvaluationCase {
   assertionType String
   status        String          @default("pass")
   modelOutput   String?
+
+  @@index([suiteId])
 }
 
 model EvaluationResult {
