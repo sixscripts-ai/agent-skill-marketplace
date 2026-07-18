@@ -33,10 +33,12 @@ export function EveLifecycleClient() {
     setArchitectBusy(true); setArchitectError(""); setCheckpoint(project);
     try {
       const storedKeys = JSON.parse(localStorage.getItem("ai_api_keys") || "{}") as Record<string, string>;
-      const result = await architectAgentProject(architectPrompt, project, project.architectModel, storedKeys);
-      const merged = mergeArchitectProject(project, result);
-      const changedFiles = Array.isArray(result.files) && result.files.length ? result.files.map((file) => file.path).filter(Boolean) : merged.files.map((file) => file.path);
-      update({ ...merged, changes: [{ id: crypto.randomUUID(), label: architectPrompt, createdAt: new Date().toISOString(), files: changedFiles }, ...project.changes] });
+      const result = await architectAgentProject(architectPrompt, project, project.architectModel, storedKeys, []);
+      if (result.status === "clarify") throw new Error(result.message || "The AI needs clarification but this view doesn't support chat.");
+      const updatePayload = result.update || {};
+      const merged = mergeArchitectProject(project, updatePayload);
+      const changedFiles = Array.isArray(updatePayload.files) && updatePayload.files.length ? updatePayload.files.map((file) => file.path).filter(Boolean) : merged.files.map((file) => file.path);
+      update({ ...merged, changes: [{ id: crypto.randomUUID(), label: architectPrompt, createdAt: new Date().toISOString(), files: changedFiles as string[] }, ...project.changes] });
       setArchitectPrompt("");
       if (changedFiles[0]) setSelectedFile(changedFiles[0]);
     } catch (error) { setArchitectError(error instanceof Error ? error.message : String(error)); }
