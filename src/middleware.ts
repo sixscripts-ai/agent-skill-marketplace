@@ -1,4 +1,7 @@
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { isClerkConfigured } from "@/lib/auth";
+import { allowLocalSeedAuth } from "@/lib/deployment-config.js";
 
 const isProtectedRoute = createRouteMatcher([
   "/builder(.*)",
@@ -7,11 +10,31 @@ const isProtectedRoute = createRouteMatcher([
   "/skills/(.*)/run",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
 });
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  // Clerk keys present: use normal clerkMiddleware behavior.
+  if (isClerkConfigured()) {
+    return clerkHandler(req, event);
+  }
+
+  // Local development (not Vercel) with missing keys: allow the explicit
+  // local seed-auth fallback to serve the app.
+  if (allowLocalSeedAuth()) {
+    return NextResponse.next();
+  }
+
+  // Vercel preview/production with missing Clerk configuration: fail closed.
+  // Never silently allow unauthenticated production access.
+  return NextResponse.json(
+    { error: "Authentication is not configured.", code: "AUTH_NOT_CONFIGURED" },
+    { status: 503 },
+  );
+}
 
 export const config = {
   matcher: [

@@ -1,19 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -47,15 +36,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Render ClerkProvider only when a publishable key is configured. In local
+  // development with missing Clerk keys, the app renders without ClerkProvider
+  // so the local seed-auth fallback does not crash inside the provider.
+  const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+  const content = <TooltipProvider>{children}</TooltipProvider>;
+
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <ClerkProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </ClerkProvider>
+        {clerkEnabled ? <ClerkProvider>{content}</ClerkProvider> : content}
         <Analytics />
       </body>
     </html>
