@@ -10,6 +10,7 @@ import { securityErrorResponse } from "@/lib/api-errors";
 import { getEveProject, saveEveProject, updateEveRun } from "@/lib/eve/persistence";
 import type { AgentProject } from "@/lib/eve/agent-project";
 import { mergeWorkspaceProject } from "@/lib/eve/workspace-project";
+import { redactErrorMessage, redactSecrets } from "@/lib/eve/secrets";
 
 export const maxDuration = 60;
 
@@ -17,7 +18,16 @@ type Msg = { role: "user" | "assistant"; content: string };
 type Result =
   | { status: "clarify"; message: string; questions: string[]; plan: string[] }
   | { status: "update"; update: Partial<AgentProject>; plan: string[]; complete: boolean; continuationPrompt?: string };
-type Body = { projectId: string; runId: string; prompt: string; modelId: string; apiKeys?: Record<string, string>; history?: Msg[]; continuation?: string };
+type Body = {
+  projectId: string;
+  runId: string;
+  prompt: string;
+  modelId: string;
+  apiKeys?: Record<string, string>;
+  byok?: Record<string, boolean>;
+  history?: Msg[];
+  continuation?: string;
+};
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
@@ -28,11 +38,11 @@ export async function POST(request: Request) {
     body = await request.json() as Body;
     validate(body);
     const stored = await getEveProject(body.projectId, user);
-    const model = resolveModel(body.modelId, body.apiKeys ?? {});
+    const model = resolveModel(body.modelId, body.apiKeys ?? {}, body.byok ?? {});
     const { text } = await generateText({
       model,
       system: systemPrompt(stored.project, body.continuation),
-      messages: (body.history ?? []).slice(-12).map((item) => ({ role: item.role, content: item.content.slice(0, 12000) })),
+      messages: (body.history ?? []).slice(-12).map((item) => ({ role: item.role, content: redactSecrets(item.content).slice(0, 12000) })),
     });
     const result = parseResult(text);
     let project = stored.project;
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
     }
     if (result.status === "update") {
       project = mergeWorkspaceProject(project, result.update);
-      await saveEveProject(body.projectId, user, project);
+      await saveEveProject(body.projectId, user, project, { fromBuild: true });
       const filePaths = (result.update.files ?? []).map((file) => file.path).filter(Boolean);
       const skillIds = Array.isArray(result.update.skills)
         ? result.update.skills.map((skill) => {
@@ -79,9 +89,9 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ result, project, requestId });
   } catch (error) {
-    console.error("[eve-architect] request failed", { requestId, projectId: body?.projectId, runId: body?.runId, error });
+    const detail = redactErrorMessage(error instanceof Error ? error.message : String(error));
+    console.error("[eve-architect] request failed", { requestId, projectId: body?.projectId, runId: body?.runId, error: detail });
     if (user && body?.runId) {
-      const detail = error instanceof Error ? error.message : String(error);
       await updateEveRun(body.runId, user, {
         status: "failed",
         error: detail,
@@ -92,7 +102,9 @@ export async function POST(request: Request) {
           detail,
           metadata: { requestId, modelId: body.modelId },
         },
-      }).catch(() => undefined);
+      }).catch((persistError) => {
+        console.error("[eve-architect] failed to persist error event", { requestId, error: persistError instanceof Error ? persistError.message : String(persistError) });
+      });
     }
     const security = securityErrorResponse(error);
     if (security) return security;
@@ -132,11 +144,17 @@ function parseResult(text: string): Result {
   throw new Error("Architect response did not match the required schema.");
 }
 
-function resolveModel(modelId: string, keys: Record<string, string>) {
+/** Env-first: use server keys by default; browser keys only when BYOK is explicitly enabled for that provider. */
+function resolveModel(modelId: string, keys: Record<string, string>, byok: Record<string, boolean>) {
   const provider = modelId.split("/")[0];
   const name = modelId.slice(provider.length + 1);
-  const key = keys[provider] || providerKey(provider);
-  if (!key) throw new Error(`An API key is required for ${provider}.`);
+  const envKey = providerKey(provider);
+  const useByok = byok[provider] === true;
+  const key = useByok && keys[provider]?.trim() ? keys[provider].trim() : envKey;
+  if (!key) {
+    if (useByok) throw new Error(`BYOK is enabled for ${provider}, but no browser key was provided.`);
+    throw new Error(`An API key is required for ${provider}. Configure the server environment key, or enable BYOK for this provider.`);
+  }
   if (provider === "google") return createGoogleGenerativeAI({ apiKey: key })(name);
   if (provider === "xai") return createXai({ apiKey: key })(name);
   if (provider === "groq") return createGroq({ apiKey: key })(name);
@@ -156,6 +174,6 @@ function providerKey(provider: string) {
 
 function safeMessage(error: unknown) {
   if (!(error instanceof Error)) return "Eve could not complete the request.";
-  if (/API key|required|invalid JSON|schema|too large|not found|owned/i.test(error.message)) return error.message;
+  if (/API key|BYOK|required|invalid JSON|schema|too large|not found|owned/i.test(error.message)) return redactErrorMessage(error.message);
   return "Eve could not complete the architect request. Use the request reference to inspect server logs.";
 }

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EveAiChat } from "@/components/eve-builder/eve-ai-chat";
 import { EveProjectWorkspaceClient } from "@/components/eve-builder/eve-project-workspace-client";
+import { EveWorkspaceProvider } from "@/components/eve-builder/eve-workspace-context";
 
 export const metadata: Metadata = {
   title: "Eve AI Agent Builder",
@@ -12,5 +13,14 @@ export const metadata: Metadata = {
 };
 
 export default function EveBuilderPage() {
-  return <AppShell mode="wide"><div className="eve-builder-layout"><EveAiChat /><EveProjectWorkspaceClient /></div></AppShell>;
+  return (
+    <AppShell mode="wide">
+      <EveWorkspaceProvider>
+        <div className="eve-builder-layout">
+          <EveAiChat />
+          <EveProjectWorkspaceClient />
+        </div>
+      </EveWorkspaceProvider>
+    </AppShell>
+  );
 }
