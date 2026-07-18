@@ -694,7 +694,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         {activeStep !== "source" ? (
           <footer className="builder-flow-actions">
             <button type="button" className="builder-secondary-button" onClick={() => goRelative(-1)} disabled={currentStepIndex <= 0}><ArrowLeft className="size-4" />Back</button>
-            <div className="builder-step-status"><span>{issues.length ? `${issues.length} validation issue{issues.length === 1 ? "" : "s"} : "Ready"}</span><ChevronRight className="size-4" /><span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed for AI`}</span></div>
+            <div className="builder-step-status"><span>{issues.length ? `${issues.length} validation issue${issues.length === 1 ? "" : "s"}` : "Ready"}</span><ChevronRight className="size-4" /><span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed for AI`}</span></div>
             {currentStepIndex < orderedSteps.length - 1 ? <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>Continue<ArrowRight className="size-4" /></button> : null}
           </footer>
         ) : null}
