@@ -8,6 +8,8 @@ import {
   TerminalSquare,
 } from "lucide-react";
 
+import { LandingPlayground } from "@/components/landing-playground";
+
 import "@/app/firebench.css";
 import "@/app/landing.css";
 
@@ -116,34 +118,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="lp-play" aria-label="Product preview">
-              <div className="lp-play__tabs" role="tablist" aria-label="Skill workflow">
-                <span className="lp-play__tab" data-active="true" role="tab" aria-selected="true">
-                  Browse
-                </span>
-                <span className="lp-play__tab" role="tab" aria-selected="false">
-                  Run
-                </span>
-                <span className="lp-play__tab" role="tab" aria-selected="false">
-                  Trace
-                </span>
-              </div>
-              <div className="lp-play__body">
-                <div className="lp-play__meta">
-                  <span>[ .SKILL ]</span>
-                  <span>sandbox · deny-all</span>
-                </div>
-                <pre className="lp-code">
-                  <span className="lp-code__muted"># skill: code-review</span>
-                  {"\n"}permissions:{"\n"}
-                  {"  "}fs: read{"\n"}
-                  {"  "}network: deny-all{"\n"}
-                  <span className="lp-code__heat">status: ready</span>
-                  {"\n"}
-                  <span className="lp-code__muted"># inspect → evaluate → run</span>
-                </pre>
-              </div>
-            </div>
+            <LandingPlayground />
           </div>
         </section>
 
