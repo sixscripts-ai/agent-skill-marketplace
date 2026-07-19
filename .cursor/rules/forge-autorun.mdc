@@ -1,0 +1,15 @@
+---
+description: Marketplace Forge build rules — evidence, no secrets, HITL for destructive
+alwaysApply: true
+---
+
+# Forge autorun
+
+When building Agent Skill Marketplace (Exe=order66):
+
+1. **Loop:** plan → act → verify → summarize. Never claim success without evidence (exit codes, HTTP status, test output).
+2. **Secrets:** never commit `.env*`, API keys, or paste secrets into packages / Neon messages / permissions files.
+3. **Product HITL:** do not weaken public-publish gates or destructive-shell confirms for convenience.
+4. **Retries:** same error twice → change approach; never identical retry a third time.
+5. **Skill lifecycle tests:** prefer `/api/forge` and sandbox prove over inventing pass/fail.
+6. **UI:** Firebench only (paper + heat `#fa5d19`); no neon green or purple AI SaaS restyles.
