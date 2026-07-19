@@ -1,0 +1,66 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - redesign/phase-1-working
+  push:
+    branches:
+      - main
+      - redesign/phase-1-working
+      - agent/quality-gates-cleanup
+  workflow_dispatch:
+
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify application
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Validate Prisma schema
+        run: pnpm exec prisma validate
+
+      - name: Check repository hygiene
+        run: node scripts/check-repository-hygiene.mjs
+
+      - name: Lint application source
+        run: pnpm exec eslint --config eslint.quality.config.mjs src tests
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run security tests
+        run: pnpm test:security
+
+      - name: Build application
+        run: pnpm build
