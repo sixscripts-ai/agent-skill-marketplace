@@ -30,6 +30,7 @@ const topNav = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/builder", label: "Builder" },
   { href: "/skills", label: "My Skills" },
+  { href: "/terminal", label: "Terminal" },
   { href: "/docs", label: "Docs" },
   { href: "/cli", label: "CLI" },
 ];
@@ -51,6 +52,12 @@ const sections = [
     ],
   },
   {
+    title: "Run",
+    items: [
+      { href: "/terminal", label: "Live Terminal", icon: TerminalSquare },
+    ],
+  },
+  {
     title: "Learn",
     items: [
       { href: "/docs", label: "Documentation", icon: BookOpen },
@@ -59,7 +66,16 @@ const sections = [
   },
 ];
 
-export function AppShell({ children, mode = "content" }: { children: ReactNode; mode?: AppShellMode }) {
+export function AppShell({
+  children,
+  mode = "content",
+  sidebarDefaultOpen = true,
+}: {
+  children: ReactNode;
+  mode?: AppShellMode;
+  /** When false, sidebar starts icon-collapsed to free workspace width. */
+  sidebarDefaultOpen?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -95,7 +111,7 @@ export function AppShell({ children, mode = "content" }: { children: ReactNode; 
         : "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8";
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarDefaultOpen}>
       <div className="app-shell-v2 flex min-h-screen w-full">
         <Sidebar collapsible="icon">
           <SidebarHeader>

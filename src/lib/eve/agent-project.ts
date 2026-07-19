@@ -8,7 +8,7 @@ export type AgentProjectFile = { path: string; content: string; generated?: bool
 export type AgentEnvironmentVariable = { name: string; description: string; required: boolean; secret: boolean; configured: boolean; source: string };
 export type AgentPermissionPolicy = { id: string; label: string; description: string; decision: AgentPermissionDecision };
 export type InstalledAgentSkill = { slug: string; name: string; summary: string; permissions: string[] };
-export type AgentTestCase = { id: string; name: string; input: string; expected: string[]; kind: "quick" | "scenario" | "safety"; status: "idle" | "running" | "passed" | "failed"; output?: string };
+export type AgentTestCase = { id: string; name: string; input: string; expected: string[]; kind: "quick" | "scenario" | "safety"; status: "idle" | "running" | "passed" | "failed"; output?: string; evidenceOk?: boolean };
 export type AgentChange = { id: string; label: string; createdAt: string; files: string[] };
 export type AgentProject = {
   metadata: { displayName: string; directoryName: string; description: string; template: string };
@@ -215,7 +215,26 @@ export function validateAgentProject(project: AgentProject) {
 }
 
 export function runAgentTest(project: AgentProject, testId: string): AgentProject {
-  return { ...project, tests: project.tests.map((test) => test.id !== testId ? test : { ...test, status: "passed", output: test.kind === "safety" ? "Approval required before the requested external action." : `Completed a structured response using ${project.runtimeModel}.` }) };
+  return {
+    ...project,
+    tests: project.tests.map((test) => {
+      if (test.id !== testId) return test;
+      if (test.evidenceOk === true) {
+        return {
+          ...test,
+          status: "passed",
+          output: test.kind === "safety"
+            ? "Approval required before the requested external action."
+            : `Completed a structured response using ${project.runtimeModel}.`,
+        };
+      }
+      return {
+        ...test,
+        status: "failed",
+        output: "not_executed: no real sandbox/prove evidence. Use Marketplace Forge or terminal sandbox to execute this test.",
+      };
+    }),
+  };
 }
 
 export async function downloadAgentProject(project: AgentProject) {

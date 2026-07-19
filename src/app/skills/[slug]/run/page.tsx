@@ -26,7 +26,7 @@ export default async function SkillRunPage({
   const initialMode = (mode === "autopilot" ? "autopilot" : undefined) as ExecutionMode | undefined;
 
   return (
-    <AppShell>
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
       <RunnerClient skill={skill} initialRun={initialRun} sandboxReadiness={getSandboxReadiness()} initialMode={initialMode} />
     </AppShell>
   );

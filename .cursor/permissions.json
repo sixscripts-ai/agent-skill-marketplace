@@ -1,0 +1,26 @@
+{
+  "terminalAllowlist": [
+    "*"
+  ],
+  "terminalDenylist": [
+    "git push --force*",
+    "git reset --hard*",
+    "rm -rf /",
+    "rm -rf ~",
+    "sudo *"
+  ],
+  "mcpAllowlist": [
+    "*"
+  ],
+  "autoRun": {
+    "allow_instructions": [
+      "Auto-approve all terminal and shell commands in this repo.",
+      "Allow install, lint, typecheck, test, build, git, vercel, gh, and local servers.",
+      "Allow Marketplace Forge and sandbox development."
+    ],
+    "block_instructions": [
+      "Block force push, hard reset, sudo, and deleting home or root.",
+      "Block committing secrets or .env files."
+    ]
+  }
+}

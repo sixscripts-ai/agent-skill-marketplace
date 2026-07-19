@@ -39,9 +39,10 @@ import type {
 } from "@/lib/types";
 import { SafeMessageResponse } from "./safe-message-response";
 import { ApiSettingsModal } from "./api-settings-modal";
-import { BuilderStudio, BuilderField, BuilderPanel, BuilderSectionLabel, BuilderStatus } from "./builder/builder-ui";
+import { BuilderStudio, BuilderField, BuilderSectionLabel, BuilderStatus } from "./builder/builder-ui";
 import { BuilderEditor } from "./builder/builder-editor";
 import { BuilderCopilot, type BuilderCopilotMessage } from "./builder/builder-copilot";
+import { ForgePanel } from "./builder/forge-panel";
 import type { BuilderSavedUrls, BuilderViewMode, BuilderVisibility } from "./builder/builder-types";
 import { Badge } from "./ui";
 
@@ -534,174 +535,276 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
   return (
     <BuilderStudio>
-      <header className="builder-guided-header">
-        <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Skill Studio</div>
-          <h1>Build a portable agent skill</h1>
-          <p>Choose how to start, complete one focused step at a time, then download the package or publish it.</p>
-        </div>
-        <div className="builder-model-bar" aria-label="AI model and API key settings">
-          <label>
-            <span>AI model</span>
-            <select value={copilotModel} onChange={(event) => setCopilotModel(event.target.value)}>
-              {modelOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-            </select>
-          </label>
-          <button type="button" onClick={() => setIsSettingsOpen(true)} className={`builder-api-key-button ${activeApiKey ? "builder-api-key-active" : ""}`}>
-            {activeApiKey ? <CheckCircle2 className="size-4" /> : <KeyRound className="size-4" />}
-            <span>{activeApiKey ? `${providerLabel} key active` : `Activate ${providerLabel} key`}</span>
-          </button>
-        </div>
-      </header>
-
-      <nav className="builder-progress" aria-label="Skill creation progress">
-        {orderedSteps.map((step, index) => {
-          const selected = activeStep === step;
-          const complete = builderPath !== null && index < currentStepIndex;
-          const disabled = builderPath === null && step !== "source";
-          return (
-            <button type="button" key={step} disabled={disabled} aria-current={selected ? "step" : undefined} onClick={() => setActiveStep(step)}>
-              <span className={`builder-progress-index ${complete ? "is-complete" : ""}`}>{complete ? <Check className="size-3.5" /> : index + 1}</span>
-              <span>{stepLabels[step]}</span>
+      <div className="builder-workbench-shell">
+        <header className="builder-guided-header">
+          <div className="min-w-0">
+            <div className="builder-eyebrow">Skill Studio</div>
+            <h1>Build a portable agent skill</h1>
+            <p>Describe the skill, refine the package, then download or publish.</p>
+          </div>
+          <div className="builder-model-bar" aria-label="AI model and API key settings">
+            <label>
+              <span>AI model</span>
+              <select value={copilotModel} onChange={(event) => setCopilotModel(event.target.value)}>
+                {modelOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              </select>
+            </label>
+            <button type="button" onClick={() => setIsSettingsOpen(true)} className={`builder-api-key-button ${activeApiKey ? "builder-api-key-active" : ""}`}>
+              {activeApiKey ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <KeyRound className="size-4" aria-hidden="true" />}
+              <span>{activeApiKey ? `${providerLabel} key active` : `Activate ${providerLabel} key`}</span>
             </button>
-          );
-        })}
-      </nav>
-
-      <main className="builder-guided-main">
-        <div className="builder-step-heading">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Step {Math.max(1, currentStepIndex + 1)} of {orderedSteps.length}</div>
-            <h2>{stepTitle(activeStep, builderPath)}</h2>
-            <p>{stepDescription(activeStep, builderPath)}</p>
           </div>
-          {builderPath ? <button className="builder-secondary-button" type="button" onClick={() => { setBuilderPath(null); setActiveStep("source"); }}>Change starting path</button> : null}
-        </div>
+        </header>
 
-        {activeStep === "source" ? (
-          <section className="builder-start-grid">
-            <article className={`builder-start-card ${builderPath === "create" ? "is-selected" : ""}`}>
-              <span className="builder-start-icon"><WandSparkles className="size-6" /></span>
-              <div><div className="builder-card-kicker">Create new</div><h3>Start with an idea</h3><p>Describe the outcome. Copilot creates SKILL.md, package files, metadata, and a test prompt.</p></div>
-              <button type="button" className="builder-primary-button" onClick={() => choosePath("create")}><Sparkles className="size-4" />Create with AI</button>
-            </article>
-            <article className={`builder-start-card ${builderPath === "import" ? "is-selected" : ""}`}>
-              <span className="builder-start-icon"><Upload className="size-6" /></span>
-              <div><div className="builder-card-kicker">Import existing</div><h3>Upload a skill package</h3><p>Import SKILL.md, a ZIP or .skill package, or a complete folder. The Builder detects and repairs the structure.</p></div>
-              <div className="builder-start-actions">
-                <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" />File or ZIP<input className="sr-only" data-testid="builder-file-upload" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
-                <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" />Folder<input className="sr-only" data-testid="builder-folder-upload" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
-                <button type="button" className="builder-secondary-button" onClick={() => { setBuilderPath("import"); void pasteSkill(); }}><FileText className="size-4" />Paste SKILL.md</button>
+        {builderPath ? (
+          <nav className="builder-progress" aria-label="Skill creation progress">
+            {orderedSteps.map((step, index) => {
+              const selected = activeStep === step;
+              const complete = index < currentStepIndex;
+              return (
+                <button type="button" key={step} aria-current={selected ? "step" : undefined} onClick={() => setActiveStep(step)}>
+                  <span className={`builder-progress-index ${complete ? "is-complete" : ""}`}>{complete ? <Check className="size-3.5" aria-hidden="true" /> : index + 1}</span>
+                  <span>{stepLabels[step]}</span>
+                </button>
+              );
+            })}
+          </nav>
+        ) : null}
+
+        <div className="builder-section-rule" role="separator" aria-hidden="true" />
+
+        <main className="builder-guided-main">
+          {activeStep !== "source" ? (
+            <div className="builder-step-heading">
+              <div>
+                <div className="builder-eyebrow">Step {Math.max(1, currentStepIndex + 1)} of {orderedSteps.length}</div>
+                <h2>{stepTitle(activeStep, builderPath)}</h2>
+                <p>{stepDescription(activeStep, builderPath)}</p>
               </div>
-            </article>
-            <div className="builder-ai-setup-card">
-              <div><BuilderSectionLabel>AI setup</BuilderSectionLabel><h3>{activeApiKey ? `${providerLabel} is ready` : `Activate a ${providerLabel} API key`}</h3><p>The selected model powers Copilot generation. Keys are stored only in this browser and can be changed at any time.</p></div>
-              <button type="button" className={activeApiKey ? "builder-secondary-button" : "builder-primary-button"} onClick={() => setIsSettingsOpen(true)}><KeyRound className="size-4" />{activeApiKey ? "Manage API keys" : "Add API key"}</button>
+              <button className="builder-secondary-button" type="button" onClick={() => { setBuilderPath(null); setActiveStep("source"); }}>Change path</button>
             </div>
-            {uploadError ? <div className="builder-error-banner">{uploadError}</div> : null}
-          </section>
-        ) : null}
+          ) : null}
 
-        {activeStep === "instructions" ? (
-          <div className="builder-step-stack">
-            <BuilderCopilot
-              messages={messages as BuilderCopilotMessage[]}
-              input={input}
-              model={copilotModel}
-              isGenerating={isGenerating}
-              error={copilotError}
-              showControls={false}
-              onInputChange={setInput}
-              onModelChange={setCopilotModel}
-              onSubmit={submitCopilot}
-              onStop={() => void stop()}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-            />
-            <BuilderEditor
-              viewMode={viewMode}
-              issueCount={issues.length}
-              editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
-              preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
-              onViewModeChange={setViewMode}
-            />
-          </div>
-        ) : null}
+          {activeStep === "source" ? (
+            <section className="builder-start-stack" aria-label="How to start">
+              <article className="builder-start-primary">
+                <div className="builder-start-copy">
+                  <span className="builder-start-icon" aria-hidden="true"><WandSparkles className="size-5" /></span>
+                  <div>
+                    <div className="builder-eyebrow">Create new</div>
+                    <h2>Start with an idea</h2>
+                    <p>Describe the outcome. Copilot drafts SKILL.md, package files, metadata, and a test prompt.</p>
+                  </div>
+                </div>
+                <button type="button" className="builder-primary-button" onClick={() => choosePath("create")}>
+                  <Sparkles className="size-4" aria-hidden="true" />
+                  Create with AI
+                </button>
+              </article>
 
-        {activeStep === "package" ? (
-          <div className="builder-step-stack">
-            <BuilderPanel title="Skill package" description="Review the exact files that will be downloaded or published." action={<button type="button" onClick={() => void syncPackage()} disabled={isPackaging} className="builder-primary-button"><PackageCheck className="size-4" />{isPackaging ? "Building..." : "Generate missing files"}</button>}>
-              <div className="builder-upload-zone">
-                <div><Upload className="size-6 text-primary" /><h3>Upload or add package files</h3><p>Existing files are preserved. Missing required directories are scaffolded automatically.</p></div>
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+
+              <article className="builder-start-secondary">
+                <div className="builder-start-copy">
+                  <span className="builder-start-icon is-muted" aria-hidden="true"><Upload className="size-5" /></span>
+                  <div>
+                    <div className="builder-eyebrow">Import existing</div>
+                    <h3>Upload a skill package</h3>
+                    <p>Import SKILL.md, a ZIP or .skill package, or a folder. The Builder detects and repairs structure.</p>
+                  </div>
+                </div>
                 <div className="builder-start-actions">
-                  <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" />Add file or ZIP<input className="sr-only" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
-                  <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" />Add folder<input className="sr-only" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
-                  <button type="button" className="builder-secondary-button" data-testid="builder-parse" onClick={() => void importSkill()}><WandSparkles className="size-4" />Parse and repair</button>
+                  <label className="builder-secondary-button cursor-pointer">
+                    <FileArchive className="size-4" aria-hidden="true" />
+                    File or ZIP
+                    <input className="sr-only" data-testid="builder-file-upload" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} />
+                  </label>
+                  <label className="builder-secondary-button cursor-pointer">
+                    <FolderOpen className="size-4" aria-hidden="true" />
+                    Folder
+                    <input className="sr-only" data-testid="builder-folder-upload" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} />
+                  </label>
+                  <button type="button" className="builder-secondary-button" onClick={() => { setBuilderPath("import"); void pasteSkill(); }}>
+                    <FileText className="size-4" aria-hidden="true" />
+                    Paste SKILL.md
+                  </button>
+                </div>
+              </article>
+              {uploadError ? <div className="builder-error-banner">{uploadError}</div> : null}
+            </section>
+          ) : null}
+
+          {activeStep === "instructions" ? (
+            <div className="builder-instructions-workbench">
+              <BuilderCopilot
+                messages={messages as BuilderCopilotMessage[]}
+                input={input}
+                model={copilotModel}
+                isGenerating={isGenerating}
+                error={copilotError}
+                showControls={false}
+                onInputChange={setInput}
+                onModelChange={setCopilotModel}
+                onSubmit={submitCopilot}
+                onStop={() => void stop()}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+              />
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+              <ForgePanel
+                skillMarkdown={skillMd}
+                skillName={name}
+                slug={slug}
+                packageId={packageUploadId || undefined}
+                onDraftPublished={(urls) => {
+                  const next = urls as BuilderSavedUrls;
+                  if (next?.detail) {
+                    setSavedUrls(next);
+                    setPublishedSlug(slug);
+                  }
+                }}
+              />
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+              <BuilderEditor
+                viewMode={viewMode}
+                issueCount={issues.length}
+                editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
+                preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
+                onViewModeChange={setViewMode}
+              />
+            </div>
+          ) : null}
+
+          {activeStep === "package" ? (
+            <section className="builder-band" aria-labelledby="builder-package-title">
+              <header className="builder-band-header">
+                <div>
+                  <h3 id="builder-package-title">Skill package</h3>
+                  <p>Review the exact files that will be downloaded or published.</p>
+                </div>
+                <button type="button" onClick={() => void syncPackage()} disabled={isPackaging} className="builder-primary-button">
+                  <PackageCheck className="size-4" aria-hidden="true" />
+                  {isPackaging ? "Building..." : "Generate missing files"}
+                </button>
+              </header>
+              <div className="builder-upload-zone">
+                <div>
+                  <Upload className="size-5 text-primary" aria-hidden="true" />
+                  <h4>Upload or add package files</h4>
+                  <p>Existing files are preserved. Missing required directories are scaffolded automatically.</p>
+                </div>
+                <div className="builder-start-actions">
+                  <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" aria-hidden="true" />Add file or ZIP<input className="sr-only" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
+                  <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" aria-hidden="true" />Add folder<input className="sr-only" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
+                  <button type="button" className="builder-secondary-button" data-testid="builder-parse" onClick={() => void importSkill()}><WandSparkles className="size-4" aria-hidden="true" />Parse and repair</button>
                 </div>
               </div>
               {uploadedFileName ? <div className="builder-info-banner">Imported <strong>{uploadedFileName}</strong>{packageUploadId ? ` · Package ${packageUploadId}` : ""}</div> : null}
               {packageError || uploadError ? <div className="builder-error-banner">{packageError || uploadError}</div> : null}
               <PackageTree slug={slug} files={packageFiles} skillMd={skillMd} />
-            </BuilderPanel>
-          </div>
-        ) : null}
+            </section>
+          ) : null}
 
-        {activeStep === "configuration" ? (
-          <div className="builder-step-stack">
-            <BuilderPanel title="Marketplace listing" description="Control how the skill appears in search, detail pages, and My Skills.">
-              <div className="builder-form-grid">
-                <BuilderField label="Display name" helper={`${name.length}/64 characters`}><input className="builder-input" data-testid="builder-name" value={name} onChange={(event) => setName(event.target.value)} /></BuilderField>
-                <BuilderField label="Directory name" helper="Lowercase letters, numbers, and single hyphens."><input className="builder-input font-mono" data-testid="builder-slug" value={slug} onChange={(event) => setSlug(event.target.value)} /></BuilderField>
-                <BuilderField label="Category"><input className="builder-input" data-testid="builder-category" value={category} onChange={(event) => setCategory(event.target.value)} /></BuilderField>
-                <BuilderField label="Visibility"><select className="builder-input" data-testid="builder-visibility" value={visibility} onChange={(event) => setVisibility(event.target.value as BuilderVisibility)}><option value="public">Public</option><option value="private">Private</option><option value="unlisted">Unlisted</option></select></BuilderField>
-                <div className="sm:col-span-2"><BuilderField label="Summary" helper={`${summary.length}/1024 characters`}><textarea className="builder-textarea min-h-28" data-testid="builder-summary" value={summary} onChange={(event) => setSummary(event.target.value)} /></BuilderField></div>
-              </div>
-            </BuilderPanel>
-            <BuilderPanel title="Access and compatibility" description="Declare the permissions the skill uses and where users can install it.">
-              <div className="space-y-6">
-                <ToggleList title="Permissions" values={permissionKeys} labels={permissionLabels} selected={selectedPermissions} onToggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)} />
-                <ToggleList title="Install targets" values={compatibilityTargets} selected={selectedTargets} onToggle={(value) => toggle(value, selectedTargets, setSelectedTargets)} />
-              </div>
-            </BuilderPanel>
-          </div>
-        ) : null}
+          {activeStep === "configuration" ? (
+            <div className="builder-step-stack">
+              <section className="builder-band" aria-labelledby="builder-listing-title">
+                <header className="builder-band-header">
+                  <div>
+                    <h3 id="builder-listing-title">Marketplace listing</h3>
+                    <p>Control how the skill appears in search, detail pages, and My Skills.</p>
+                  </div>
+                </header>
+                <div className="builder-form-grid">
+                  <BuilderField label="Display name" helper={`${name.length}/64 characters`}><input className="builder-input" data-testid="builder-name" value={name} onChange={(event) => setName(event.target.value)} /></BuilderField>
+                  <BuilderField label="Directory name" helper="Lowercase letters, numbers, and single hyphens."><input className="builder-input font-mono" data-testid="builder-slug" value={slug} onChange={(event) => setSlug(event.target.value)} /></BuilderField>
+                  <BuilderField label="Category"><input className="builder-input" data-testid="builder-category" value={category} onChange={(event) => setCategory(event.target.value)} /></BuilderField>
+                  <BuilderField label="Visibility"><select className="builder-input" data-testid="builder-visibility" value={visibility} onChange={(event) => setVisibility(event.target.value as BuilderVisibility)}><option value="public">Public</option><option value="private">Private</option><option value="unlisted">Unlisted</option></select></BuilderField>
+                  <div className="sm:col-span-2"><BuilderField label="Summary" helper={`${summary.length}/1024 characters`}><textarea className="builder-textarea min-h-28" data-testid="builder-summary" value={summary} onChange={(event) => setSummary(event.target.value)} /></BuilderField></div>
+                </div>
+              </section>
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+              <section className="builder-band" aria-labelledby="builder-access-title">
+                <header className="builder-band-header">
+                  <div>
+                    <h3 id="builder-access-title">Access and compatibility</h3>
+                    <p>Declare the permissions the skill uses and where users can install it.</p>
+                  </div>
+                </header>
+                <div className="space-y-6">
+                  <ToggleList title="Permissions" values={permissionKeys} labels={permissionLabels} selected={selectedPermissions} onToggle={(value) => toggle(value, selectedPermissions, setSelectedPermissions)} />
+                  <ToggleList title="Install targets" values={compatibilityTargets} selected={selectedTargets} onToggle={(value) => toggle(value, selectedTargets, setSelectedTargets)} />
+                </div>
+              </section>
+            </div>
+          ) : null}
 
-        {activeStep === "test" ? (
-          <div className="builder-step-stack">
-            <BuilderPanel title="Profile validation" description="Resolve blocking issues before downloading or publishing.">
-              <div className="space-y-2">{issues.length ? issues.map((issue) => <BuilderStatus key={issue} valid={false}>{issue}</BuilderStatus>) : <BuilderStatus valid>The Full Package Profile requirements are satisfied.</BuilderStatus>}</div>
-              {importResult?.suggestions.length ? <div className="builder-import-analysis"><strong>Repair suggestions</strong><ul>{importResult.suggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}</ul><button type="button" onClick={applySuggestedSkillMd} data-testid="builder-apply-suggestions" className="builder-secondary-button">Apply suggested formatting</button></div> : null}
-            </BuilderPanel>
-            <BuilderPanel title="Test the current draft" description="This runs the unsaved Builder state, not a different marketplace skill.">
-              <div className="builder-test-controls"><input value={testInput} onChange={(event) => setTestInput(event.target.value)} data-testid="builder-test-input" className="builder-input flex-1" onKeyDown={(event) => { if (event.key === "Enter" && !isTesting) void runTest(); }} /><button type="button" onClick={() => void runTest()} disabled={isTesting || !testInput.trim()} className="builder-primary-button"><Play className="size-4" />{isTesting ? "Running..." : "Run draft"}</button></div>
-              <div className="builder-test-output"><div className="flex items-center justify-between gap-3"><BuilderSectionLabel>Output</BuilderSectionLabel>{testRun?.status ? <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge> : null}</div><p>{testRun?.output || (isTesting ? "Streaming the current draft..." : "Run a realistic prompt to verify the skill before finishing.")}</p></div>
-            </BuilderPanel>
-          </div>
-        ) : null}
+          {activeStep === "test" ? (
+            <div className="builder-step-stack">
+              <section className="builder-band" aria-labelledby="builder-validation-title">
+                <header className="builder-band-header">
+                  <div>
+                    <h3 id="builder-validation-title">Profile validation</h3>
+                    <p>Resolve blocking issues before downloading or publishing.</p>
+                  </div>
+                </header>
+                <div className="space-y-2">{issues.length ? issues.map((issue) => <BuilderStatus key={issue} valid={false}>{issue}</BuilderStatus>) : <BuilderStatus valid>The Full Package Profile requirements are satisfied.</BuilderStatus>}</div>
+                {importResult?.suggestions.length ? <div className="builder-import-analysis"><strong>Repair suggestions</strong><ul>{importResult.suggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}</ul><button type="button" onClick={applySuggestedSkillMd} data-testid="builder-apply-suggestions" className="builder-secondary-button">Apply suggested formatting</button></div> : null}
+              </section>
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+              <section className="builder-band" aria-labelledby="builder-test-title">
+                <header className="builder-band-header">
+                  <div>
+                    <h3 id="builder-test-title">Test the current draft</h3>
+                    <p>This runs the unsaved Builder state, not a different marketplace skill.</p>
+                  </div>
+                </header>
+                <div className="builder-test-controls">
+                  <input value={testInput} onChange={(event) => setTestInput(event.target.value)} data-testid="builder-test-input" className="builder-input flex-1" onKeyDown={(event) => { if (event.key === "Enter" && !isTesting) void runTest(); }} />
+                  <button type="button" onClick={() => void runTest()} disabled={isTesting || !testInput.trim()} className="builder-primary-button"><Play className="size-4" aria-hidden="true" />{isTesting ? "Running..." : "Run draft"}</button>
+                </div>
+                <div className="builder-test-output">
+                  <div className="flex items-center justify-between gap-3">
+                    <BuilderSectionLabel>Output</BuilderSectionLabel>
+                    {testRun?.status ? <Badge tone={testRun.status === "failed" ? "red" : testRun.status === "complete" ? "green" : "amber"}>{testRun.status}</Badge> : null}
+                  </div>
+                  <p>{testRun?.output || (isTesting ? "Streaming the current draft..." : "Run a realistic prompt to verify the skill before finishing.")}</p>
+                </div>
+              </section>
+            </div>
+          ) : null}
 
-        {activeStep === "finish" ? (
-          <div className="builder-step-stack">
-            <BuilderPanel title="Finish your skill" description="Saving, downloading, and publishing are separate actions so the result is always clear.">
-              <div className="builder-finish-grid">
-                <FinishCard icon={<Save className="size-5" />} title="Save browser draft" description="Keep the current Builder state in this browser without publishing it." action={<button type="button" className="builder-secondary-button" onClick={saveDraft}>{draftSaved ? <Check className="size-4" /> : <Save className="size-4" />}{draftSaved ? "Draft saved" : "Save draft"}</button>} />
-                <FinishCard icon={<Download className="size-5" />} title="Download skill package" description={`Create ${slug || "agent-skill"}.zip with SKILL.md, scripts, references, assets, and examples.`} action={<button type="button" className="builder-secondary-button" onClick={() => void downloadZip()} disabled={isPackaging || issues.length > 0}><Download className="size-4" />{isPackaging ? "Preparing..." : "Download ZIP"}</button>} />
-                <FinishCard icon={<Rocket className="size-5" />} title="Publish to Marketplace" description={`Publish a ${visibility} marketplace version with the selected targets and permissions.`} action={<button type="button" data-testid="builder-publish" className="builder-primary-button" onClick={() => void publishSkill()} disabled={isSaving || issues.length > 0}><Rocket className="size-4" />{isSaving ? "Publishing..." : "Publish to Marketplace"}</button>} />
+          {activeStep === "finish" ? (
+            <section className="builder-band" aria-labelledby="builder-finish-title">
+              <header className="builder-band-header">
+                <div>
+                  <h3 id="builder-finish-title">Finish your skill</h3>
+                  <p>Saving, downloading, and publishing are separate actions.</p>
+                </div>
+              </header>
+              <div className="builder-finish-list">
+                <FinishCard icon={<Save className="size-4" aria-hidden="true" />} title="Save browser draft" description="Keep the current Builder state in this browser without publishing." action={<button type="button" className="builder-secondary-button" onClick={saveDraft}>{draftSaved ? <Check className="size-4" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}{draftSaved ? "Draft saved" : "Save draft"}</button>} />
+                <FinishCard icon={<Download className="size-4" aria-hidden="true" />} title="Download skill package" description={`Create ${slug || "agent-skill"}.zip with SKILL.md and scaffold folders.`} action={<button type="button" className="builder-secondary-button" onClick={() => void downloadZip()} disabled={isPackaging || issues.length > 0}><Download className="size-4" aria-hidden="true" />{isPackaging ? "Preparing..." : "Download ZIP"}</button>} />
+                <FinishCard icon={<Rocket className="size-4" aria-hidden="true" />} title="Publish to Marketplace" description={`Publish a ${visibility} marketplace version with the selected targets and permissions.`} action={<button type="button" data-testid="builder-publish" className="builder-primary-button" onClick={() => void publishSkill()} disabled={isSaving || issues.length > 0}><Rocket className="size-4" aria-hidden="true" />{isSaving ? "Publishing..." : "Publish to Marketplace"}</button>} />
               </div>
               {issues.length ? <div className="builder-warning-banner">Resolve {issues.length} validation issue{issues.length === 1 ? "" : "s"} in the previous step before downloading or publishing.</div> : null}
-              {downloadedPackage ? <div className="builder-success-banner"><CheckCircle2 className="size-4" />Downloaded {downloadedPackage}</div> : null}
-              {publishedSlug ? <div className="builder-success-banner"><PackageCheck className="size-4" /><span>Published <strong>{publishedSlug}</strong>.</span>{savedUrls ? <a href={savedUrls.detail}>Open skill</a> : null}</div> : null}
+              {downloadedPackage ? <div className="builder-success-banner"><CheckCircle2 className="size-4" aria-hidden="true" />Downloaded {downloadedPackage}</div> : null}
+              {publishedSlug ? <div className="builder-success-banner"><PackageCheck className="size-4" aria-hidden="true" /><span>Published <strong>{publishedSlug}</strong>.</span>{savedUrls ? <a href={savedUrls.detail}>Open skill</a> : null}</div> : null}
               {packageError || saveError ? <div className="builder-error-banner">{packageError || saveError}</div> : null}
-            </BuilderPanel>
-          </div>
-        ) : null}
+            </section>
+          ) : null}
 
-        {activeStep !== "source" ? (
-          <footer className="builder-flow-actions">
-            <button type="button" className="builder-secondary-button" onClick={() => goRelative(-1)} disabled={currentStepIndex <= 0}><ArrowLeft className="size-4" />Back</button>
-            <div className="builder-step-status"><span>{issues.length ? `${issues.length} validation issue${issues.length === 1 ? "" : "s"}` : "Ready"}</span><ChevronRight className="size-4" /><span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed for AI`}</span></div>
-            {currentStepIndex < orderedSteps.length - 1 ? <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>Continue<ArrowRight className="size-4" /></button> : null}
-          </footer>
-        ) : null}
-      </main>
+          {activeStep !== "source" ? (
+            <footer className="builder-flow-actions">
+              <button type="button" className="builder-secondary-button" onClick={() => goRelative(-1)} disabled={currentStepIndex <= 0}><ArrowLeft className="size-4" aria-hidden="true" />Back</button>
+              <div className="builder-step-status">
+                <span>{issues.length ? `${issues.length} issue${issues.length === 1 ? "" : "s"}` : "Ready"}</span>
+                <ChevronRight className="size-4" aria-hidden="true" />
+                <span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed`}</span>
+              </div>
+              {currentStepIndex < orderedSteps.length - 1 ? <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>Continue<ArrowRight className="size-4" aria-hidden="true" /></button> : null}
+            </footer>
+          ) : null}
+        </main>
+      </div>
 
       <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => { setIsSettingsOpen(false); setSettingsRevision((value) => value + 1); }} />
     </BuilderStudio>
@@ -742,7 +845,16 @@ function ToggleList({ title, values, labels, selected, onToggle }: { title: stri
 }
 
 function FinishCard({ icon, title, description, action }: { icon: ReactNode; title: string; description: string; action: ReactNode }) {
-  return <article className="builder-finish-card"><span>{icon}</span><h3>{title}</h3><p>{description}</p><div>{action}</div></article>;
+  return (
+    <article className="builder-finish-row">
+      <span className="builder-finish-icon" aria-hidden="true">{icon}</span>
+      <div className="min-w-0">
+        <h4>{title}</h4>
+        <p>{description}</p>
+      </div>
+      <div className="builder-finish-action">{action}</div>
+    </article>
+  );
 }
 
 function stepTitle(step: BuilderStep, path: BuilderPath) {

@@ -1,151 +1,258 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Blocks,
-  Bot,
-  Braces,
-  CheckCircle2,
-  GitBranch,
+  Eye,
+  Package,
   ShieldCheck,
   Sparkles,
   TerminalSquare,
 } from "lucide-react";
 
-const categories = [
-  { name: "Development", description: "Code review, debugging, migration, and delivery workflows.", icon: Braces },
-  { name: "Research", description: "Source-backed discovery, analysis, and synthesis.", icon: Bot },
-  { name: "Automation", description: "Repeatable agent workflows with visible permissions.", icon: GitBranch },
+import { LandingPlayground } from "@/components/landing-playground";
+
+import "@/app/firebench.css";
+import "@/app/landing.css";
+
+const features = [
+  {
+    title: "Inspect",
+    body: "Read instructions, permissions, compatibility, and version history before you install or run.",
+    icon: Eye,
+    href: "/marketplace",
+  },
+  {
+    title: "Sandbox run",
+    body: "Execute skills with explicit controls, network policy, and a full trace of what happened.",
+    icon: TerminalSquare,
+    href: "/docs",
+  },
+  {
+    title: "Install",
+    body: "Ship portable skills into agent environments with CLI install targets and clear provenance.",
+    icon: Package,
+    href: "/cli",
+  },
 ];
 
-const proof = [
-  { value: "Inspectable", label: "Read the instructions and permissions before running." },
-  { value: "Evaluated", label: "Compare test results and version history." },
-  { value: "Sandboxed", label: "Run skills with explicit execution controls." },
-  { value: "Portable", label: "Install across supported agent environments." },
+const steps = [
+  {
+    title: "Discover",
+    body: "Browse the marketplace for capabilities that match your agent’s job.",
+  },
+  {
+    title: "Evaluate",
+    body: "Check permissions, evals, and versions so you know what you’re trusting.",
+  },
+  {
+    title: "Run & install",
+    body: "Prove the skill in a sandbox, then install it where your agents work.",
+  },
+];
+
+const faqs = [
+  {
+    q: "What is Agent Skill Marketplace?",
+    a: "A place to discover, inspect, evaluate, run, and install portable AI skills with transparent permissions and sandboxed execution.",
+  },
+  {
+    q: "Can I run a skill before installing it?",
+    a: "Yes. Open any skill’s run lab to execute in a controlled workspace, review artifacts, and inspect the resulting trace.",
+  },
+  {
+    q: "How do agents install skills?",
+    a: "Use the CLI install targets published with each skill, or pull the skill package into supported agent environments.",
+  },
+  {
+    q: "What stack powers the marketplace?",
+    a: "Next.js, Prisma, Vercel Sandbox, and Clerk — with Firebench UI for inspectable, developer-first surfaces.",
+  },
 ];
 
 export default function Home() {
   return (
-    <div className="public-shell">
-      <header className="public-header">
-        <div className="public-container flex h-16 items-center gap-5">
-          <Link href="/" className="flex items-center gap-3 font-semibold text-foreground">
-            <span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground">
-              <Sparkles className="size-4" aria-hidden="true" />
+    <div className="lp">
+      <header className="lp-header">
+        <div className="lp-container lp-header__inner">
+          <Link href="/" className="lp-logo">
+            <span className="lp-logo__mark" aria-hidden="true">
+              <Sparkles className="size-3.5" />
             </span>
-            <span>Agent Skill Marketplace</span>
+            <span className="lp-logo__name">Agent Skill Marketplace</span>
           </Link>
-          <nav className="ml-auto hidden items-center gap-6 md:flex" aria-label="Public navigation">
-            <Link className="public-nav-link" href="/marketplace">Marketplace</Link>
-            <Link className="public-nav-link" href="/docs">Docs</Link>
-            <Link className="public-nav-link" href="/cli">CLI</Link>
+          <nav className="lp-nav" aria-label="Public navigation">
+            <Link href="/marketplace">Marketplace</Link>
+            <Link href="/docs">Docs</Link>
+            <Link href="/cli">CLI</Link>
           </nav>
-          <Link className="public-secondary ml-auto md:ml-0" href="/sign-in">Sign in</Link>
-          <Link className="public-primary hidden sm:inline-flex" href="/builder">Create a skill</Link>
+          <div className="lp-header__actions">
+            <Link className="lp-link" href="/sign-in">
+              Sign in
+            </Link>
+            <Link className="fb-cta fb-cta--primary hidden sm:inline-flex" href="/builder">
+              Create a skill
+            </Link>
+          </div>
         </div>
       </header>
 
       <main>
-        <section className="public-container public-hero">
-          <div className="public-kicker">
-            <ShieldCheck className="size-4" aria-hidden="true" />
-            Inspect before you install
-          </div>
-          <h1>Skills for agents that need to do real work.</h1>
-          <p className="public-lede">
-            Discover, evaluate, run, and install portable AI skills with transparent permissions,
-            version history, sandbox controls, and traceable execution.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/marketplace" className="public-primary">
-              Browse marketplace <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-            <Link href="/builder" className="public-secondary">
-              <TerminalSquare className="size-4" aria-hidden="true" /> Build a skill
-            </Link>
-          </div>
-
-          <div className="public-proof-grid mt-14">
-            {proof.map((item) => (
-              <div key={item.value} className="public-card">
-                <div className="text-sm font-semibold text-foreground">{item.value}</div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.label}</p>
+        <section className="lp-hero">
+          <div className="lp-hero__wash" aria-hidden="true" />
+          <div className="lp-container lp-hero__inner">
+            <div className="lp-hero__copy">
+              <p className="lp-kicker">// Inspect before you install</p>
+              <h1 className="lp-title">
+                Power agents with <em>portable skills</em>
+              </h1>
+              <p className="lp-lead">
+                Discover, evaluate, run, and install AI skills with transparent permissions,
+                sandbox controls, and traceable execution.
+              </p>
+              <div className="lp-cta-row">
+                <Link href="/marketplace" className="fb-cta fb-cta--primary">
+                  Browse marketplace <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+                <Link href="/builder" className="fb-cta fb-cta--ghost">
+                  <TerminalSquare className="size-4" aria-hidden="true" /> Create a skill
+                </Link>
               </div>
-            ))}
+            </div>
+
+            <LandingPlayground />
           </div>
         </section>
 
-        <section className="public-section">
-          <div className="public-container">
-            <div className="max-w-2xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Explore</div>
-              <h2 className="mt-3">Find the right capability without guessing what it can access.</h2>
-              <p className="mt-5 text-base leading-7 text-muted-foreground">
-                Every skill should communicate its workflow, permissions, compatibility, evaluations,
-                and install targets before a user runs it.
+        <div className="lp-trust">
+          <div className="lp-container lp-trust__inner">
+            <span>Next.js</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Prisma</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Vercel Sandbox</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Clerk</span>
+          </div>
+        </div>
+
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// Developer first</p>
+              <h2>Built for agents that do real work</h2>
+              <p>
+                Every skill should show its workflow, permissions, and install path before it
+                touches your environment.
               </p>
             </div>
-            <div className="public-category-grid mt-10">
-              {categories.map((category) => {
-                const Icon = category.icon;
+            <div className="lp-features">
+              {features.map((feature) => {
+                const Icon = feature.icon;
                 return (
-                  <Link
-                    key={category.name}
-                    href={`/marketplace?category=${encodeURIComponent(category.name)}`}
-                    className="public-card group"
-                  >
-                    <span className="grid size-10 place-items-center rounded-md border border-primary/30 bg-primary/10 text-primary">
-                      <Icon className="size-5" aria-hidden="true" />
+                  <article key={feature.title} className="lp-feature">
+                    <span className="lp-feature__icon" aria-hidden="true">
+                      <Icon className="size-4" />
                     </span>
-                    <h3 className="mt-5 text-lg font-semibold text-foreground group-hover:text-primary">{category.name}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{category.description}</p>
-                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                      View skills <ArrowRight className="size-4" aria-hidden="true" />
-                    </span>
-                  </Link>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                    <Link className="lp-feature__link" href={feature.href}>
+                      Learn more <ArrowRight className="size-3.5" aria-hidden="true" />
+                    </Link>
+                  </article>
                 );
               })}
             </div>
           </div>
         </section>
 
-        <section className="public-section">
-          <div className="public-container grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Workflow</div>
-              <h2 className="mt-3">From discovery to a verified run.</h2>
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// How it works</p>
+              <h2>From discovery to a verified run</h2>
+              <p>Three steps from browsing a skill to proving it in a sandbox.</p>
             </div>
-            <div className="grid gap-3">
-              {[
-                [Blocks, "Inspect", "Review instructions, compatibility, versions, and required permissions."],
-                [CheckCircle2, "Evaluate", "Use saved tests and regression results to understand quality."],
-                [TerminalSquare, "Run", "Execute in a controlled workspace and inspect the resulting trace."],
-              ].map(([Icon, title, body], index) => {
-                const StepIcon = Icon as typeof Blocks;
-                return (
-                  <div key={String(title)} className="public-card flex gap-4">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-                      <StepIcon className="size-4" aria-hidden="true" />
-                    </span>
-                    <div>
-                      <div className="text-xs font-mono text-muted-foreground">0{index + 1}</div>
-                      <h3 className="mt-1 font-semibold text-foreground">{String(title)}</h3>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{String(body)}</p>
-                    </div>
+            <div className="lp-steps">
+              {steps.map((step, index) => (
+                <div key={step.title} className="lp-step">
+                  <span className="lp-step__num" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3>{step.title}</h3>
+                    <p>{step.body}</p>
                   </div>
-                );
-              })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section">
+          <div className="lp-container lp-agent">
+            <div className="lp-section__head" style={{ marginBottom: 0 }}>
+              <p className="lp-kicker lp-kicker--section">// Agent ready</p>
+              <h2>Install skills where your agents live</h2>
+              <p>
+                One command to pull a skill into your agent toolkit. Inspect first, then install
+                with confidence.
+              </p>
+              <div className="lp-cta-row" style={{ justifyContent: "flex-start", marginTop: "1rem" }}>
+                <Link href="/cli" className="fb-cta fb-cta--primary">
+                  View CLI docs <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+                <Link href="/docs" className="fb-cta fb-cta--ghost">
+                  <ShieldCheck className="size-4" aria-hidden="true" /> Permissions guide
+                </Link>
+              </div>
+            </div>
+            <div className="lp-agent__panel">
+              <div className="lp-agent__bar">
+                <span className="lp-agent__dot" aria-hidden="true" />
+                skill install
+              </div>
+              <pre className="lp-code">{`# Install a marketplace skill
+npx asm skill install code-review
+
+# Or fetch the skill package
+curl -s https://asm.dev/skills/code-review/SKILL.md
+`}</pre>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--center">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// FAQ</p>
+              <h2>Frequently asked questions</h2>
+              <p>Everything you need to know about browsing, running, and installing skills.</p>
+            </div>
+            <div className="lp-faq">
+              {faqs.map((item) => (
+                <details key={item.q}>
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="public-footer">
-        <div className="public-container flex flex-wrap items-center justify-between gap-3">
+      <footer className="lp-footer">
+        <div className="lp-container lp-footer__inner">
           <span>Agent Skill Marketplace</span>
-          <div className="flex gap-5">
-            <Link href="/docs">Documentation</Link>
+          <div className="lp-footer__links">
             <Link href="/marketplace">Marketplace</Link>
+            <Link href="/docs">Docs</Link>
+            <Link href="/cli">CLI</Link>
+            <Link href="/builder">Create</Link>
           </div>
         </div>
       </footer>

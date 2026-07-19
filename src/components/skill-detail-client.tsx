@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowRight, Download, Play, ShieldCheck, Star } from "lucide-react";
-import { CodeBlock } from "@/components/code-block";
-import { Badge, Panel } from "@/components/ui";
+import {
+  FirebenchCta,
+  FirebenchHeroCard,
+  FirebenchHeroIntro,
+  FirebenchPage,
+  FirebenchTag,
+} from "@/components/firebench";
 import type { Skill, SkillVersion } from "@/lib/types";
+import "@/app/firebench.css";
+import "@/app/skill-workspace.css";
 
 type DetailTab = "overview" | "code" | "reviews";
 
@@ -24,148 +31,196 @@ export function SkillDetailClient({
   const targets = version.compatibilityTargets ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <Panel className="p-6 md:p-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 max-w-4xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="blue">{skill.category}</Badge>
-              <Badge tone={skill.trustLevel === "Verified" ? "green" : skill.trustLevel === "Reviewed" ? "blue" : "amber"}>
-                {skill.trustLevel}
-              </Badge>
-              <Badge tone="neutral">v{skill.currentVersion}</Badge>
-              {skill.visibility ? <Badge tone="neutral">{skill.visibility}</Badge> : null}
-            </div>
+    <FirebenchPage heat="soft" className="sw-page">
+      <FirebenchHeroIntro
+        kicker="skill package"
+        title={skill.name}
+        lead={skill.summary}
+      />
 
-            <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-5xl">{skill.name}</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground md:text-lg">{skill.summary}</p>
-            <p className="mt-4 text-sm text-muted-foreground">Published by {skill.author}</p>
-          </div>
+      <div className="fb-tags" style={{ justifyContent: "center" }}>
+        <FirebenchTag>{skill.category}</FirebenchTag>
+        <FirebenchTag>{skill.trustLevel}</FirebenchTag>
+        <span className="sw-chip sw-chip--muted">v{skill.currentVersion}</span>
+        {skill.visibility ? <span className="sw-chip sw-chip--muted">{skill.visibility}</span> : null}
+        <span className="sw-chip sw-chip--muted">{skill.author}</span>
+      </div>
 
-          <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col xl:flex-row">
-            <Link
-              href={`/skills/${skill.slug}/run?mode=autopilot`}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-[var(--primary-hover)]"
-            >
+      <FirebenchHeroCard
+        actionsLeft={
+          <>
+            <FirebenchCta href={`/skills/${skill.slug}/run?mode=autopilot`}>
               <Play className="size-4" aria-hidden="true" />
               Run skill
-            </Link>
-            <Link
-              href={`/install/${skill.slug}`}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-semibold text-foreground transition hover:bg-muted"
-            >
+            </FirebenchCta>
+            <FirebenchCta href={`/install/${skill.slug}`} variant="ghost">
               <Download className="size-4" aria-hidden="true" />
               Install
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            </FirebenchCta>
+            <FirebenchCta href={`/builder/${skill.slug}`} variant="ghost">
+              Edit in builder
+            </FirebenchCta>
+          </>
+        }
+        actionsRight={
+          <FirebenchCta href="/skills" variant="ghost">
+            My Skills
+          </FirebenchCta>
+        }
+      >
+        <div className="sw-metrics">
           <Metric label="Evaluation score" value={`${latestScore}%`} />
           <Metric label="Rating" value={skill.rating.toFixed(1)} icon={<Star className="size-4" aria-hidden="true" />} />
           <Metric label="Installs" value={skill.installCount.toLocaleString()} />
           <Metric label="Compatibility" value={`${targets.length} targets`} />
         </div>
-      </Panel>
+      </FirebenchHeroCard>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Skill details">
-        <Tab active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>Overview</Tab>
-        <Tab active={activeTab === "code"} onClick={() => setActiveTab("code")}>README &amp; Code</Tab>
-        <Tab active={activeTab === "reviews"} onClick={() => setActiveTab("reviews")}>Reviews ({reviews.length})</Tab>
+      <div className="sw-tabs" role="tablist" aria-label="Skill details">
+        <Tab active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>
+          Overview
+        </Tab>
+        <Tab active={activeTab === "code"} onClick={() => setActiveTab("code")}>
+          README &amp; Code
+        </Tab>
+        <Tab active={activeTab === "reviews"} onClick={() => setActiveTab("reviews")}>
+          Reviews ({reviews.length})
+        </Tab>
       </div>
 
       {activeTab === "overview" ? (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-          <Panel className="p-6">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
-              <h2 className="text-lg font-semibold text-foreground">Required permissions</h2>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+          <section className="sw-panel">
+            <div className="sw-panel__head">
+              <div>
+                <h2 className="inline-flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-[var(--sw-heat)]" aria-hidden="true" />
+                  Required permissions
+                </h2>
+                <p>Review what this skill may access before running or installing it.</p>
+              </div>
             </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Review what this skill may access before running or installing it.</p>
-            <div className="mt-5 flex flex-col gap-3">
+            <div className="sw-panel__pad flex flex-col gap-3">
               {permissions.map((permission) => (
-                <div key={permission.key} className="rounded-md border border-border bg-muted/40 p-4">
+                <div key={permission.key} className="sw-perm">
                   <div className="flex items-start justify-between gap-3">
-                    <code className="font-mono text-sm font-semibold text-foreground">{permission.key}</code>
-                    <Badge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
+                    <code>{permission.key}</code>
+                    <span
+                      className={
+                        permission.risk === "high"
+                          ? "sw-chip sw-chip--danger"
+                          : permission.risk === "medium"
+                            ? "sw-chip sw-chip--warn"
+                            : "sw-chip sw-chip--ok"
+                      }
+                    >
                       {permission.risk} risk
-                    </Badge>
+                    </span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{permission.reason}</p>
+                  <p>{permission.reason}</p>
                 </div>
               ))}
-              {permissions.length === 0 ? <p className="text-sm text-muted-foreground">No permissions declared.</p> : null}
+              {permissions.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No permissions declared.</p> : null}
             </div>
-          </Panel>
+          </section>
 
-          <div className="flex flex-col gap-6">
-            <Panel className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">Compatibility</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {targets.map((target) => <Badge key={target} tone="neutral">{target}</Badge>)}
+          <div className="flex flex-col gap-4">
+            <section className="sw-panel">
+              <div className="sw-panel__head">
+                <div>
+                  <h2>Compatibility</h2>
+                  <p>Install targets for this package.</p>
+                </div>
               </div>
-            </Panel>
+              <div className="sw-panel__pad flex flex-wrap gap-2">
+                {targets.map((target) => (
+                  <span key={target} className="sw-chip sw-chip--muted">
+                    {target}
+                  </span>
+                ))}
+                {targets.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No targets listed.</p> : null}
+              </div>
+            </section>
 
-            <Panel className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">Inspect this skill</h2>
-              <div className="mt-4 flex flex-col divide-y divide-border">
+            <section className="sw-panel">
+              <div className="sw-panel__head">
+                <div>
+                  <h2>Inspect this skill</h2>
+                  <p>Versions, evals, and dependency map.</p>
+                </div>
+              </div>
+              <div className="sw-panel__pad flex flex-col">
                 <DetailLink href={`/skills/${skill.slug}/versions`} label="Version history and diffs" />
                 <DetailLink href={`/skills/${skill.slug}/evals`} label="Evaluation suites" />
                 <DetailLink href={`/skills/${skill.slug}/graph`} label="Dependency map" />
+                <DetailLink href={`/terminal?skill=${skill.slug}`} label="Open in live terminal" />
               </div>
-            </Panel>
+            </section>
           </div>
         </div>
       ) : null}
 
       {activeTab === "code" ? (
-        <Panel className="p-6 md:p-8">
-          <h2 className="text-xl font-semibold text-foreground">README</h2>
-          <p className="mt-4 max-w-4xl whitespace-pre-wrap text-base leading-7 text-muted-foreground">{version.readme}</p>
-          <h2 className="mt-10 text-xl font-semibold text-foreground">SKILL.md</h2>
-          <div className="mt-4"><CodeBlock code={version.skillMd} /></div>
-        </Panel>
+        <section className="sw-panel">
+          <div className="sw-panel__head">
+            <div>
+              <h2>Package source</h2>
+              <p>README and SKILL.md for the current version.</p>
+            </div>
+          </div>
+          <div className="sw-panel__pad">
+            <h3 className="m-0 text-base font-semibold">README</h3>
+            <p className="mt-3 max-w-4xl whitespace-pre-wrap text-sm leading-7 text-[var(--sw-muted)]">{version.readme}</p>
+            <h3 className="mt-8 m-0 text-base font-semibold">SKILL.md</h3>
+            <pre className="sw-code mt-3">{version.skillMd}</pre>
+          </div>
+        </section>
       ) : null}
 
       {activeTab === "reviews" ? (
-        <Panel className="p-6">
-          <h2 className="text-lg font-semibold text-foreground">Reviews</h2>
-          <div className="mt-5 flex flex-col gap-3">
+        <section className="sw-panel">
+          <div className="sw-panel__head">
+            <div>
+              <h2>Reviews</h2>
+              <p>Community feedback for this skill.</p>
+            </div>
+          </div>
+          <div className="sw-panel__pad flex flex-col gap-3">
             {reviews.map((review, index) => (
-              <article key={`${review.user}-${index}`} className="rounded-md border border-border bg-muted/40 p-4">
+              <article key={`${review.user}-${index}`} className="sw-perm">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-foreground">{review.user}</span>
-                  <span className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Star className="size-4" aria-hidden="true" />{review.rating.toFixed(1)}</span>
+                  <span className="font-semibold">{review.user}</span>
+                  <span className="inline-flex items-center gap-1 text-sm text-[var(--sw-muted)]">
+                    <Star className="size-4" aria-hidden="true" />
+                    {review.rating.toFixed(1)}
+                  </span>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{review.comment}</p>
+                <p>{review.comment}</p>
               </article>
             ))}
-            {reviews.length === 0 ? <p className="text-sm text-muted-foreground">No reviews yet.</p> : null}
+            {reviews.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No reviews yet.</p> : null}
           </div>
-        </Panel>
+        </section>
       ) : null}
+    </FirebenchPage>
+  );
+}
+
+function Metric({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
+  return (
+    <div className="sw-metric">
+      <strong>
+        {icon}
+        {value}
+      </strong>
+      <span>{label}</span>
     </div>
   );
 }
 
-function Metric({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <div className="rounded-md border border-border bg-muted/40 p-4">
-      <div className="flex items-center gap-2 text-xl font-semibold text-foreground">{icon}{value}</div>
-      <div className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition ${active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-    >
+    <button type="button" role="tab" aria-selected={active} data-active={active} className="sw-tab" onClick={onClick}>
       {children}
     </button>
   );
@@ -173,7 +228,7 @@ function Tab({ active, onClick, children }: { active: boolean; onClick: () => vo
 
 function DetailLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="flex items-center justify-between gap-3 py-3 text-sm font-medium text-foreground transition hover:text-primary">
+    <Link href={href} className="sw-list-link">
       {label}
       <ArrowRight className="size-4" aria-hidden="true" />
     </Link>

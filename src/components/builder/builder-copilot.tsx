@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { AlertCircle, Bot, CheckCircle2, KeyRound, Send, Sparkles, Square } from "lucide-react";
 
 export type BuilderCopilotMessage = {
@@ -54,18 +54,86 @@ export function BuilderCopilot({
   onStop: () => void;
   onOpenSettings: () => void;
 }) {
+  function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey)) return;
+    event.preventDefault();
+    if (!input.trim() || isGenerating) return;
+    onSubmit(event as unknown as FormEvent<HTMLFormElement>);
+  }
+
   return (
-    <section className="builder-copilot-hero" aria-labelledby="builder-copilot-title">
-      <div className="builder-copilot-heading">
-        <div className="builder-copilot-icon"><Bot className="size-6" aria-hidden="true" /></div>
+    <section className="builder-copilot-workbench" aria-labelledby="builder-copilot-title">
+      <header className="builder-copilot-heading">
+        <span className="builder-copilot-icon" aria-hidden="true"><Bot className="size-5" /></span>
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Primary creation workspace</div>
-          <h2 id="builder-copilot-title" className="mt-1 text-xl font-semibold text-foreground sm:text-2xl">Build the skill with AI Copilot</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Describe the outcome you need. Copilot reads the current SKILL.md and package files, then updates the draft directly.</p>
+          <div className="builder-eyebrow">AI Copilot</div>
+          <h2 id="builder-copilot-title">Describe the skill. Copilot updates the draft.</h2>
+          <p>Copilot reads the current SKILL.md and package files, then writes changes directly.</p>
         </div>
         {showControls ? (
           <div className="builder-copilot-controls">
-            <select aria-label="Copilot model" className="builder-compact-select" value={model} onChange={(event) => onModelChange(event.target.value)}>
+            <button type="button" className="builder-secondary-button" onClick={onOpenSettings}>
+              <KeyRound className="size-4" aria-hidden="true" />
+              API keys
+            </button>
+          </div>
+        ) : null}
+      </header>
+
+      <div className="builder-copilot-scroll" aria-live="polite">
+        <div className="builder-copilot-prompts" aria-label="Suggested prompts">
+          {starterPrompts.map((item) => (
+            <button key={item.label} type="button" className="builder-prompt-chip" onClick={() => onInputChange(item.prompt)}>
+              <Sparkles className="size-3.5" aria-hidden="true" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="builder-copilot-thread">
+          {messages.length === 0 ? (
+            <div className="builder-copilot-empty">
+              <p>No messages yet.</p>
+              <p>Describe what you want Eve-style: “Build a social media growth skill for Shopify stores.”</p>
+            </div>
+          ) : messages.map((message) => <CopilotMessage key={message.id} message={message} />)}
+        </div>
+      </div>
+
+      {error ? (
+        <div className="builder-copilot-error" role="alert">
+          <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+          <button type="button" onClick={onOpenSettings}>Check API keys</button>
+        </div>
+      ) : null}
+
+      <form onSubmit={onSubmit} className="builder-copilot-composer">
+        <label className="builder-composer-label" htmlFor="builder-copilot-input">
+          Describe what you want Copilot to build
+        </label>
+        <textarea
+          id="builder-copilot-input"
+          value={input}
+          onChange={(event) => onInputChange(event.target.value)}
+          onKeyDown={onComposerKeyDown}
+          className="builder-textarea builder-composer-textarea"
+          placeholder="Build a customer support skill that searches docs, drafts replies, and asks before sending."
+          rows={5}
+          aria-describedby="builder-copilot-hint"
+        />
+        <p id="builder-copilot-hint" className="builder-composer-hint">
+          Press Cmd or Ctrl + Enter to generate. Enter adds a new line.
+        </p>
+        <div className="builder-composer-footer">
+          <label className="builder-composer-model">
+            <span>Model</span>
+            <select
+              aria-label="Copilot model"
+              className="builder-compact-select"
+              value={model}
+              onChange={(event) => onModelChange(event.target.value)}
+            >
               <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
               <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
               <option value="xai/grok-4.3">Grok 4.3</option>
@@ -77,35 +145,19 @@ export function BuilderCopilot({
               <option value="openai/gpt-4o">GPT-4o</option>
               <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
             </select>
-            <button type="button" className="builder-secondary-button" onClick={onOpenSettings}><KeyRound className="size-4" />API keys</button>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="builder-copilot-prompts" aria-label="Suggested prompts">
-        {starterPrompts.map((item) => (
-          <button key={item.label} type="button" className="builder-prompt-card" onClick={() => onInputChange(item.prompt)}>
-            <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            <span><strong>{item.label}</strong><small>{item.prompt}</small></span>
-          </button>
-        ))}
-      </div>
-
-      <div className="builder-copilot-thread" aria-live="polite">
-        {messages.length === 0 ? (
-          <div className="builder-copilot-empty"><Sparkles className="size-5 text-primary" /><span>Start with a plain-language idea such as “Build a social media growth skill for Shopify stores.”</span></div>
-        ) : messages.map((message) => <CopilotMessage key={message.id} message={message} />)}
-      </div>
-
-      {error ? <div className="builder-copilot-error" role="alert"><AlertCircle className="size-4 shrink-0" /><span>{error}</span><button type="button" onClick={onOpenSettings}>Check API keys</button></div> : null}
-
-      <form onSubmit={onSubmit} className="builder-copilot-composer">
-        <textarea value={input} onChange={(event) => onInputChange(event.target.value)} className="builder-textarea min-h-24 flex-1" placeholder="Describe the skill you want to create or the change you want made..." disabled={isGenerating} />
-        {isGenerating ? (
-          <button type="button" onClick={onStop} className="builder-secondary-button self-end"><Square className="size-4" />Stop</button>
-        ) : (
-          <button type="submit" disabled={!input.trim()} className="builder-primary-button self-end"><Send className="size-4" />Generate and update</button>
-        )}
+          </label>
+          {isGenerating ? (
+            <button type="button" onClick={onStop} className="builder-secondary-button">
+              <Square className="size-4" aria-hidden="true" />
+              Stop
+            </button>
+          ) : (
+            <button type="submit" disabled={!input.trim()} className="builder-primary-button">
+              <Send className="size-4" aria-hidden="true" />
+              Generate and update
+            </button>
+          )}
+        </div>
       </form>
     </section>
   );
@@ -119,11 +171,11 @@ function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
   const isLongUserPrompt = message.role === "user" && (combinedText.length > 420 || combinedText.split("\n").length > 6);
 
   return (
-    <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-      <div className={`builder-copilot-message ${message.role === "user" ? "builder-copilot-message-user" : "builder-copilot-message-agent"}`}>
+    <article className={`builder-copilot-message ${message.role === "user" ? "user" : "assistant"}`}>
+      <div>
         {textParts.length ? (
           <div className={`builder-copilot-message-body ${isLongUserPrompt && !expanded ? "builder-copilot-message-collapsed" : ""}`}>
-            {textParts.map((part, index) => <div key={index}>{part.text}</div>)}
+            {textParts.map((part, index) => <p key={index}>{part.text}</p>)}
           </div>
         ) : null}
         {isLongUserPrompt ? (
@@ -135,12 +187,12 @@ function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
           const complete = part.state === "output-available";
           return (
             <div key={part.toolCallId ?? index} className="builder-copilot-tool-status">
-              {complete ? <CheckCircle2 className="size-3.5" /> : <Sparkles className="size-3.5" />}
-              {complete ? "SKILL.md and package synchronized." : "Updating the skill package..."}
+              {complete ? <CheckCircle2 className="size-3.5" aria-hidden="true" /> : <Sparkles className="size-3.5" aria-hidden="true" />}
+              {complete ? "SKILL.md and package synchronized." : "Updating the skill package…"}
             </div>
           );
         })}
       </div>
-    </div>
+    </article>
   );
 }

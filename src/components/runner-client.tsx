@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Zap } from "lucide-react";
 import {
   Confirmation,
   ConfirmationAction,
@@ -8,6 +9,9 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from "@/components/ai-elements/confirmation";
+import { FirebenchButton, FirebenchHeroIntro, FirebenchPage, FirebenchTag } from "@/components/firebench";
+import "@/app/firebench.css";
+import "@/app/skill-workspace.css";
 import {
   Conversation,
   ConversationContent,
@@ -192,7 +196,7 @@ export function RunnerClient({
     setIsRunning(true);
     setAutopilotPlan(null);
     if (modeOverride) setExecutionMode(modeOverride);
-    
+
     await executeSkillRunStream({
       skillSlug: skill.slug,
       input: prompt,
@@ -245,33 +249,40 @@ export function RunnerClient({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">Skill Chat Lab</div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">Run {skill.name}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">
-            Chat with the skill, approve permissions, inspect real files, watch tool calls, and review persisted run output.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={isRunning}
-            onClick={() => void execute("", "autopilot")}
-            data-testid="quick-run"
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-neutral-950 px-5 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
-          >
-            <span className="text-base">⚡</span> Quick Run
-          </button>
-          <Badge tone={allApproved ? "green" : "amber"}>{allApproved ? "permissions approved" : "permissions restricted"}</Badge>
-          <Badge tone={run.status === "failed" ? "red" : run.status === "running" ? "amber" : "neutral"}>{run.status}</Badge>
-        </div>
+    <FirebenchPage heat="soft" className="sw-page sw-run">
+      <FirebenchHeroIntro
+        kicker="skill run lab"
+        title={<>Run <em>{skill.name}</em></>}
+        lead="Approve permissions, inspect package files, stream tool calls, and review sandbox output."
+      />
+
+      <div className="fb-tags" style={{ justifyContent: "center" }}>
+        <FirebenchTag>{skill.slug}</FirebenchTag>
+        <span className={allApproved ? "sw-chip sw-chip--ok" : "sw-chip sw-chip--warn"}>
+          {allApproved ? "permissions approved" : "permissions restricted"}
+        </span>
+        <span
+          className={
+            run.status === "failed"
+              ? "sw-chip sw-chip--danger"
+              : run.status === "running"
+                ? "sw-chip sw-chip--warn"
+                : "sw-chip sw-chip--muted"
+          }
+        >
+          {run.status}
+        </span>
+        <FirebenchButton
+          disabled={isRunning}
+          onClick={() => void execute("", "autopilot")}
+          data-testid="quick-run"
+        >
+          <Zap className="size-4" aria-hidden="true" />
+          Quick run
+        </FirebenchButton>
       </div>
 
-
-
-      <div className="grid min-w-0 gap-6 2xl:grid-cols-[360px_minmax(0,1fr)_390px]">
+      <div className="sw-run-grid">
         <div className="min-w-0 flex flex-col gap-6">
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
@@ -293,7 +304,7 @@ export function RunnerClient({
                 {suggestions.map((suggestion) => (
                   <Suggestion
                     key={suggestion}
-                    className="border-neutral-300 bg-[#39FF14] text-neutral-900 hover:bg-neutral-100"
+                    className="border-[color-mix(in_srgb,var(--fire-heat)_35%,var(--border))] bg-[var(--fire-heat-soft)] text-[var(--fire-graphite)] hover:border-[var(--fire-heat-line)] hover:bg-[var(--fire-heat-soft)]"
                     onClick={(value) => setInput(value)}
                     suggestion={suggestion}
                   />
@@ -316,7 +327,7 @@ export function RunnerClient({
                   <span className="font-mono text-xs text-neutral-500">{workspaceFiles.length} workspace files</span>
                 </PromptInputTools>
                 <PromptInputSubmit
-                  className="btn-primary bg-neutral-950 text-white hover:bg-neutral-800"
+                  className="fb-cta fb-cta--primary"
                   data-testid="run-submit"
                   disabled={!input.trim() || isRunning}
                   status={isRunning ? "streaming" : "ready"}
@@ -342,7 +353,7 @@ export function RunnerClient({
                   data-testid="execution-mode"
                   className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                 >
-                  <option value="autopilot">⚡ Autopilot (recommended)</option>
+                  <option value="autopilot">Autopilot (recommended)</option>
                   <option value="virtual-agent">Virtual provider route</option>
                   <option value="real-shell">Real shell sandbox</option>
                 </select>
@@ -376,9 +387,9 @@ export function RunnerClient({
                     disabled={isRunning}
                     onClick={() => void execute("", "autopilot")}
                     data-testid="autopilot-run"
-                    className="h-10 w-full rounded-md bg-neutral-950 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+                    className="fb-cta fb-cta--primary h-10 w-full disabled:opacity-50"
                   >
-                    {isRunning ? "Running…" : "⚡ Run with Autopilot"}
+                    {isRunning ? "Running…" : "Run with Autopilot"}
                   </button>
                 </div>
               ) : executionMode === "real-shell" ? (
@@ -400,7 +411,7 @@ export function RunnerClient({
                           key={item}
                           onClick={() => setCommand(item)}
                           data-testid="detected-command"
-                          className="rounded-md border border-neutral-300 bg-[#39FF14] px-3 py-2 font-mono text-xs text-neutral-900 transition hover:bg-neutral-100"
+                          className="sw-chip-btn"
                           type="button"
                         >
                           {item}
@@ -462,21 +473,21 @@ export function RunnerClient({
                   <Confirmation
                     key={permission.key}
                     approval={{ id: permission.key }}
-                    className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[#39FF14] text-black"}
+                    className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-black"}
                     state="approval-requested"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                       <ConfirmationTitle>
                         <span className="font-mono text-sm font-semibold text-neutral-950">{permission.key}</span>
                       </ConfirmationTitle>
-                      <Badge tone={isDenied ? "amber" : "green"}>{isDenied ? "denied" : "approved"}</Badge>
+                      <Badge tone={isDenied ? "amber" : "ok"}>{isDenied ? "denied" : "approved"}</Badge>
                     </div>
                     <ConfirmationRequest>
                       <p className="text-sm leading-5 text-neutral-600">{permission.reason}</p>
                     </ConfirmationRequest>
                     <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
                       <ConfirmationAction
-                        className="h-10 w-full border border-neutral-300 bg-[#39FF14] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
+                        className="h-10 w-full border border-neutral-300 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
                         data-testid={`permission-deny-${permission.key}`}
                         onClick={() => {
                           if (!isDenied) togglePermission(permission.key);
@@ -486,7 +497,7 @@ export function RunnerClient({
                         Deny
                       </ConfirmationAction>
                       <ConfirmationAction
-                        className="btn-primary h-10 w-full bg-neutral-950 text-white hover:bg-neutral-800 sm:w-auto"
+                        className="fb-cta fb-cta--primary h-10 w-full sm:w-auto"
                         data-testid={`permission-approve-${permission.key}`}
                         onClick={() => {
                           if (isDenied) togglePermission(permission.key);
@@ -550,7 +561,7 @@ export function RunnerClient({
                 ) : null}
                 {run.output ? (
                   <Message from="assistant" className="max-w-full">
-                    <MessageContent className="w-full rounded-md border border-neutral-200 bg-[#39FF14] p-4">
+                    <MessageContent className="w-full rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-4">
                       <SafeMessageResponse>{run.output}</SafeMessageResponse>
                     </MessageContent>
                   </Message>
@@ -577,7 +588,7 @@ export function RunnerClient({
               <button
                 onClick={addWorkspaceFile}
                 data-testid="add-workspace-file"
-                className="rounded-md border border-neutral-300 bg-[#39FF14] px-3 py-2 text-xs font-semibold text-neutral-900 transition hover:bg-neutral-100"
+                className="sw-chip-btn"
                 type="button"
               >
                 Add file
@@ -600,7 +611,7 @@ export function RunnerClient({
               )}
             </div>
             {selectedFile ? (
-              <div className="mt-4 rounded-md border border-neutral-200 bg-[#39FF14] p-3">
+              <div className="mt-4 rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="font-mono text-xs font-semibold text-neutral-950">{selectedFile.path}</div>
@@ -665,9 +676,9 @@ export function RunnerClient({
               <div key={artifact.path} className="rounded-md border border-neutral-200 bg-neutral-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-sm text-neutral-950">{artifact.path}</span>
-                  <Badge tone={artifact.kind === "created" ? "green" : "blue"}>{artifact.kind}</Badge>
+                  <Badge tone={artifact.kind === "created" ? "ok" : "blue"}>{artifact.kind}</Badge>
                 </div>
-                <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-3">
+                <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
                   <SafeMessageResponse>{artifact.after}</SafeMessageResponse>
                 </div>
               </div>
@@ -675,7 +686,7 @@ export function RunnerClient({
           </div>
         </Panel>
       ) : null}
-    </div>
+    </FirebenchPage>
   );
 }
 
@@ -702,13 +713,13 @@ function SandboxStatusPanel({
             {shellReady ? "Execution route is configured for the selected mode." : "Real shell requires env enablement and Vercel Sandbox auth."}
           </div>
         </div>
-        <Badge tone={shellReady ? "green" : "amber"}>{shellReady ? "ready" : "setup needed"}</Badge>
+        <Badge tone={shellReady ? "ok" : "amber"}>{shellReady ? "ready" : "setup needed"}</Badge>
       </div>
       <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
-        <StatusRow label="real shell" tone={readiness.realShellEnabled ? "green" : "neutral"} value={readiness.realShellEnabled ? "enabled" : "disabled"} />
-        <StatusRow label="sandbox auth" tone={readiness.sandboxAuthStatus === "missing" ? "amber" : "green"} value={readiness.sandboxAuthStatus} />
-        <StatusRow label="project link" tone={readiness.projectLinked ? "green" : "amber"} value={readiness.projectLinked ? "linked" : "missing"} />
-        <StatusRow label="command" tone={command.trim() ? "green" : "amber"} value={command.trim() ? "selected" : "required"} />
+        <StatusRow label="real shell" tone={readiness.realShellEnabled ? "ok" : "neutral"} value={readiness.realShellEnabled ? "enabled" : "disabled"} />
+        <StatusRow label="sandbox auth" tone={readiness.sandboxAuthStatus === "missing" ? "amber" : "ok"} value={readiness.sandboxAuthStatus} />
+        <StatusRow label="project link" tone={readiness.projectLinked ? "ok" : "amber"} value={readiness.projectLinked ? "linked" : "missing"} />
+        <StatusRow label="command" tone={command.trim() ? "ok" : "amber"} value={command.trim() ? "selected" : "required"} />
         <StatusRow label="network" tone={networkPolicy === "deny-all" ? "neutral" : "blue"} value={networkPolicy} />
         <StatusRow label="default policy" tone="neutral" value={readiness.networkDefault} />
       </div>
@@ -722,12 +733,12 @@ function StatusRow({
   value,
 }: {
   label: string;
-  tone: "green" | "amber" | "blue" | "neutral";
+  tone: "ok" | "amber" | "blue" | "neutral";
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded border border-neutral-200 bg-[#39FF14] px-3 py-2">
-      <span className="shrink-0 text-neutral-500">{label}</span>
+    <div className="sw-status-row">
+      <span className="shrink-0">{label}</span>
       <span className="min-w-0 truncate">
         <Badge tone={tone}>{value}</Badge>
       </span>
@@ -762,7 +773,7 @@ function WorkspaceFileEditor({
 function TraceTool({ event }: { event: SkillTraceEvent }) {
   const state = eventToolState(event);
   return (
-    <Tool className="mb-3 border-neutral-200 bg-[#39FF14] text-black" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
+    <Tool className="mb-3 border-[var(--sw-line,#deded8)] bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-[var(--fire-graphite,#262626)]" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
       <ToolHeader state={state} title={`${String(event.order).padStart(2, "0")} ${event.title}`} type={eventToolType(event)} />
       <ToolContent>
         <ToolInput

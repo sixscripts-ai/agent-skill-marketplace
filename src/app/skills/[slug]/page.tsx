@@ -7,6 +7,8 @@ import { latestVersion } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { findSkill } from "@/lib/repository";
 import { notFound } from "next/navigation";
+import "@/app/firebench.css";
+import "@/app/skill-workspace.css";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -31,11 +33,11 @@ export default async function SkillDetailPage({ params }: { params: Promise<{ sl
   const latestScore = skill.evalSuites?.[0]?.results?.[0]?.score ?? 0;
 
   return (
-    <AppShell mode="wide">
-      <div className="mb-5">
-        <Link href="/marketplace" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-primary">
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
+      <div className="sw-page mb-2">
+        <Link href="/skills" className="sw-back">
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to Marketplace
+          Back to My Skills
         </Link>
       </div>
       <SkillDetailClient skill={skill} version={version} latestScore={latestScore} />

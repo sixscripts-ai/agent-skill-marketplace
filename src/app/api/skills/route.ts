@@ -1,14 +1,83 @@
 import { NextResponse } from "next/server";
 import { requireCurrentUser } from "@/lib/auth";
 import { securityErrorResponse } from "@/lib/api-errors";
+import {
+  canPublishPublic,
+  getEvidence,
+  getEvidenceMany,
+  isProveFresh,
+  type ForgeEvidence,
+} from "@/lib/marketplace-forge";
 import { createOrUpdateSkill, createSkillPackage } from "@/lib/repository";
 import { buildFullSkillPackage } from "@/lib/skill-package-profile";
 import type { SkillDraftInput } from "@/lib/types";
 
+type SkillsPostBody = SkillDraftInput & {
+  forgeEvidenceIds?: string[];
+  forgeProve?: ForgeEvidence;
+  userApprovedHighRisk?: boolean;
+  validationOk?: boolean;
+};
+
 export async function POST(request: Request) {
   try {
-    const input = (await request.json()) as SkillDraftInput;
+    const body = (await request.json()) as SkillsPostBody;
+    const input = body as SkillDraftInput;
     const user = await requireCurrentUser();
+
+    if (input.visibility === "public") {
+      const evidenceFromIds = Array.isArray(body.forgeEvidenceIds) ? getEvidenceMany(body.forgeEvidenceIds) : [];
+      const prove =
+        (body.forgeProve && body.forgeProve.kind === "sandbox_prove" ? body.forgeProve : undefined) ||
+        evidenceFromIds.find((item) => item.kind === "sandbox_prove" && isProveFresh(item)) ||
+        (typeof body.forgeEvidenceIds?.[0] === "string" ? getEvidence(body.forgeEvidenceIds[0]) : undefined);
+
+      if (!prove || prove.kind !== "sandbox_prove") {
+        return NextResponse.json(
+          {
+            error: "Public publish requires forge prove evidence.",
+            reason: "Provide forgeProve or forgeEvidenceIds with a successful sandbox_prove evidence record.",
+          },
+          { status: 403 },
+        );
+      }
+
+      let validationOk =
+        typeof body.validationOk === "boolean"
+          ? body.validationOk
+          : evidenceFromIds.some((item) => item.kind === "validation" && item.ok);
+      if (!validationOk && input.skillMd) {
+        const generated = buildFullSkillPackage({
+          skillMd: input.skillMd,
+          metadata: {
+            displayName: input.name,
+            directoryName: input.slug,
+            category: input.category,
+            summary: input.summary,
+            permissions: input.permissions,
+            targets: input.compatibilityTargets,
+          },
+        });
+        validationOk = generated.profile.valid;
+      }
+
+      const gate = canPublishPublic({
+        validationOk,
+        latestProve: prove,
+        permissions: input.permissions ?? [],
+        userApprovedHighRisk: Boolean(body.userApprovedHighRisk),
+      });
+      if (!gate.ok) {
+        return NextResponse.json(
+          {
+            error: gate.reason,
+            reason: gate.reason,
+            missingEvidence: !isProveFresh(prove) ? ["sandbox_prove"] : [],
+          },
+          { status: 403 },
+        );
+      }
+    }
 
     if (!input.packageUploadId) {
       const generated = buildFullSkillPackage({

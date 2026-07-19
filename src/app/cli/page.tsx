@@ -1,31 +1,62 @@
 import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
-import { ButtonLink, Panel } from "@/components/ui";
+import {
+  FirebenchCode,
+  FirebenchHeroCard,
+  FirebenchHeroIntro,
+  FirebenchPage,
+  FirebenchTag,
+} from "@/components/firebench";
 
 export default function CliPage() {
   return (
-    <AppShell>
-      <div className="space-y-6">
-        <Panel className="p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-semibold text-neutral-950">Agent Skill CLI</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
-                Download a portable Node CLI that installs skill packages and starts live browser-sandbox runs against this marketplace.
-              </p>
-            </div>
-            <ButtonLink href="/api/cli" variant="secondary">Download CLI zip</ButtonLink>
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
+      <FirebenchPage heat="bold" canvas>
+        <FirebenchHeroIntro
+          kicker="// CLI //"
+          title="Agent Skill"
+          accent="CLI"
+          lead="Download a portable Node CLI that installs skill packages and starts live browser-sandbox runs against this marketplace."
+        />
+
+        <div className="fb-tags">
+          <FirebenchTag>[ INSTALL ]</FirebenchTag>
+          <FirebenchTag>[ RUN ]</FirebenchTag>
+          <FirebenchTag>[ SANDBOX ]</FirebenchTag>
+        </div>
+
+        <FirebenchHeroCard
+          actionsLeft={<FirebenchTag>[ READY ]</FirebenchTag>}
+          actionsRight={
+            <a href="/api/cli" className="fb-cta fb-cta--primary">
+              Download CLI zip
+            </a>
+          }
+        >
+          <p className="fb-section-note m-0 mb-3">
+            Unzip, point at your marketplace URL, then install and run a skill in one pass.
+          </p>
+          <CodeBlock
+            code={`unzip agent-skill-cli.zip
+chmod +x bin/agent-skill.mjs
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install agent-observer
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run agent-observer`}
+          />
+        </FirebenchHeroCard>
+
+        <div className="fb-stage">
+          <div className="fb-stage__label">
+            <h2 className="fb-section-title" style={{ fontSize: "1rem" }}>
+              Quick start
+            </h2>
+            <FirebenchTag>[ USAGE ]</FirebenchTag>
           </div>
-        </Panel>
-        <Panel className="p-5">
-          <h2 className="font-semibold text-neutral-950">Usage</h2>
-          <div className="mt-4">
-            <CodeBlock
-              code={`unzip agent-skill-cli.zip\nchmod +x bin/agent-skill.mjs\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install agent-observer\nAGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run agent-observer`}
-            />
+          <div className="fb-stage__body">
+            <FirebenchCode label="[ SHELL ]">{`./bin/agent-skill.mjs install <slug>
+./bin/agent-skill.mjs run <slug>`}</FirebenchCode>
           </div>
-        </Panel>
-      </div>
+        </div>
+      </FirebenchPage>
     </AppShell>
   );
 }
