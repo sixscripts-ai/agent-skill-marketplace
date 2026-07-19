@@ -202,6 +202,7 @@ export function EveAiChat() {
           </p>
         </div>
         <div className="eve-chat-heading-actions">
+          <a href="/builder" className="builder-secondary-button">Skill lifecycle</a>
           <button type="button" className="builder-secondary-button" onClick={() => setSettingsOpen(true)}>
             <KeyRound className="size-4" aria-hidden="true" />
             API keys

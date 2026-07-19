@@ -42,6 +42,7 @@ import { ApiSettingsModal } from "./api-settings-modal";
 import { BuilderStudio, BuilderField, BuilderSectionLabel, BuilderStatus } from "./builder/builder-ui";
 import { BuilderEditor } from "./builder/builder-editor";
 import { BuilderCopilot, type BuilderCopilotMessage } from "./builder/builder-copilot";
+import { ForgePanel } from "./builder/forge-panel";
 import type { BuilderSavedUrls, BuilderViewMode, BuilderVisibility } from "./builder/builder-types";
 import { Badge } from "./ui";
 
@@ -647,6 +648,20 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 onSubmit={submitCopilot}
                 onStop={() => void stop()}
                 onOpenSettings={() => setIsSettingsOpen(true)}
+              />
+              <div className="builder-section-rule" role="separator" aria-hidden="true" />
+              <ForgePanel
+                skillMarkdown={skillMd}
+                skillName={name}
+                slug={slug}
+                packageId={packageUploadId || undefined}
+                onDraftPublished={(urls) => {
+                  const next = urls as BuilderSavedUrls;
+                  if (next?.detail) {
+                    setSavedUrls(next);
+                    setPublishedSlug(slug);
+                  }
+                }}
               />
               <div className="builder-section-rule" role="separator" aria-hidden="true" />
               <BuilderEditor
