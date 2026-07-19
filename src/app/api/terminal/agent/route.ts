@@ -17,6 +17,12 @@ export async function POST(request: Request) {
     const sandboxName = typeof body.sandboxName === "string" ? body.sandboxName.trim() : "";
     const messages = Array.isArray(body.messages) ? body.messages : null;
     const confirmDestructive = Boolean(body.confirmDestructive);
+    const networkMode = typeof body.networkMode === "string" ? body.networkMode : "default";
+    const skillContext = body.skillContext && typeof body.skillContext === "object" ? body.skillContext as {
+      name?: string;
+      skillMdSummary?: string;
+      permissions?: string[];
+    } : undefined;
     const modelId = resolveTerminalModelId(typeof body.model === "string" ? body.model : DEFAULT_TERMINAL_MODEL);
     const maxSteps = Math.min(Math.max(Number(body.maxSteps) || terminalLimits.defaultMaxSteps, 1), terminalLimits.defaultMaxSteps);
     if (!sandboxName) return Response.json({ error: true, code: "MISSING_SANDBOX", message: "Connect a terminal session first." }, { status: 400 });
@@ -25,17 +31,26 @@ export async function POST(request: Request) {
     try { apiKeys = JSON.parse(request.headers.get("x-api-keys") || "{}"); } catch { return Response.json({ error: true, code: "INVALID_API_KEYS", message: "Stored API keys are invalid." }, { status: 400 }); }
     const resolved = resolveTerminalModel(modelId, apiKeys);
     if ("error" in resolved) return Response.json(resolved.error, { status: 400 });
+    const skillBlock = skillContext?.name
+      ? `\nMounted skill context:
+- Name: ${skillContext.name}
+- Permissions: ${(Array.isArray(skillContext.permissions) ? skillContext.permissions : []).join(", ") || "none declared"}
+- SKILL.md summary: ${typeof skillContext.skillMdSummary === "string" ? skillContext.skillMdSummary.slice(0, 1200) : "n/a"}
+Honor these permissions and the skill workflow when choosing commands.`
+      : "";
+    const networkBlock = networkMode === "allowlist"
+      ? "\nNetwork is allowlisted for forge-style work (not full open network). Prefer registry/package hosts already approved for the session."
+      : "\nNetwork access is enabled by default.";
     const result = streamText({
       model: resolved.model,
       system: `You are a terminal agent operating inside a Vercel Sandbox for agent-skill work.
 Rules:
 - Prefer run_shell for commands. Use write_file and read_file for file edits.
-- Working directory defaults to /vercel/sandbox.
-- Network access is enabled by default.
+- Working directory defaults to /vercel/sandbox.${networkBlock}
 - Never invent command output; report only tool results.
 - Destructive operations require explicit user confirmation.
 - Stop when the goal is met. Maximum tool rounds: ${maxSteps}.
-Current model: ${modelId}.`,
+Current model: ${modelId}.${skillBlock}`,
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(maxSteps),
       tools: {
