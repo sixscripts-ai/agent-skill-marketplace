@@ -119,7 +119,7 @@ export function TraceClient({ run }: { run: SkillRun }) {
 
           <Panel className="p-5">
             <h2 className="font-semibold text-neutral-950">Conversation output</h2>
-            <div className="mt-4 rounded-md border border-neutral-200 bg-[#39FF14] p-4">
+            <div className="mt-4 rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-4">
               <SafeMessageResponse>{run.output || "No output saved."}</SafeMessageResponse>
             </div>
           </Panel>
@@ -168,7 +168,7 @@ export function TraceClient({ run }: { run: SkillRun }) {
                       <span className="font-mono text-xs font-semibold text-neutral-950">{artifact.path}</span>
                       <Badge tone={artifact.kind === "created" ? "green" : "blue"}>{artifact.kind}</Badge>
                     </div>
-                    <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-[#39FF14] p-3">
+                    <div className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
                       <SafeMessageResponse>{artifact.after}</SafeMessageResponse>
                     </div>
                   </div>
@@ -191,7 +191,7 @@ export function TraceClient({ run }: { run: SkillRun }) {
 
 function TraceTool({ event }: { event: SkillTraceEvent }) {
   return (
-    <Tool className="mb-3 border-neutral-200 bg-[#39FF14] text-black" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
+    <Tool className="mb-3 border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-black" defaultOpen={event.status !== "complete" && event.status !== "approved"}>
       <ToolHeader state={eventToolState(event)} title={`${String(event.order).padStart(2, "0")} ${event.title}`} type={eventToolType(event)} />
       <ToolContent>
         <ToolInput
