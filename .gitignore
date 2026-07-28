@@ -42,6 +42,11 @@ yarn-error.log*
 # local scratch space
 /tmp/
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
