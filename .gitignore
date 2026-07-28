@@ -39,6 +39,9 @@ yarn-error.log*
 # local demo persistence
 .local-data
 
+# local scratch space
+/tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

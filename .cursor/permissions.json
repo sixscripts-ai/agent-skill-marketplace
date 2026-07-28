@@ -2,25 +2,23 @@
   "terminalAllowlist": [
     "*"
   ],
-  "terminalDenylist": [
-    "git push --force*",
-    "git reset --hard*",
-    "rm -rf /",
-    "rm -rf ~",
-    "sudo *"
-  ],
   "mcpAllowlist": [
-    "*"
+    "*:*"
   ],
   "autoRun": {
     "allow_instructions": [
-      "Auto-approve all terminal and shell commands in this repo.",
-      "Allow install, lint, typecheck, test, build, git, vercel, gh, and local servers.",
-      "Allow Marketplace Forge and sandbox development."
+      "Auto-approve local terminal commands for this repo: pnpm, npm, npx, node, python3, prisma, playwright, curl, git (non-destructive), vercel, gh, and next/dev servers.",
+      "Allow Marketplace Forge work: /api/forge calls, skill package build/publish via repository APIs, sandbox prove, lint, typecheck, test, and build.",
+      "Allow Eve builder work: /builder/eve, /api/eve/*, architect/run status polls, project workspace file reads, and local eve package docs under node_modules/eve/docs.",
+      "Allow Vercel MCP read/list/logs and Neon read-only SQL (SELECT, describe schema, list tables). Allow Firebench UI edits and skill-workspace CSS/TSX changes.",
+      "Allow installing or updating local deps with pnpm when needed for Forge/Eve development."
     ],
     "block_instructions": [
-      "Block force push, hard reset, sudo, and deleting home or root.",
-      "Block committing secrets or .env files."
+      "Block git push --force, git reset --hard, sudo, and rm -rf targeting / or ~.",
+      "Block committing or printing secrets, .env*, API keys, tokens, or credentials into chat, packages, Neon messages, or permissions files.",
+      "Block weakening product HITL: public-publish gates, destructive-shell confirms, and terminal confirmDestructive checks must stay intact.",
+      "Ask before production deploys (vercel --prod), database migrations that DROP/TRUNCATE/DELETE without WHERE, or changing Clerk/auth fail-closed middleware.",
+      "Ask before writing outside this workspace except ~/.cursor/permissions.json or project .cursor config the user requested."
     ]
   }
 }
