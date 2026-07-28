@@ -1,5 +1,5 @@
 const DESTRUCTIVE_PATTERN =
-  /\b(rm\s+-rf\s+[\/~]|mkfs|dd\s+if=|shutdown|reboot|passwd|:(){:|:&};:|curl\s+[^\n]*\|\s*(ba)?sh)\b/i;
+  /\b(rm\s+-rf\s*(?:[\/~]|\*)|mkfs\b|dd\s+if=|shutdown\b|reboot\b|passwd\b|: \(\)\{|:\{:|:\&\};:|curl\s+[^\n]*\|\s*(?:ba)?sh)/i;
 
 const MAX_COMMAND_CHARS = 4_000;
 const MAX_OUTPUT_BYTES = 200_000;
