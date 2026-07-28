@@ -29,7 +29,7 @@ export function createPendingRun(skill: Skill, workspaceFiles: WorkspaceFile[] =
 export function workspaceFilesFromSkillPackages(skill: Skill): WorkspaceFile[] {
   const packageFiles = skill.packages?.flatMap((pkg) => pkg.files) ?? [];
   const seen = new Set<string>();
-  return packageFiles
+  const fromPackages = packageFiles
     .filter((file) => TEXT_ROLES.has(file.role) && typeof file.content === "string" && !file.content.startsWith("data:"))
     .filter((file) => {
       if (seen.has(file.path)) return false;
@@ -43,6 +43,27 @@ export function workspaceFilesFromSkillPackages(skill: Skill): WorkspaceFile[] {
       size: file.size,
       updatedAt: new Date().toISOString(),
     }));
+  if (fromPackages.length) return fromPackages;
+
+  const version = skill.versions?.find((item) => item.version === skill.currentVersion) ?? skill.versions?.[0];
+  if (!version?.skillMd?.trim()) return [];
+  const fallback: WorkspaceFile[] = [
+    {
+      path: "SKILL.md",
+      content: version.skillMd,
+      size: Buffer.byteLength(version.skillMd),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+  if (version.readme?.trim()) {
+    fallback.push({
+      path: "README.md",
+      content: version.readme,
+      size: Buffer.byteLength(version.readme),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  return fallback;
 }
 
 export function detectRunnableCommands(skill: Skill, workspaceFiles: WorkspaceFile[] = []) {

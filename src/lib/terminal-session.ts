@@ -69,11 +69,27 @@ async function collectSandboxFiles(skill: Skill, workspaceFiles: WorkspaceFile[]
     const content = await packageFileContent(file.content, file.blobUrl);
     if (content !== undefined) files.set(path, { path, content, mode: executableMode(path) });
   }
+  // Skills without linked SkillPackage rows still have version markdown — mount that.
+  if (files.size === 0) {
+    for (const file of skillVersionFallbackFiles(skill)) {
+      files.set(file.path, { path: file.path, content: file.content, mode: executableMode(file.path) });
+    }
+  }
   for (const file of workspaceFiles) {
     const path = sanitizeSandboxPath(file.path);
     files.set(path, { path, content: file.content, mode: executableMode(path) });
   }
   return [...files.values()];
+}
+
+function skillVersionFallbackFiles(skill: Skill) {
+  const version = skill.versions?.find((item) => item.version === skill.currentVersion) ?? skill.versions?.[0];
+  if (!version) return [] as Array<{ path: string; content: string }>;
+  const files: Array<{ path: string; content: string }> = [];
+  if (version.skillMd?.trim()) files.push({ path: "SKILL.md", content: version.skillMd });
+  if (version.readme?.trim()) files.push({ path: "README.md", content: version.readme });
+  if (version.changelog?.trim()) files.push({ path: "CHANGELOG.md", content: version.changelog });
+  return files;
 }
 
 async function packageFileContent(content?: string, blobUrl?: string) {
