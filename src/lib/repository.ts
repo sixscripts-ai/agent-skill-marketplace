@@ -179,6 +179,40 @@ const skillInclude = {
   packages: { include: { files: true }, orderBy: { createdAt: "desc" as const } },
 };
 
+// Seeded and bulk-imported rows stored this Json column as a stringified array.
+function normalizeCompatibilityTargets(value: any): CompatibilityTarget[] {
+  if (Array.isArray(value)) return value as CompatibilityTarget[];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as CompatibilityTarget[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function currentVersionPermissions(row: any): Skill["permissions"] {
+  const rows = row.permissions ?? [];
+  const currentVersionId = (row.versions ?? []).find((version: any) => version.version === row.currentVersion)?.id;
+  const scoped = currentVersionId ? rows.filter((permission: any) => permission.skillVersionId === currentVersionId) : [];
+  // Skills seeded or published before permissions were version-linked only have unlinked rows.
+  const source = scoped.length ? scoped : rows.filter((permission: any) => !permission.skillVersionId);
+  const seen = new Set<string>();
+  return source
+    .filter((permission: any) => {
+      if (seen.has(permission.key)) return false;
+      seen.add(permission.key);
+      return true;
+    })
+    .map((permission: any) => ({
+      key: permission.key,
+      reason: permission.reason,
+      risk: permission.risk,
+    }));
+}
+
 function toSkill(row: any): Skill {
   return {
     id: row.id,
@@ -193,17 +227,13 @@ function toSkill(row: any): Skill {
     installCount: row.installCount,
     rating: row.rating,
     currentVersion: row.currentVersion,
-    permissions: (row.permissions ?? []).map((permission: any) => ({
-      key: permission.key,
-      reason: permission.reason,
-      risk: permission.risk,
-    })),
+    permissions: currentVersionPermissions(row),
     versions: (row.versions ?? []).map((version: any) => ({
       version: version.version,
       skillMd: version.skillMd,
       readme: version.readme,
       changelog: version.changelog,
-      compatibilityTargets: version.compatibilityTargets,
+      compatibilityTargets: normalizeCompatibilityTargets(version.compatibilityTargets),
       createdAt: dateOnly(version.createdAt),
     })),
     evalSuites: (row.evalSuites ?? []).map((suite: any) => ({
@@ -521,16 +551,9 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
       },
     });
 
-    await tx.skillPermission.deleteMany({ where: { skillId: savedSkill.id } });
+    // Only clear unlinked legacy rows; permissions belonging to earlier versions are history.
+    await tx.skillPermission.deleteMany({ where: { skillId: savedSkill.id, skillVersionId: null } });
     await tx.installTarget.deleteMany({ where: { skillId: savedSkill.id } });
-    await tx.skillPermission.createMany({
-      data: input.permissions.map((permission) => ({
-        skillId: savedSkill.id,
-        key: permission,
-        reason: permissionReason(permission),
-        risk: permissionRisk(permission),
-      })),
-    });
     await tx.installTarget.createMany({
       data: installTargets.map((target) => ({ skillId: savedSkill.id, ...target })),
     });

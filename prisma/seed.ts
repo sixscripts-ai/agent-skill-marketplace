@@ -67,8 +67,7 @@ async function main() {
             skillMd: v.skillMd,
             readme: v.readme,
             changelog: v.changelog,
-            compatibilityTargets: JSON.stringify(v.compatibilityTargets),
-
+            compatibilityTargets: v.compatibilityTargets,
           })),
         },
         permissions: {
