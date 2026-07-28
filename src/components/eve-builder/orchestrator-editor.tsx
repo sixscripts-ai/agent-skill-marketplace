@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import type { AgentState } from "@/lib/eve/export-utils";
 import { generateCopilotRefinement } from "@/app/actions/copilot";
+import { resolveAiModelId } from "@/lib/ai-model-catalog";
 
 export function OrchestratorEditor({
   state,
@@ -24,14 +25,14 @@ export function OrchestratorEditor({
     const apiKeys: Record<string, string> = storedKeys ? JSON.parse(storedKeys) : {};
     const hasKey = Object.values(apiKeys).some((v) => v && v.trim().length > 0);
     if (!hasKey) {
-      setError("No API key found. Click Settings (top-right) → enter your Google Gemini or OpenAI key → Save Keys → try again.");
+      setError("No API key found. Click Settings (top-right) → enter your xAI, OpenAI, or other provider key → Save Keys → try again.");
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
     try {
-      const response = await generateCopilotRefinement(prompt, state.instructions, state.model, apiKeys);
+      const response = await generateCopilotRefinement(prompt, state.instructions, resolveAiModelId(state.model), apiKeys);
       if (response) {
         updateState({ instructions: response });
         setPrompt("");

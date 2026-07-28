@@ -1,4 +1,4 @@
-import { AI_MODEL_OPTIONS } from "@/lib/ai-model-catalog";
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODEL, resolveAiModelId } from "@/lib/ai-model-catalog";
 
 export type AgentExecutionMode = "read-only" | "supervised" | "autonomous" | "custom";
 export type AgentMemoryMode = "none" | "session" | "persistent" | "vector" | "database";
@@ -56,8 +56,8 @@ export function createDefaultAgentProject(): AgentProject {
   return synchronizeAgentProject({
     metadata: { displayName: "Research Operations Agent", directoryName: "research-operations-agent", description: "Researches approved sources, produces cited findings, and requests review before external actions.", template: "research" },
     brief: { purpose: "Produce reliable research briefs from approved sources.", users: "Operators and analysts", inputs: "Research question, source constraints, and output format", outputs: "Cited brief, evidence table, and unresolved questions", successCriteria: "Claims are sourced, uncertainty is explicit, and output follows the requested format", constraints: "Never invent sources or expose secrets", approvals: "Ask before sending, publishing, deleting, purchasing, or running high-impact commands" },
-    architectModel: "google/gemini-2.5-flash",
-    runtimeModel: "google/gemini-2.5-pro",
+    architectModel: DEFAULT_AI_MODEL,
+    runtimeModel: "xai/grok-4.5",
     runtime: { executionMode: "supervised", memory: "session", maxSteps: 20, deploymentTargets: ["local"] },
     tools: ["web_research", "file_workspace"], skills: [], environment: [], permissions: basePermissions, files: [],
     tests: [
@@ -109,8 +109,8 @@ function normalizeProject(project: AgentProject): AgentProject {
     ...project,
     metadata: { ...fallback.metadata, ...(isObject(project.metadata) ? project.metadata : {}) },
     brief: { ...fallback.brief, ...(isObject(project.brief) ? project.brief : {}) },
-    architectModel: typeof project.architectModel === "string" ? project.architectModel : "google/gemini-2.5-flash",
-    runtimeModel: typeof project.runtimeModel === "string" ? project.runtimeModel : "google/gemini-2.5-pro",
+    architectModel: resolveAiModelId(typeof project.architectModel === "string" ? project.architectModel : DEFAULT_AI_MODEL),
+    runtimeModel: resolveAiModelId(typeof project.runtimeModel === "string" ? project.runtimeModel : "xai/grok-4.5"),
     runtime: { ...fallback.runtime, ...(isObject(project.runtime) ? project.runtime : {}) },
     tools: normalizeStringArray(project.tools, []),
     skills: normalizeSkills(project.skills, []),
@@ -164,7 +164,7 @@ function normalizeFile(value: unknown, fallbackPath: string, generated: boolean)
 function buildEnvironment(project: AgentProject): AgentEnvironmentVariable[] {
   const result = new Map<string, AgentEnvironmentVariable>();
   const provider = project.runtimeModel.split("/")[0];
-  const names: Record<string, string> = { google: "GEMINI_API_KEY", openai: "OPENAI_API_KEY", anthropic: "ANTHROPIC_API_KEY", xai: "XAI_API_KEY", groq: "GROQ_API_KEY", deepseek: "DEEPSEEK_API_KEY" };
+  const names: Record<string, string> = { openai: "OPENAI_API_KEY", anthropic: "ANTHROPIC_API_KEY", xai: "XAI_API_KEY", groq: "GROQ_API_KEY", deepseek: "DEEPSEEK_API_KEY" };
   const configured = (name: string) => project.environment.find((item) => item.name === name)?.configured ?? false;
   const runtimeKey = names[provider];
   if (runtimeKey) result.set(runtimeKey, { name: runtimeKey, description: `Runtime key for ${provider}.`, required: true, secret: true, configured: configured(runtimeKey), source: "Runtime model" });

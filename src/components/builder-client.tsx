@@ -25,6 +25,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODEL, providerLabel, providerKeyName, resolveAiModelId } from "@/lib/ai-model-catalog";
 import { executeSkillRunStream } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { inferSkillTestPrompt, parseSkillMarkdown } from "@/lib/skill-import";
@@ -52,18 +53,7 @@ const MarkdownEditor = dynamic(() => import("./markdown-editor"), { ssr: false }
 type BuilderPath = "create" | "import" | null;
 type BuilderStep = "source" | "instructions" | "package" | "configuration" | "test" | "finish";
 
-const modelOptions = [
-  ["google/gemini-2.5-flash", "Gemini 2.5 Flash"],
-  ["google/gemini-2.5-pro", "Gemini 2.5 Pro"],
-  ["xai/grok-4.3", "Grok 4.3"],
-  ["xai/grok-4.5", "Grok 4.5"],
-  ["groq/llama-3.3-70b-versatile", "Llama 3.3 (Groq)"],
-  ["groq/mixtral-8x7b-32768", "Mixtral (Groq)"],
-  ["deepseek/deepseek-v4-flash", "DeepSeek V4 Flash"],
-  ["deepseek/deepseek-v4-pro", "DeepSeek V4 Pro"],
-  ["openai/gpt-4o", "GPT-4o"],
-  ["anthropic/claude-3-5-sonnet-20240620", "Claude 3.5 Sonnet"],
-] as const;
+const MODEL_STORAGE_KEY = "builder_copilot_model";
 
 const createSteps: BuilderStep[] = ["source", "instructions", "package", "configuration", "test", "finish"];
 const importSteps: BuilderStep[] = ["source", "package", "instructions", "configuration", "test", "finish"];
@@ -165,8 +155,10 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [testRun, setTestRun] = useState<SkillRun | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [isPackaging, setIsPackaging] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseStatus, setParseStatus] = useState("");
   const [viewMode, setViewMode] = useState<BuilderViewMode>("markdown");
-  const [copilotModel, setCopilotModel] = useState("google/gemini-2.5-flash");
+  const [copilotModel, setCopilotModel] = useState(DEFAULT_AI_MODEL);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsRevision, setSettingsRevision] = useState(0);
   const [input, setInput] = useState("");
@@ -185,24 +177,33 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = resolveAiModelId(localStorage.getItem(MODEL_STORAGE_KEY));
+    setCopilotModel(stored);
+  }, []);
+
+  useEffect(() => {
     const apiKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}";
     copilotStateRef.current = { model: copilotModel, currentSkill: skillMd, currentFiles: packageFiles, apiKeys };
     setActiveApiKey(hasKeyForModel(copilotModel, apiKeys));
+    if (typeof window !== "undefined") localStorage.setItem(MODEL_STORAGE_KEY, copilotModel);
   }, [copilotModel, packageFiles, settingsRevision, skillMd]);
 
   const transport = useMemo(() => new DefaultChatTransport({
     api: "/api/skills/generate",
-    fetch: async (url, init) => {
+    prepareSendMessagesRequest: ({ id, messages, body }) => {
       const state = copilotStateRef.current;
-      const body = JSON.parse((init?.body as string) || "{}");
-      body.model = state.model;
-      body.currentSkill = state.currentSkill;
-      body.currentFiles = state.currentFiles;
-      return fetch(url, {
-        ...init,
-        body: JSON.stringify(body),
-        headers: { ...init?.headers, "x-api-keys": state.apiKeys },
-      });
+      return {
+        body: {
+          ...body,
+          id,
+          messages,
+          model: state.model,
+          currentSkill: state.currentSkill,
+          currentFiles: state.currentFiles,
+        },
+        headers: { "x-api-keys": state.apiKeys },
+      };
     },
   }), []);
 
@@ -264,7 +265,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
   const orderedSteps = builderPath === "import" ? importSteps : createSteps;
   const currentStepIndex = orderedSteps.indexOf(activeStep);
-  const providerLabel = providerForModel(copilotModel);
+  const activeProviderLabel = providerLabel(copilotModel);
 
   function toggle(value: string, selected: string[], setter: (value: string[]) => void) {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
@@ -309,26 +310,64 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (parsed.packageFiles) setPackageFiles(parsed.packageFiles);
   }
 
-  async function importSkill(nextSkillMd = skillMd) {
+  async function importSkill(nextSkillMd = skillMd, options?: { applyRepair?: boolean }) {
+    const applyRepair = options?.applyRepair ?? true;
     setUploadError("");
-    const response = await fetch("/api/skills/import", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ skillMd: nextSkillMd }),
-    });
-    const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
-    const localParsed = parseSkillMarkdown(nextSkillMd);
-    const parsed = response.ok && payload ? payload : {
-      ...localParsed,
-      suggestions: [
-        ...localParsed.suggestions,
-        response.status === 401
-          ? "Sign in to persist packages or publish. Local analysis is still available."
-          : "The server parser was unavailable, so local analysis is shown.",
-      ],
-    };
-    if (!response.ok) setUploadError(payload?.error ?? "Server parser unavailable. Showing local analysis.");
-    applyParsedSkill(parsed, nextSkillMd);
+    setParseStatus("");
+    setIsParsing(true);
+    try {
+      const response = await fetch("/api/skills/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          skillMd: nextSkillMd,
+          ...(packageUploadId ? { packageUploadId } : {}),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as (ParsedSkillImport & { error?: string }) | null;
+      const localParsed = parseSkillMarkdown(nextSkillMd);
+      const parsed = response.ok && payload ? payload : {
+        ...localParsed,
+        suggestions: [
+          ...localParsed.suggestions,
+          response.status === 401
+            ? "Sign in to persist packages or publish. Local analysis is still available."
+            : "The server parser was unavailable, so local analysis is shown.",
+        ],
+      };
+      if (!response.ok && payload?.error) {
+        setUploadError(payload.error);
+      } else if (!response.ok) {
+        setUploadError("Server parser unavailable. Showing local analysis.");
+      }
+
+      const repairedMd = parsed.suggestedSkillMd?.trim() ? parsed.suggestedSkillMd : nextSkillMd;
+      const changed = applyRepair && repairedMd !== nextSkillMd;
+      if (changed) {
+        setSkillMd(repairedMd);
+        setPackageFiles((files) => {
+          if (!files.length) return files;
+          return files.map((file) =>
+            file.role === "skill_md" || /(^|\/)SKILL\.md$/i.test(file.path)
+              ? { ...file, content: repairedMd, size: repairedMd.length }
+              : file,
+          );
+        });
+      }
+
+      applyParsedSkill(parsed, changed ? repairedMd : nextSkillMd);
+      const issueCount = parsed.issues?.length ?? 0;
+      const suggestionCount = parsed.suggestions?.length ?? 0;
+      setParseStatus(
+        changed
+          ? `Repaired SKILL.md${issueCount ? ` · ${issueCount} issue${issueCount === 1 ? "" : "s"} noted` : ""}${suggestionCount ? ` · ${suggestionCount} suggestion${suggestionCount === 1 ? "" : "s"}` : ""}.`
+          : issueCount || suggestionCount
+            ? `Parsed SKILL.md · ${issueCount} issue${issueCount === 1 ? "" : "s"} · ${suggestionCount} suggestion${suggestionCount === 1 ? "" : "s"}. Already in repaired shape.`
+            : "Parsed SKILL.md · structure looks good.",
+      );
+    } finally {
+      setIsParsing(false);
+    }
   }
 
   async function uploadSkillFile(event: ChangeEvent<HTMLInputElement>) {
@@ -545,13 +584,17 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           <div className="builder-model-bar" aria-label="AI model and API key settings">
             <label>
               <span>AI model</span>
-              <select value={copilotModel} onChange={(event) => setCopilotModel(event.target.value)}>
-                {modelOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              <select
+                value={copilotModel}
+                onChange={(event) => setCopilotModel(resolveAiModelId(event.target.value))}
+                aria-label="AI model"
+              >
+                {AI_MODEL_OPTIONS.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
               </select>
             </label>
             <button type="button" onClick={() => setIsSettingsOpen(true)} className={`builder-api-key-button ${activeApiKey ? "builder-api-key-active" : ""}`}>
               {activeApiKey ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <KeyRound className="size-4" aria-hidden="true" />}
-              <span>{activeApiKey ? `${providerLabel} key active` : `Activate ${providerLabel} key`}</span>
+              <span>{activeApiKey ? `${activeProviderLabel} key active` : `Activate ${activeProviderLabel} key`}</span>
             </button>
           </div>
         </header>
@@ -644,7 +687,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 error={copilotError}
                 showControls={false}
                 onInputChange={setInput}
-                onModelChange={setCopilotModel}
+                onModelChange={(value) => setCopilotModel(resolveAiModelId(value))}
                 onSubmit={submitCopilot}
                 onStop={() => void stop()}
                 onOpenSettings={() => setIsSettingsOpen(true)}
@@ -695,10 +738,34 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 <div className="builder-start-actions">
                   <label className="builder-secondary-button cursor-pointer"><FileArchive className="size-4" aria-hidden="true" />Add file or ZIP<input className="sr-only" accept=".md,.markdown,.skill,.zip,text/markdown,text/plain,application/zip" type="file" onChange={uploadSkillFile} /></label>
                   <label className="builder-secondary-button cursor-pointer"><FolderOpen className="size-4" aria-hidden="true" />Add folder<input className="sr-only" type="file" multiple onChange={uploadSkillFile} {...({ webkitdirectory: "", directory: "" } as Record<string, string>)} /></label>
-                  <button type="button" className="builder-secondary-button" data-testid="builder-parse" onClick={() => void importSkill()}><WandSparkles className="size-4" aria-hidden="true" />Parse and repair</button>
+                  <button
+                    type="button"
+                    className="builder-secondary-button"
+                    data-testid="builder-parse"
+                    disabled={isParsing || !skillMd.trim()}
+                    onClick={() => void importSkill(skillMd, { applyRepair: true })}
+                  >
+                    <WandSparkles className="size-4" aria-hidden="true" />
+                    {isParsing ? "Parsing..." : "Parse and repair"}
+                  </button>
                 </div>
               </div>
               {uploadedFileName ? <div className="builder-info-banner">Imported <strong>{uploadedFileName}</strong>{packageUploadId ? ` · Package ${packageUploadId}` : ""}</div> : null}
+              {parseStatus ? <div className="builder-success-banner" data-testid="builder-parse-status">{parseStatus}</div> : null}
+              {importResult && (importResult.issues.length || importResult.suggestions.length) ? (
+                <div className="builder-import-analysis" data-testid="builder-parse-analysis">
+                  <strong>Parse and repair results</strong>
+                  {importResult.issues.length ? (
+                    <ul>{importResult.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+                  ) : null}
+                  {importResult.suggestions.length ? (
+                    <ul>{importResult.suggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}</ul>
+                  ) : null}
+                  <button type="button" onClick={applySuggestedSkillMd} data-testid="builder-apply-suggestions" className="builder-secondary-button">
+                    Re-apply suggested formatting
+                  </button>
+                </div>
+              ) : null}
               {packageError || uploadError ? <div className="builder-error-banner">{packageError || uploadError}</div> : null}
               <PackageTree slug={slug} files={packageFiles} skillMd={skillMd} />
             </section>
@@ -798,7 +865,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               <div className="builder-step-status">
                 <span>{issues.length ? `${issues.length} issue${issues.length === 1 ? "" : "s"}` : "Ready"}</span>
                 <ChevronRight className="size-4" aria-hidden="true" />
-                <span>{activeApiKey ? `${providerLabel} active` : `${providerLabel} key needed`}</span>
+                <span>{activeApiKey ? `${activeProviderLabel} active` : `${activeProviderLabel} key needed`}</span>
               </div>
               {currentStepIndex < orderedSteps.length - 1 ? <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>Continue<ArrowRight className="size-4" aria-hidden="true" /></button> : null}
             </footer>
@@ -875,27 +942,16 @@ function stepDescription(step: BuilderStep, path: BuilderPath) {
   return "Choose the result you need. Downloading does not publish, and saving a draft does not create a marketplace listing.";
 }
 
-function providerForModel(model: string) {
-  if (model.startsWith("google/")) return "Google Gemini";
-  if (model.startsWith("anthropic/")) return "Anthropic";
-  if (model.startsWith("xai/")) return "xAI";
-  if (model.startsWith("groq/")) return "Groq";
-  return "OpenAI";
-}
-
 function hasKeyForModel(model: string, serialized: string) {
   try {
     const keys = JSON.parse(serialized) as Record<string, string>;
-    const provider = model.split("/")[0];
-    const keyName = provider === "google" ? "google" : provider;
-    return Boolean(keys[keyName]?.trim());
+    return Boolean(keys[providerKeyName(model)]?.trim());
   } catch {
     return false;
   }
 }
 
-function sandboxProviderForModel(model: string): "openai" | "gemini" | "groq" {
-  if (model.startsWith("google/")) return "gemini";
+function sandboxProviderForModel(model: string): "openai" | "groq" {
   if (model.startsWith("groq/")) return "groq";
   return "openai";
 }

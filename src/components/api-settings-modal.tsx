@@ -6,7 +6,6 @@ import { CheckCircle2, KeyRound, X } from "lucide-react";
 export type ApiKeys = {
   openai?: string;
   anthropic?: string;
-  google?: string;
   xai?: string;
   groq?: string;
   deepseek?: string;
@@ -15,7 +14,6 @@ export type ApiKeys = {
 export type ByokFlags = {
   openai?: boolean;
   anthropic?: boolean;
-  google?: boolean;
   xai?: boolean;
   groq?: boolean;
   deepseek?: boolean;
@@ -24,7 +22,6 @@ export type ByokFlags = {
 const emptyKeys: ApiKeys = {
   openai: "",
   anthropic: "",
-  google: "",
   xai: "",
   groq: "",
   deepseek: "",
@@ -33,7 +30,6 @@ const emptyKeys: ApiKeys = {
 const emptyByok: ByokFlags = {
   openai: false,
   anthropic: false,
-  google: false,
   xai: false,
   groq: false,
   deepseek: false,
@@ -45,7 +41,6 @@ const BYOK_STORAGE = "ai_api_keys_byok";
 const providers: Array<{ key: keyof ApiKeys; label: string; placeholder: string }> = [
   { key: "openai", label: "OpenAI", placeholder: "sk-..." },
   { key: "anthropic", label: "Anthropic", placeholder: "sk-ant-..." },
-  { key: "google", label: "Google Gemini", placeholder: "AIza..." },
   { key: "xai", label: "xAI Grok", placeholder: "xai-..." },
   { key: "groq", label: "Groq", placeholder: "gsk_..." },
   { key: "deepseek", label: "DeepSeek", placeholder: "sk-..." },

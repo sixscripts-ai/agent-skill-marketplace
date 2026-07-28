@@ -21,16 +21,6 @@ export const sandboxProviders: {
     modelEnv: "OPENAI_MODEL",
   },
   {
-    id: "gemini",
-    label: "Gemini",
-    model: "gemini-2.5-pro",
-    mode: "openai-compatible",
-    keyEnv: "GEMINI_API_KEY",
-    baseUrlEnv: "GEMINI_BASE_URL",
-    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-    modelEnv: "GEMINI_MODEL",
-  },
-  {
     id: "groq",
     label: "Groq",
     model: "llama-3.3-70b-versatile",

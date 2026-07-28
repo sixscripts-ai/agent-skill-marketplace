@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
@@ -155,7 +154,6 @@ function resolveModel(modelId: string, keys: Record<string, string>, byok: Recor
     if (useByok) throw new Error(`BYOK is enabled for ${provider}, but no browser key was provided.`);
     throw new Error(`An API key is required for ${provider}. Configure the server environment key, or enable BYOK for this provider.`);
   }
-  if (provider === "google") return createGoogleGenerativeAI({ apiKey: key })(name);
   if (provider === "xai") return createXai({ apiKey: key })(name);
   if (provider === "groq") return createGroq({ apiKey: key })(name);
   if (provider === "deepseek") return createOpenAI({ apiKey: key, baseURL: "https://api.deepseek.com" })(name);
@@ -164,7 +162,6 @@ function resolveModel(modelId: string, keys: Record<string, string>, byok: Recor
 }
 
 function providerKey(provider: string) {
-  if (provider === "google") return process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
   if (provider === "xai") return process.env.XAI_API_KEY || "";
   if (provider === "groq") return process.env.GROQ_API_KEY || "";
   if (provider === "deepseek") return process.env.DEEPSEEK_API_KEY || "";

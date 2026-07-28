@@ -1,15 +1,14 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
 import { convertToModelMessages, streamText, tool } from "ai";
 import { z } from "zod";
+import { AI_MODEL_IDS, DEFAULT_AI_MODEL, resolveAiModelId } from "@/lib/ai-model-catalog";
 import { requireCurrentUser } from "@/lib/auth";
 import { createSkillPackage } from "@/lib/repository";
 import { buildFullSkillPackage, FULL_PACKAGE_PROFILE_LABEL } from "@/lib/skill-package-profile";
 
-const allowedModels = new Set(["google/gemini-2.5-flash", "google/gemini-2.5-pro", "xai/grok-4.3", "xai/grok-4.5", "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20240620", "groq/llama-3.3-70b-versatile", "groq/mixtral-8x7b-32768", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"]);
 const permissionSchema = z.enum(["read_files", "write_files", "network", "shell", "browser", "api_keys"]);
 const targetSchema = z.enum(["Codex", "Claude", "Antigravity", "OpenCode", "Grok", "VS Code"]);
 const roleSchema = z.enum(["readme", "script", "asset", "reference", "config", "doc", "example", "other"]);
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     const { messages, model: requestedModel, currentSkill, currentFiles } = await req.json();
     if (!Array.isArray(messages)) return Response.json({ error: "Missing or invalid messages." }, { status: 400 });
     const user = await requireCurrentUser();
-    const modelId = allowedModels.has(requestedModel) ? requestedModel : "google/gemini-2.5-flash";
+    const modelId = resolveAiModelId(typeof requestedModel === "string" && AI_MODEL_IDS.has(requestedModel) ? requestedModel : DEFAULT_AI_MODEL);
     let apiKeys: Record<string, string> = {};
     try { apiKeys = JSON.parse(req.headers.get("x-api-keys") || "{}"); } catch { return Response.json({ error: "Stored API keys are invalid. Open API keys and save them again." }, { status: 400 }); }
     const aiModel = resolveModel(modelId, apiKeys);
@@ -70,12 +69,18 @@ Rules:
 function resolveModel(modelId: string, apiKeys: Record<string, string>) {
   const provider = modelId.split("/")[0];
   const model = modelId.slice(provider.length + 1);
-  const key = apiKeys[provider === "google" ? "google" : provider] || (provider === "google" ? process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY : provider === "xai" ? process.env.XAI_API_KEY : provider === "groq" ? process.env.GROQ_API_KEY : provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY) || "";
+  const key = apiKeys[provider] || (
+    provider === "xai" ? process.env.XAI_API_KEY
+      : provider === "groq" ? process.env.GROQ_API_KEY
+        : provider === "anthropic" ? process.env.ANTHROPIC_API_KEY
+          : provider === "deepseek" ? process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY
+            : process.env.OPENAI_API_KEY
+  ) || "";
   if (!key) return Response.json({ error: `An API key is required for ${provider}.` }, { status: 400 });
-  if (provider === "google") return createGoogleGenerativeAI({ apiKey: key })(model);
   if (provider === "xai") return createXai({ apiKey: key })(model);
   if (provider === "groq") return createGroq({ apiKey: key })(model);
   if (provider === "anthropic") return createAnthropic({ apiKey: key })(model);
+  if (provider === "deepseek") return createOpenAI({ apiKey: key, baseURL: "https://api.deepseek.com" })(model);
   return createOpenAI({ apiKey: key })(model);
 }
 
