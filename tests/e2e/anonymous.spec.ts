@@ -18,7 +18,7 @@ test.describe("Anonymous Visitor Flow", () => {
 
   test("should be redirected to login when accessing builder", async ({ page }) => {
     await page.goto("/builder");
-    // Clerk's sign in page should load or redirect
-    await expect(page.url()).toContain("sign-in");
+    // page.url() is a synchronous read, so it races Clerk's redirect under parallel load.
+    await page.waitForURL(/sign-in/);
   });
 });
