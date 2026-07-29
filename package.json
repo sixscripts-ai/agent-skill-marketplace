@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "bootstrap:skillcheck": "node scripts/bootstrap-skillcheck-integration.mjs",
+    "dev": "node scripts/bootstrap-skillcheck-integration.mjs && next dev",
+    "build": "node scripts/bootstrap-skillcheck-integration.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://agent-skill-marketplace.vercel.app playwright test",
     "test:security": "tsx --test tests/security.test.mjs",
-    "postinstall": "prisma generate",
+    "test:skillcheck": "node scripts/bootstrap-skillcheck-integration.mjs && tsx --test tests/skillcheck-studio.test.mjs",
+    "postinstall": "prisma generate && node scripts/bootstrap-skillcheck-integration.mjs",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
