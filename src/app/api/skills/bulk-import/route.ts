@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentUser } from "@/lib/auth";
 import { securityErrorResponse } from "@/lib/api-errors";
 import { createOrUpdateSkill } from "@/lib/repository";
-import type { SkillDraftInput } from "@/lib/types";
+import type { CompatibilityTarget, PermissionKey, SkillDraftInput } from "@/lib/types";
 
 type BulkSkillInput = {
   slug: string;
@@ -10,10 +10,10 @@ type BulkSkillInput = {
   summary?: string;
   category?: string;
   skillMd?: string;
-  permissions?: string[];
-  compatibilityTargets?: string[];
+  permissions?: PermissionKey[];
+  compatibilityTargets?: CompatibilityTarget[];
   visibility?: SkillDraftInput["visibility"];
-  versions?: Array<{ skillMd?: string; compatibilityTargets?: string[] }>;
+  versions?: Array<{ skillMd?: string; compatibilityTargets?: CompatibilityTarget[] }>;
 };
 
 export async function POST(req: Request) {
@@ -42,8 +42,11 @@ export async function POST(req: Request) {
         category: raw.category || "Automation",
         summary: raw.summary || "Bulk imported skill.",
         skillMd,
-        permissions: raw.permissions?.length ? raw.permissions : ["read_files"],
-        compatibilityTargets: raw.compatibilityTargets ?? version?.compatibilityTargets ?? ["Codex", "Claude", "VS Code"],
+        permissions: raw.permissions?.length ? raw.permissions : (["read_files"] as PermissionKey[]),
+        compatibilityTargets:
+          raw.compatibilityTargets ??
+          version?.compatibilityTargets ??
+          (["Codex", "Claude", "VS Code"] as CompatibilityTarget[]),
         visibility: raw.visibility === "public" || raw.visibility === "unlisted" ? "private" : (raw.visibility ?? "private"),
       };
 
