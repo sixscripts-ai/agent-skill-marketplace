@@ -169,6 +169,10 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [downloadedPackage, setDownloadedPackage] = useState("");
   const [activeApiKey, setActiveApiKey] = useState(false);
 
+  // An existing draft owns its slug; otherwise the slug follows the SKILL.md frontmatter
+  // until the author edits it by hand.
+  const slugOverriddenRef = useRef(Boolean(initialDraft?.slug));
+
   const copilotStateRef = useRef({
     model: copilotModel,
     currentSkill: skillMd,
@@ -295,6 +299,14 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (metadata.testPrompt) setTestInput(metadata.testPrompt);
     if (metadata.permissions?.length) setSelectedPermissions(metadata.permissions);
     if (metadata.targets?.length) setSelectedTargets(metadata.targets);
+  }
+
+  function handleSkillMdChange(next: string) {
+    setSkillMd(next);
+    if (slugOverriddenRef.current) return;
+    const parsed = parseSkillMarkdown(next);
+    if (parsed.slug) setSlug(parsed.slug);
+    if (parsed.name) setName(parsed.name);
   }
 
   function applyParsedSkill(parsed: ParsedSkillImport, sourceSkillMd: string) {
@@ -710,7 +722,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               <BuilderEditor
                 viewMode={viewMode}
                 issueCount={issues.length}
-                editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={setSkillMd} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
+                editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={handleSkillMdChange} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
                 preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
                 onViewModeChange={setViewMode}
               />
@@ -782,7 +794,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                 </header>
                 <div className="builder-form-grid">
                   <BuilderField label="Display name" helper={`${name.length}/64 characters`}><input className="builder-input" data-testid="builder-name" value={name} onChange={(event) => setName(event.target.value)} /></BuilderField>
-                  <BuilderField label="Directory name" helper="Lowercase letters, numbers, and single hyphens."><input className="builder-input font-mono" data-testid="builder-slug" value={slug} onChange={(event) => setSlug(event.target.value)} /></BuilderField>
+                  <BuilderField label="Directory name" helper="Lowercase letters, numbers, and single hyphens."><input className="builder-input font-mono" data-testid="builder-slug" value={slug} onChange={(event) => { slugOverriddenRef.current = true; setSlug(event.target.value); }} /></BuilderField>
                   <BuilderField label="Category"><input className="builder-input" data-testid="builder-category" value={category} onChange={(event) => setCategory(event.target.value)} /></BuilderField>
                   <BuilderField label="Visibility"><select className="builder-input" data-testid="builder-visibility" value={visibility} onChange={(event) => setVisibility(event.target.value as BuilderVisibility)}><option value="public">Public</option><option value="private">Private</option><option value="unlisted">Unlisted</option></select></BuilderField>
                   <div className="sm:col-span-2"><BuilderField label="Summary" helper={`${summary.length}/1024 characters`}><textarea className="builder-textarea min-h-28" data-testid="builder-summary" value={summary} onChange={(event) => setSummary(event.target.value)} /></BuilderField></div>
