@@ -165,7 +165,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
                 <span className="ms-mono">{version.createdAt}</span>
                 <div className="ms-row-actions">
                   <Link
-                    href={`/skills/${skill.slug}/run`}
+                    href={`/skills/${skill.slug}?stage=sandbox&mode=autopilot`}
                     className="ms-btn ms-btn--primary"
                     style={{ minHeight: "1.9rem", fontSize: "0.72rem" }}
                   >

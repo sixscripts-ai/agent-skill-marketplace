@@ -116,7 +116,7 @@ export async function POST(request: Request) {
           detail: `/skills/${skill.slug}`,
           marketplace: "/marketplace",
           mySkills: "/skills",
-          run: `/skills/${skill.slug}/run`,
+          run: `/skills/${skill.slug}?stage=sandbox&mode=autopilot`,
           edit: `/builder/${skill.slug}`,
         },
       },

@@ -465,7 +465,7 @@ export function LiveTerminalClient({
             ) : (
               <>
                 Needs <code>ENABLE_REAL_SANDBOX=true</code> and Vercel sandbox auth. Open a skill{" "}
-                <Link href={`/skills/${skillSlug}/run`} className="text-[var(--lt-heat)] underline-offset-2 hover:underline">
+                <Link href={`/skills/${skillSlug}?stage=sandbox`} className="text-[var(--lt-heat)] underline-offset-2 hover:underline">
                   Runner
                 </Link>{" "}
                 as fallback.

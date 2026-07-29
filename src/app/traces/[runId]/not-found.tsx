@@ -13,7 +13,7 @@ export default function TraceNotFound() {
             Traces are saved execution records. They appear after a sandbox run creates permission events, tool calls, output, and artifacts.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <ButtonLink href="/skills/agent-observer/run">Open Sandbox</ButtonLink>
+            <ButtonLink href="/skills/agent-observer?stage=sandbox">Open Sandbox</ButtonLink>
             <ButtonLink href="/marketplace" variant="secondary">Choose a Skill</ButtonLink>
           </div>
         </Panel>

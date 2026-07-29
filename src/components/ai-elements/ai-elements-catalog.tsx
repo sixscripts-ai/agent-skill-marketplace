@@ -313,7 +313,7 @@ export function AiElementsCatalog() {
               {copiedId === activeTab ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
               {copiedId === activeTab ? "Copied" : "Get code"}
             </FirebenchButton>
-            <Link href="/skills/agent-observer/run" className="fb-cta fb-cta--primary">
+            <Link href="/skills/agent-observer?stage=sandbox" className="fb-cta fb-cta--primary">
               <Play className="size-4" aria-hidden="true" />
               Open Runner
             </Link>
@@ -431,7 +431,7 @@ export function AiElementsCatalog() {
           </p>
           <FirebenchCode label="[ INSTALL ]">{runnerBundleCommand}</FirebenchCode>
           <div className="fb-actions" style={{ justifyContent: "flex-start" }}>
-            <Link href="/skills/agent-observer/run" className="fb-cta fb-cta--primary">
+            <Link href="/skills/agent-observer?stage=sandbox" className="fb-cta fb-cta--primary">
               <Wrench className="size-4" aria-hidden="true" />
               Try in Runner
             </Link>

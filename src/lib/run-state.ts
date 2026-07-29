@@ -71,15 +71,18 @@ export function detectRunnableCommands(skill: Skill, workspaceFiles: WorkspaceFi
     ...(skill.packages?.flatMap((pkg) => pkg.files.map((file) => ({ path: file.path, content: file.content ?? "" }))) ?? []),
     ...workspaceFiles.map((file) => ({ path: file.path, content: file.content })),
   ];
-  const commands: string[] = [];
+  const paths = files.map((file) => file.path);
+  const scored: Array<{ command: string; score: number }> = [];
   const packageJson = files.find((file) => file.path.endsWith("package.json"));
   if (packageJson?.content) {
     try {
       const parsed = JSON.parse(packageJson.content) as { scripts?: Record<string, string>; main?: string };
-      if (parsed.scripts?.test) commands.push("npm test");
-      if (parsed.scripts?.build) commands.push("npm run build");
-      if (parsed.scripts?.start) commands.push("npm start");
-      if (parsed.main && isSafeCommandPath(parsed.main)) commands.push(`node ${quoteShellArg(parsed.main)}`);
+      if (parsed.scripts?.test) scored.push({ command: "npm test", score: 100 });
+      if (parsed.scripts?.build) scored.push({ command: "npm run build", score: 90 });
+      if (parsed.scripts?.start) scored.push({ command: "npm start", score: 80 });
+      if (parsed.main && isSafeCommandPath(parsed.main)) {
+        scored.push({ command: `node ${quoteShellArg(parsed.main)}`, score: 70 });
+      }
     } catch {
       // Invalid package.json should not block manual command entry.
     }
@@ -88,10 +91,67 @@ export function detectRunnableCommands(skill: Skill, workspaceFiles: WorkspaceFi
   for (const file of files) {
     if (!isSafeCommandPath(file.path)) continue;
     const quotedPath = quoteShellArg(file.path);
-    if (file.path.endsWith(".sh")) commands.push(`bash ${quotedPath}`);
-    if (file.path.endsWith(".mjs") || file.path.endsWith(".js")) commands.push(`node ${quotedPath}`);
-    if (file.path.endsWith(".py")) commands.push(`python3 ${quotedPath}`);
+    if (file.path.endsWith(".sh")) {
+      scored.push({ command: `bash ${quotedPath}`, score: commandPathScore(file.path) });
+    }
+    if (file.path.endsWith(".mjs") || file.path.endsWith(".js")) {
+      scored.push({ command: `node ${quotedPath}`, score: commandPathScore(file.path) });
+    }
+    if (file.path.endsWith(".py")) {
+      const command = pythonCommandWithDefaults(file.path, file.content, paths);
+      if (command) scored.push({ command, score: commandPathScore(file.path) });
+    }
   }
 
-  return [...new Set(commands)].slice(0, 8);
+  scored.sort((a, b) => b.score - a.score || a.command.localeCompare(b.command));
+  return [...new Set(scored.map((item) => item.command))].slice(0, 8);
+}
+
+function commandPathScore(path: string) {
+  let score = 20;
+  if (/(^|\/)scripts\//.test(path) && !/\/examples\//.test(path)) score += 40;
+  if (/\/examples\//.test(path)) score -= 25;
+  if (/validate|convert|build|test/.test(path)) score += 10;
+  if (/fetch_headers|sample-/.test(path)) score -= 10;
+  return score;
+}
+
+function pythonCommandWithDefaults(path: string, content: string, paths: string[]) {
+  const requiredFlags = [
+    ...content.matchAll(/add_argument\(\s*["'](--[\w-]+)["'][\s\S]*?required\s*=\s*True/g),
+  ].map((match) => match[1]);
+  const uniqueRequired = [...new Set(requiredFlags)];
+  const args: string[] = [];
+
+  for (const flag of uniqueRequired) {
+    if (flag === "--url") {
+      args.push("--url", "https://example.com");
+      continue;
+    }
+    if (flag === "--source") {
+      const source =
+        paths.find((item) => /examples\/.*claude/i.test(item) && item.endsWith("SKILL.md"))?.replace(/\/SKILL\.md$/, "") ??
+        paths.find((item) => item.endsWith("SKILL.md") && item.includes("/"))?.replace(/\/SKILL\.md$/, "");
+      if (!source || !isSafeCommandPath(source)) return null;
+      args.push("--source", source);
+      continue;
+    }
+    if (flag === "--dest-root") {
+      args.push("--dest-root", "/tmp/asm-cursor-skills");
+      continue;
+    }
+    if (flag === "--path") {
+      const target =
+        paths.find((item) => /examples\/.*cursor/i.test(item) && item.endsWith("SKILL.md"))?.replace(/\/SKILL\.md$/, "") ??
+        ".";
+      if (!isSafeCommandPath(target)) return null;
+      args.push("--path", target);
+      continue;
+    }
+    return null;
+  }
+
+  if (content.includes("--force") && args.includes("--dest-root")) args.push("--force");
+  const quotedArgs = args.map((arg) => (arg.startsWith("-") ? arg : quoteShellArg(arg)));
+  return `python3 ${quoteShellArg(path)}${quotedArgs.length ? ` ${quotedArgs.join(" ")}` : ""}`;
 }

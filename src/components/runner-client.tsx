@@ -87,12 +87,19 @@ export function RunnerClient({
   initialRun,
   sandboxReadiness,
   initialMode,
+  embedded = false,
+  layout = "classic",
+  onRunComplete,
 }: {
   skill: Skill;
   initialRun: SkillRun;
   sandboxReadiness: SandboxReadiness;
   initialMode?: ExecutionMode;
+  embedded?: boolean;
+  layout?: "guided" | "classic";
+  onRunComplete?: (run: SkillRun) => void;
 }) {
+  const guided = layout === "guided";
   const initialWorkspace = initialRun.workspaceFiles ?? [];
   const initialCommands = detectRunnableCommands(skill, initialWorkspace);
   const initialSelectedPath =
@@ -231,6 +238,7 @@ export function RunnerClient({
       onComplete: (payloadRun) => {
         setRun(payloadRun);
         setWorkspaceFiles(payloadRun.workspaceFiles ?? workspaceFiles);
+        onRunComplete?.(payloadRun);
       },
       onError: (message) => {
         setRun((current) => ({
@@ -248,13 +256,24 @@ export function RunnerClient({
     void execute(message.text);
   }
 
+  const shellClassName = `sw-page sw-run ${embedded ? "sw-run--embedded" : ""}`;
+  const Shell = embedded
+    ? ({ children }: { children: ReactNode }) => <div className={shellClassName}>{children}</div>
+    : ({ children }: { children: ReactNode }) => (
+        <FirebenchPage heat="soft" className={shellClassName}>
+          {children}
+        </FirebenchPage>
+      );
+
   return (
-    <FirebenchPage heat="soft" className="sw-page sw-run">
-      <FirebenchHeroIntro
-        kicker="skill run lab"
-        title={<>Run <em>{skill.name}</em></>}
-        lead="Approve permissions, inspect package files, stream tool calls, and review sandbox output."
-      />
+    <Shell>
+      {!embedded ? (
+        <FirebenchHeroIntro
+          kicker="skill run lab"
+          title={<>Run <em>{skill.name}</em></>}
+          lead="Approve permissions, inspect package files, stream tool calls, and review sandbox output."
+        />
+      ) : null}
 
       <div className="fb-tags" style={{ justifyContent: "center" }}>
         <FirebenchTag>{skill.slug}</FirebenchTag>
@@ -282,12 +301,21 @@ export function RunnerClient({
         </FirebenchButton>
       </div>
 
+      {guided ? (
+        <div className="sw-guided-steps" aria-label="Guided sandbox steps">
+          <span className="sw-guided-step"><b>1</b> Prompt</span>
+          <span className="sw-guided-step"><b>2</b> Permissions</span>
+          <span className="sw-guided-step"><b>3</b> Run</span>
+          <span className="sw-guided-step"><b>4</b> Trace</span>
+        </div>
+      ) : null}
+
       <div className="sw-run-grid">
         <div className="min-w-0 flex flex-col gap-6">
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold text-neutral-950">Prompt</h2>
+                <h2 className="font-semibold text-neutral-950">{guided ? "1 · Prompt" : "Prompt"}</h2>
                 <p className="mt-1 text-sm text-neutral-600">Send a real run request to the persisted sandbox stream.</p>
               </div>
               <Badge tone={executionMode === "real-shell" ? "amber" : "blue"}>
@@ -336,6 +364,7 @@ export function RunnerClient({
             </PromptInput>
           </Panel>
 
+          {!guided ? (
           <Panel className="p-5">
             <h2 className="font-semibold text-neutral-950">Execution controls</h2>
             <SandboxStatusPanel
@@ -382,15 +411,17 @@ export function RunnerClient({
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    disabled={isRunning}
-                    onClick={() => void execute("", "autopilot")}
-                    data-testid="autopilot-run"
-                    className="fb-cta fb-cta--primary h-10 w-full disabled:opacity-50"
-                  >
-                    {isRunning ? "Running…" : "Run with Autopilot"}
-                  </button>
+                  {!guided ? (
+                    <button
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => void execute("", "autopilot")}
+                      data-testid="autopilot-run"
+                      className="fb-cta fb-cta--primary h-10 w-full disabled:opacity-50"
+                    >
+                      {isRunning ? "Running…" : "Run with Autopilot"}
+                    </button>
+                  ) : null}
                 </div>
               ) : executionMode === "real-shell" ? (
                 <>
@@ -463,9 +494,10 @@ export function RunnerClient({
               )}
             </div>
           </Panel>
+          ) : null}
 
           <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">Approvals</h2>
+            <h2 className="font-semibold text-neutral-950">{guided ? "2 · Permissions" : "Approvals"}</h2>
             <div className="mt-4 flex flex-col gap-3">
               {permissions.map((permission) => {
                 const isDenied = denied.includes(permission.key);
@@ -511,12 +543,84 @@ export function RunnerClient({
               })}
             </div>
           </Panel>
+
+          {guided ? (
+            <Panel className="p-5">
+              <h2 className="font-semibold text-neutral-950">3 · Run</h2>
+              <p className="mt-1 text-sm text-neutral-600">Execute with autopilot, or open Advanced for mode and provider controls.</p>
+              <button
+                type="button"
+                disabled={isRunning}
+                onClick={() => void execute("", "autopilot")}
+                data-testid="autopilot-run"
+                className="fb-cta fb-cta--primary mt-4 h-10 w-full disabled:opacity-50"
+              >
+                {isRunning ? "Running…" : "Run with Autopilot"}
+              </button>
+            </Panel>
+          ) : null}
+
+          {guided ? (
+            <details className="sw-advanced">
+              <summary>Advanced — mode, provider, network</summary>
+              <SandboxStatusPanel
+                command={command}
+                executionMode={executionMode}
+                networkPolicy={networkPolicy}
+                readiness={sandboxReadiness}
+              />
+              <div className="mt-4 grid gap-4">
+                <label className="block text-sm font-medium text-neutral-700">
+                  Execution mode
+                  <select
+                    value={executionMode}
+                    onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
+                    data-testid="execution-mode"
+                    className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+                  >
+                    <option value="autopilot">Autopilot (recommended)</option>
+                    <option value="virtual-agent">Virtual provider route</option>
+                    <option value="real-shell">Real shell sandbox</option>
+                  </select>
+                </label>
+                {executionMode === "real-shell" ? (
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Approved command
+                    <input
+                      value={command}
+                      onChange={(event) => setCommand(event.target.value)}
+                      data-testid="run-command"
+                      placeholder="npm test"
+                      className="mt-2 h-10 w-full rounded-md border px-3 font-mono text-sm outline-none"
+                    />
+                  </label>
+                ) : null}
+                {executionMode === "virtual-agent" ? (
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Provider
+                    <select
+                      value={provider}
+                      onChange={(event) => setProvider(event.target.value as SandboxProvider)}
+                      data-testid="run-provider"
+                      className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+                    >
+                      {sandboxProviders.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label} - {item.model}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            </details>
+          ) : null}
         </div>
 
         <Panel className="min-w-0 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
             <div>
-              <h2 className="font-semibold text-neutral-950">Conversation output</h2>
+              <h2 className="font-semibold text-neutral-950">{guided ? "4 · Trace" : "Conversation output"}</h2>
               <p className="mt-1 font-mono text-sm text-neutral-500">{run.id}</p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -686,7 +790,7 @@ export function RunnerClient({
           </div>
         </Panel>
       ) : null}
-    </FirebenchPage>
+    </Shell>
   );
 }
 

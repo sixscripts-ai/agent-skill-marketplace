@@ -10,6 +10,7 @@ import {
   FirebenchPage,
   FirebenchTag,
 } from "@/components/firebench";
+import { ForkSkillButton } from "@/components/fork-skill-button";
 import type { Skill, SkillVersion } from "@/lib/types";
 import "@/app/firebench.css";
 import "@/app/skill-workspace.css";
@@ -57,6 +58,7 @@ export function SkillDetailClient({
               <Download className="size-4" aria-hidden="true" />
               Install
             </FirebenchCta>
+            <ForkSkillButton slug={skill.slug} />
             <FirebenchCta href={`/builder/${skill.slug}`} variant="ghost">
               Edit in builder
             </FirebenchCta>

@@ -40,7 +40,7 @@ export function TraceClient({ run }: { run: SkillRun }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href={`/skills/${run.skillSlug}/run?replay=${run.id}`} testId="trace-replay" variant="secondary">
+            <ButtonLink href={`/skills/${run.skillSlug}?stage=sandbox&replay=${run.id}`} testId="trace-replay" variant="secondary">
               Replay
             </ButtonLink>
             <ButtonLink href={`/api/traces/${run.id}`} testId="trace-json-export" variant="secondary">
