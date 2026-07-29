@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { GitFork } from "lucide-react";
+import { FirebenchButton } from "@/components/firebench";
 import type { Skill } from "@/lib/types";
 
 export function ForkSkillButton({ slug }: { slug: string }) {
@@ -18,12 +20,16 @@ export function ForkSkillButton({ slug }: { slug: string }) {
   }
 
   return (
-    <button
+    <FirebenchButton
+      type="button"
+      variant="ghost"
       onClick={forkSkill}
       disabled={status === "forking"}
-      className="h-10 rounded-md border border-neutral-300 bg-[#39FF14] px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/50 disabled:cursor-wait disabled:opacity-60"
+      data-testid="fork-skill"
+      aria-label="Fork or remix this skill"
     >
+      <GitFork className="size-4" aria-hidden="true" />
       {status === "forking" ? "Forking..." : status === "error" ? "Try fork again" : "Fork / remix"}
-    </button>
+    </FirebenchButton>
   );
 }

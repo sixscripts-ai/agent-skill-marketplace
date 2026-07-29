@@ -1,0 +1,5 @@
+/* Page-specific overrides — shared Firebench styles live in firebench.css */
+
+.ai-elements-page-legacy {
+  display: none;
+}

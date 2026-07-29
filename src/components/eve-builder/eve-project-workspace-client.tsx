@@ -6,9 +6,11 @@ import { useEveWorkspace } from "./eve-workspace-context";
 
 type Props = {
   onCollapse?: () => void;
+  tab?: "files" | "history";
+  onTabChange?: (tab: string) => void;
 };
 
-export function EveProjectWorkspaceClient({ onCollapse }: Props) {
+export function EveProjectWorkspaceClient({ onCollapse, tab, onTabChange }: Props) {
   const {
     projects,
     projectId,
@@ -73,6 +75,8 @@ export function EveProjectWorkspaceClient({ onCollapse }: Props) {
       onSelectFile={setSelectedFile}
       onEditFile={editFile}
       onCollapse={onCollapse}
+      tab={tab}
+      onTabChange={onTabChange}
     />
   );
 }

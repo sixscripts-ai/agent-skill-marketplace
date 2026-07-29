@@ -3,17 +3,21 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  max-width: 52rem;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   overflow-x: hidden;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  background: var(--card);
-  padding: 1rem 1.1rem 1.15rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.eve-journey-shell .eve-builder-shell {
+  margin-top: 0.25rem;
 }
 
 .eve-builder-shell.is-workspace-collapsed {
-  max-width: 52rem;
+  max-width: none;
 }
 
 .eve-builder-chat-column {

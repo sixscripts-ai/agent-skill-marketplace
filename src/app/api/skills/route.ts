@@ -3,12 +3,21 @@ import { requireCurrentUser } from "@/lib/auth";
 import { securityErrorResponse } from "@/lib/api-errors";
 import { createOrUpdateSkill, createSkillPackage } from "@/lib/repository";
 import { buildFullSkillPackage } from "@/lib/skill-package-profile";
+import { enforcePublicPublishGate, type PublicPublishGateBody } from "@/lib/marketplace-forge/enforce-public-publish";
 import type { SkillDraftInput } from "@/lib/types";
+
+type SkillsPostBody = SkillDraftInput & PublicPublishGateBody;
 
 export async function POST(request: Request) {
   try {
-    const input = (await request.json()) as SkillDraftInput;
+    const body = (await request.json()) as SkillsPostBody;
+    const input = body as SkillDraftInput;
     const user = await requireCurrentUser();
+
+    if (input.visibility === "public") {
+      const blocked = enforcePublicPublishGate(body, input.permissions ?? []);
+      if (blocked) return blocked;
+    }
 
     if (!input.packageUploadId) {
       const generated = buildFullSkillPackage({
@@ -22,12 +31,6 @@ export async function POST(request: Request) {
           targets: input.compatibilityTargets,
         },
       });
-      if (!generated.profile.valid) {
-        return NextResponse.json(
-          { error: generated.profile.errors.join(" "), profile: generated.profile },
-          { status: 422 },
-        );
-      }
       const record = await createSkillPackage({
         owner: user,
         uploadSource: "paste",
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
           detail: `/skills/${skill.slug}`,
           marketplace: "/marketplace",
           mySkills: "/skills",
-          run: `/skills/${skill.slug}/run`,
+          run: `/skills/${skill.slug}?stage=sandbox`,
           edit: `/builder/${skill.slug}`,
         },
       },

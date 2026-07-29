@@ -22,7 +22,9 @@ const badgeVariants = cva(
       },
       tone: {
         neutral: "border-border bg-secondary text-secondary-foreground",
-        green: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400",
+        green:
+          "border-[color-mix(in_srgb,#3b6d11_30%,var(--border))] bg-[color-mix(in_srgb,#639922_10%,var(--card,#fff))] text-[#27500a]",
+        ok: "border-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_35%,var(--border))] bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_8%,var(--card,#fff))] text-[var(--fb-heat,#fa5d19)]",
         amber: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400",
         red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
         blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",

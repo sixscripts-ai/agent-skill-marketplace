@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { ActionGuide, FeatureWalkthrough } from "@/components/feature-walkthrough";
-import { ButtonLink, Panel } from "@/components/ui";
+import {
+  FirebenchHeroCard,
+  FirebenchHeroIntro,
+  FirebenchPage,
+  FirebenchTag,
+} from "@/components/firebench";
 
 export const metadata: Metadata = {
   title: "Docs | Agent Skill Marketplace",
@@ -19,50 +25,74 @@ const sections = [
 
 export default function DocsPage() {
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Docs</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">
-              A plain-English guide to what each feature does and what to click first.
-            </p>
-          </div>
-          <ButtonLink href="/builder">Create a Skill</ButtonLink>
-        </div>
-
-        <ActionGuide
-          steps={[
-            { label: "1", title: "Browse", body: "Find a skill in Marketplace that matches the work you want done." },
-            { label: "2", title: "Inspect", body: "Read the README, permissions, compatibility, versions, and eval score." },
-            { label: "3", title: "Run", body: "Use Sandbox to test the skill with a safe prompt and real files." },
-            { label: "4", title: "Trace", body: "Open the trace to see what the run touched, blocked, and produced." },
-            { label: "5", title: "Publish", body: "Use Builder when you want to upload or author your own skill." },
-          ]}
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
+      <FirebenchPage heat="bold" canvas>
+        <FirebenchHeroIntro
+          kicker="// Docs //"
+          title="From browse to"
+          accent="trace"
+          lead="A plain-English guide to what each feature does and what to click first."
         />
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="fb-tags">
+          <FirebenchTag>[ MARKETPLACE ]</FirebenchTag>
+          <FirebenchTag>[ BUILDER ]</FirebenchTag>
+          <FirebenchTag>[ SANDBOX ]</FirebenchTag>
+          <FirebenchTag>[ TRACES ]</FirebenchTag>
+        </div>
+
+        <FirebenchHeroCard
+          actionsLeft={<FirebenchTag>[ START HERE ]</FirebenchTag>}
+          actionsRight={
+            <Link href="/builder" className="fb-cta fb-cta--primary">
+              Create a Skill
+            </Link>
+          }
+        >
+          <ActionGuide
+            steps={[
+              { label: "1", title: "Browse", body: "Find a skill in Marketplace that matches the work you want done." },
+              { label: "2", title: "Inspect", body: "Read the README, permissions, compatibility, versions, and eval score." },
+              { label: "3", title: "Run", body: "Use Sandbox to test the skill with a safe prompt and real files." },
+              { label: "4", title: "Trace", body: "Open the trace to see what the run touched, blocked, and produced." },
+              { label: "5", title: "Publish", body: "Use Builder when you want to upload or author your own skill." },
+            ]}
+          />
+        </FirebenchHeroCard>
+
+        <div className="fb-card-grid">
           {sections.map(([title, body]) => (
-            <Panel key={title} className="p-5">
-              <h2 className="font-semibold text-neutral-950">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-neutral-600">{body}</p>
-            </Panel>
+            <article key={title} className="fb-card">
+              <FirebenchTag>{title}</FirebenchTag>
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
           ))}
         </div>
 
-        <FeatureWalkthrough
-          title="What is a skill?"
-          description="A skill is a portable instruction package for an AI agent. It explains when to use the skill, what workflow to follow, what permissions are needed, and what examples prove it works."
-          example="Upload a folder that contains SKILL.md, README.md, references, scripts, and assets. Builder will parse it and suggest formatting fixes."
-          why="Clear skills make agent behavior repeatable. The marketplace adds trust by showing permissions, versions, evals, runs, traces, and install targets."
-          items={[
-            { title: "SKILL.md", body: "The instruction file that tells the agent how to do a focused job." },
-            { title: "Permissions", body: "The safety gates that say what the skill may read, write, execute, or access." },
-            { title: "Runs", body: "A live test of the skill against a prompt and workspace files." },
-            { title: "Traces", body: "The record of the run, including events, output, artifacts, and blocked actions." },
-          ]}
-        />
-      </div>
+        <div className="fb-stage">
+          <div className="fb-stage__label">
+            <h2 className="fb-section-title" style={{ fontSize: "1rem" }}>
+              What is a skill?
+            </h2>
+            <FirebenchTag>[ CORE ]</FirebenchTag>
+          </div>
+          <div className="fb-stage__body">
+            <FeatureWalkthrough
+              title="Portable agent packages"
+              description="A skill is a portable instruction package for an AI agent. It explains when to use the skill, what workflow to follow, what permissions are needed, and what examples prove it works."
+              example="Upload a folder that contains SKILL.md, README.md, references, scripts, and assets. Builder will parse it and suggest formatting fixes."
+              why="Clear skills make agent behavior repeatable. The marketplace adds trust by showing permissions, versions, evals, runs, traces, and install targets."
+              items={[
+                { title: "SKILL.md", body: "The instruction file that tells the agent how to do a focused job." },
+                { title: "Permissions", body: "The safety gates that say what the skill may read, write, execute, or access." },
+                { title: "Runs", body: "A live test of the skill against a prompt and workspace files." },
+                { title: "Traces", body: "The record of the run, including events, output, artifacts, and blocked actions." },
+              ]}
+            />
+          </div>
+        </div>
+      </FirebenchPage>
     </AppShell>
   );
 }

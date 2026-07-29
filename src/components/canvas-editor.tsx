@@ -30,7 +30,7 @@ const initialNodes: Node[] = [
     type: "input",
     data: { label: "Trigger (START)" },
     position: { x: 250, y: 25 },
-    className: "border-neutral-900 rounded-none bg-[#39FF14] font-mono text-xs",
+    className: "border-neutral-900 rounded-none bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] font-mono text-xs",
   },
 ];
 
@@ -112,7 +112,7 @@ export function CanvasEditor() {
         type,
         position,
         data: { label: `${type} node` },
-        className: "border border-neutral-900 rounded-none bg-[#39FF14] font-mono text-xs p-3 min-w-[150px] shadow-[2px_2px_0_0_rgba(0,0,0,1)]",
+        className: "border border-neutral-900 rounded-none bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] font-mono text-xs p-3 min-w-[150px] shadow-[2px_2px_0_0_rgba(0,0,0,1)]",
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -173,7 +173,7 @@ export function CanvasEditor() {
         <h3 className="mb-4 font-mono text-sm font-bold uppercase text-neutral-900">AI Elements</h3>
         <div className="flex flex-col gap-3">
           <div
-            className="cursor-grab border border-neutral-900 bg-[#39FF14] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+            className="cursor-grab border border-neutral-900 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             onDragStart={(event) => {
               event.dataTransfer.setData("application/reactflow", "mcpMounter");
               event.dataTransfer.effectAllowed = "move";
@@ -183,7 +183,7 @@ export function CanvasEditor() {
             🔌 MCP Mounter
           </div>
           <div
-            className="cursor-grab border border-neutral-900 bg-[#39FF14] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+            className="cursor-grab border border-neutral-900 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             onDragStart={(event) => {
               event.dataTransfer.setData("application/reactflow", "llmProcessor");
               event.dataTransfer.effectAllowed = "move";
@@ -193,7 +193,7 @@ export function CanvasEditor() {
             🧠 LLM Processor
           </div>
           <div
-            className="cursor-grab border border-neutral-900 bg-[#39FF14] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+            className="cursor-grab border border-neutral-900 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             onDragStart={(event) => {
               event.dataTransfer.setData("application/reactflow", "terminalExecutor");
               event.dataTransfer.effectAllowed = "move";
@@ -203,7 +203,7 @@ export function CanvasEditor() {
             &gt;_ Terminal Executor
           </div>
           <div
-            className="cursor-grab border border-neutral-900 bg-[#39FF14] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+            className="cursor-grab border border-neutral-900 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             onDragStart={(event) => {
               event.dataTransfer.setData("application/reactflow", "conditionNode");
               event.dataTransfer.effectAllowed = "move";
@@ -213,7 +213,7 @@ export function CanvasEditor() {
             ⑂ Conditional Edge
           </div>
           <div
-            className="cursor-grab border border-neutral-900 bg-[#39FF14] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
+            className="cursor-grab border border-neutral-900 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] p-3 font-mono text-xs shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]"
             onDragStart={(event) => {
               event.dataTransfer.setData("application/reactflow", "actionSubAgent");
               event.dataTransfer.effectAllowed = "move";
@@ -261,10 +261,10 @@ export function CanvasEditor() {
       {selectedNode && selectedNode.type && nodeTypeLabels[selectedNode.type] ? (
         <>
           <div className="fixed inset-0 bg-black/20 z-40" onClick={closePanel} />
-          <div className="fixed top-0 right-0 bottom-0 w-[380px] bg-[#39FF14] border-l border-neutral-200 z-50 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] flex flex-col animate-in slide-in-from-right">
+          <div className="fixed top-0 right-0 bottom-0 w-[380px] bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] border-l border-neutral-200 z-50 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] flex flex-col animate-in slide-in-from-right">
             <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
               <h3 className="text-sm font-semibold text-neutral-950">{nodeTypeLabels[selectedNode.type].label}</h3>
-              <button onClick={closePanel} className="grid size-7 place-items-center rounded-md border border-neutral-200 bg-[#39FF14] text-sm text-neutral-500 hover:bg-neutral-100" type="button">✕</button>
+              <button onClick={closePanel} className="grid size-7 place-items-center rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fb-heat,#fa5d19)_12%,#fff)] text-sm text-neutral-500 hover:bg-neutral-100" type="button">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {nodeTypeLabels[selectedNode.type].fields.map((field) => (

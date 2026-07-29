@@ -8,7 +8,18 @@ import {
   normalizeWorkspaceProject,
   type WorkspaceAgentProject,
 } from "@/lib/eve/workspace-project";
+import { readDefaultAiModel } from "@/lib/user-prefs";
 import type { EveBuildRun, EveProjectSummary } from "./eve-project-workspace";
+
+function blankProjectWithPrefs(): WorkspaceAgentProject {
+  const model = readDefaultAiModel();
+  const blank = createBlankAgentProject();
+  return {
+    ...blank,
+    architectModel: model,
+    runtimeModel: model,
+  };
+}
 
 export type EveStoredProject = {
   id: string;
@@ -55,7 +66,7 @@ const EveWorkspaceContext = createContext<EveWorkspaceContextValue | null>(null)
 export function EveWorkspaceProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<EveProjectSummary[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [project, setProject] = useState<WorkspaceAgentProject>(() => createBlankAgentProject());
+  const [project, setProject] = useState<WorkspaceAgentProject>(() => blankProjectWithPrefs());
   const [status, setStatus] = useState("draft");
   const [updatedAt, setUpdatedAt] = useState("");
   const [runs, setRuns] = useState<EveBuildRun[]>([]);
@@ -145,7 +156,7 @@ export function EveWorkspaceProvider({ children }: { children: ReactNode }) {
     try {
       const stored = await api<EveStoredProject>("/api/eve/projects", {
         method: "POST",
-        body: JSON.stringify({ project: createBlankAgentProject() }),
+        body: JSON.stringify({ project: blankProjectWithPrefs() }),
       });
       applyServerProject(stored, { forceFiles: true });
       const list = await api<EveProjectSummary[]>("/api/eve/projects");
@@ -161,9 +172,14 @@ export function EveWorkspaceProvider({ children }: { children: ReactNode }) {
 
   const ensureProject = useCallback(async (current: AgentProject) => {
     if (projectId) return projectId;
+    const withPrefs = {
+      ...current,
+      architectModel: current.architectModel || readDefaultAiModel(),
+      runtimeModel: current.runtimeModel || readDefaultAiModel(),
+    };
     const stored = await api<EveStoredProject>("/api/eve/projects", {
       method: "POST",
-      body: JSON.stringify({ project: current }),
+      body: JSON.stringify({ project: withPrefs }),
     });
     applyServerProject(stored, { forceFiles: true });
     const list = await api<EveProjectSummary[]>("/api/eve/projects");
@@ -196,7 +212,7 @@ export function EveWorkspaceProvider({ children }: { children: ReactNode }) {
     try {
       await api(`/api/eve/projects?id=${encodeURIComponent(projectId)}`, { method: "DELETE" });
       setProjectId("");
-      setProject(createBlankAgentProject());
+      setProject(blankProjectWithPrefs());
       setRuns([]);
       setStatus("draft");
       setUpdatedAt("");

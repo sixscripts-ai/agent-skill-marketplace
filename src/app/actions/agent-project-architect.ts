@@ -2,7 +2,6 @@
 
 import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
@@ -60,7 +59,7 @@ Continuation context: ${continuation || "None"}`;
     system: systemPrompt,
     messages: history.map(h => ({ role: h.role, content: h.content })),
   });
-  
+
   const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/, "").trim();
   let parsed: unknown;
   try {
@@ -68,7 +67,7 @@ Continuation context: ${continuation || "None"}`;
   } catch {
     throw new Error("Architect returned invalid JSON. Retry the request or shorten it into architecture and implementation phases.");
   }
-  
+
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Architect returned an invalid project update.");
   return parsed as EveArchitectResult;
 }
@@ -76,9 +75,8 @@ Continuation context: ${continuation || "None"}`;
 function resolveModel(modelId: string, apiKeys: Record<string, string>) {
   const provider = modelId.split("/")[0];
   const model = modelId.slice(provider.length + 1);
-  const key = apiKeys[provider === "google" ? "google" : provider] || providerKey(provider);
+  const key = apiKeys[provider] || providerKey(provider);
   if (!key) throw new Error(`An API key is required for ${provider}.`);
-  if (provider === "google") return createGoogleGenerativeAI({ apiKey: key })(model);
   if (provider === "xai") return createXai({ apiKey: key })(model);
   if (provider === "groq") return createGroq({ apiKey: key })(model);
   if (provider === "deepseek") return createOpenAI({ apiKey: key, baseURL: "https://api.deepseek.com" })(model);
@@ -87,7 +85,6 @@ function resolveModel(modelId: string, apiKeys: Record<string, string>) {
 }
 
 function providerKey(provider: string) {
-  if (provider === "google") return process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
   if (provider === "xai") return process.env.XAI_API_KEY || "";
   if (provider === "groq") return process.env.GROQ_API_KEY || "";
   if (provider === "deepseek") return process.env.DEEPSEEK_API_KEY || "";

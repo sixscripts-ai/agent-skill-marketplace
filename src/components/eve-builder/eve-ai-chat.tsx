@@ -6,14 +6,35 @@ import { AGENT_MODEL_OPTIONS, runAgentTest, synchronizeAgentProject, type AgentP
 import { ApiSettingsModal, type ApiKeys } from "../api-settings-modal";
 import { eveApi, useEveWorkspace, type EveStoredProject } from "./eve-workspace-context";
 
-type Message = { id: string; role: "user" | "assistant"; content: string; plan?: string[]; files?: string[]; error?: boolean; requestId?: string; skills?: string[] };
+type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  plan?: string[];
+  files?: string[];
+  error?: boolean;
+  requestId?: string;
+  skills?: string[];
+  questions?: string[];
+};
 type ArchitectResponse = {
   result: { status: "clarify"; message: string; questions: string[]; plan: string[] } | { status: "update"; update: Partial<AgentProject>; plan: string[]; complete: boolean; continuationPrompt?: string };
   project: AgentProject;
   requestId: string;
 };
 
-const welcome: Message = { id: "welcome", role: "assistant", content: "Describe the agent you need. I will create the brief, models, tools, permissions, tests, and runnable project files. Work is checkpointed to your account after every successful batch." };
+const welcome: Message = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "Describe the agent you need. I will ask a few discovery questions first so the brief, tools, approvals, and tests match the job — then I will build the project files.",
+  questions: [
+    "What job should this agent complete end-to-end?",
+    "Who is the primary user, and what inputs do they provide?",
+    "What does a successful run look like?",
+    "What must the agent never do without asking?",
+  ],
+};
 const BYOK_STORAGE_KEY = "ai_api_keys_byok";
 const KEYS_STORAGE_KEY = "ai_api_keys";
 
@@ -49,6 +70,7 @@ export function EveAiChat() {
           plan: Array.isArray(message.metadata?.plan) ? message.metadata.plan.filter((item): item is string => typeof item === "string") : undefined,
           files: Array.isArray(message.metadata?.files) ? message.metadata.files.filter((item): item is string => typeof item === "string") : undefined,
           skills: Array.isArray(message.metadata?.skills) ? message.metadata.skills.filter((item): item is string => typeof item === "string") : undefined,
+          questions: Array.isArray(message.metadata?.questions) ? message.metadata.questions.filter((item): item is string => typeof item === "string") : undefined,
           error: message.metadata?.error === true,
           requestId: typeof message.metadata?.requestId === "string" ? message.metadata.requestId : undefined,
         })) ?? [];
@@ -126,10 +148,10 @@ export function EveAiChat() {
         setLocalProject(working);
         await refreshFromServer(id);
         if (result.status === "clarify") {
-          const text = [result.message, ...result.questions].filter(Boolean).join("\n\n");
-          await eveApi("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "assistant", content: text, metadata: { plan: result.plan, requestId: response.requestId } }) });
-          await eveApi("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "completed", currentBatch: batches, event: { type: "clarification", status: "waiting", title: "Clarification requested", detail: text, metadata: { requestId: response.requestId, plan: result.plan } } }) });
-          setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, plan: result.plan, requestId: response.requestId }]);
+          const text = result.message;
+          await eveApi("/api/eve/messages", { method: "POST", body: JSON.stringify({ projectId: id, role: "assistant", content: text, metadata: { plan: result.plan, questions: result.questions, requestId: response.requestId } }) });
+          await eveApi("/api/eve/runs", { method: "PATCH", body: JSON.stringify({ runId, status: "completed", currentBatch: batches, event: { type: "clarification", status: "waiting", title: "Clarification requested", detail: text, metadata: { requestId: response.requestId, plan: result.plan, questions: result.questions } } }) });
+          setMessages([...history, { id: crypto.randomUUID(), role: "assistant", content: text, plan: result.plan, questions: result.questions, requestId: response.requestId }]);
           await refreshFromServer(id);
           return;
         }
@@ -179,6 +201,14 @@ export function EveAiChat() {
     }
   }
 
+  function answerQuestion(question: string) {
+    if (busy) return;
+    setInput((current) => {
+      const next = current.trim();
+      return next ? `${next}\n\n${question}\n` : `${question}\n`;
+    });
+  }
+
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey)) return;
     event.preventDefault();
@@ -187,6 +217,7 @@ export function EveAiChat() {
 
   const latestRun = runs[0];
   const statusLabel = titleCase(status);
+  const latestQuestions = [...messages].reverse().find((message) => message.role === "assistant" && message.questions?.length)?.questions ?? [];
 
   return (
     <section className="eve-ai-workspace">
@@ -202,6 +233,7 @@ export function EveAiChat() {
           </p>
         </div>
         <div className="eve-chat-heading-actions">
+          <a href="/projects/new" className="builder-secondary-button">Skill lifecycle</a>
           <button type="button" className="builder-secondary-button" onClick={() => setSettingsOpen(true)}>
             <KeyRound className="size-4" aria-hidden="true" />
             API keys
@@ -224,6 +256,24 @@ export function EveAiChat() {
               <span className="eve-chat-avatar" aria-hidden="true">{message.role === "user" ? <User className="size-4" /> : <Bot className="size-4" />}</span>
               <div>
                 <p>{message.content}</p>
+                {message.questions?.length ? (
+                  <div className="eve-chat-questions" aria-label="Discovery questions">
+                    <strong>Answer these</strong>
+                    <div className="eve-chat-question-chips">
+                      {message.questions.map((question) => (
+                        <button
+                          key={question}
+                          type="button"
+                          className="builder-secondary-button"
+                          disabled={busy}
+                          onClick={() => answerQuestion(question)}
+                        >
+                          {question}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 {message.plan?.length ? <div className="eve-chat-plan"><strong>Work completed</strong>{message.plan.map((item) => <span key={item}><Check className="size-3.5" aria-hidden="true" />{item}</span>)}</div> : null}
                 {message.files?.length ? <small>{message.files.length} project files created or changed</small> : null}
                 {message.skills?.length ? <small>Skills: {message.skills.join(", ")}</small> : null}
@@ -297,7 +347,18 @@ export function EveAiChat() {
         />
         <p id="eve-composer-hint" className="eve-composer-hint">
           Press Cmd or Ctrl + Enter to build. Enter adds a new line.
+          {latestQuestions.length ? " Click a discovery chip to draft your answer." : ""}
         </p>
+        {latestQuestions.length && !busy ? (
+          <div className="eve-composer-shortcuts" aria-label="Quick discovery replies">
+            <button type="button" className="builder-secondary-button" onClick={() => setInput((current) => `${current.trim()}\n\nI answered the discovery questions above. Build the agent now.`.trim())}>
+              I have enough — build
+            </button>
+            <button type="button" className="builder-secondary-button" onClick={() => setInput((current) => `${current.trim()}\n\nGenerate anyway with best-effort assumptions.`.trim())}>
+              Generate anyway
+            </button>
+          </div>
+        ) : null}
         <div className="eve-composer-footer">
           <label className="eve-composer-model">
             <span>Model</span>

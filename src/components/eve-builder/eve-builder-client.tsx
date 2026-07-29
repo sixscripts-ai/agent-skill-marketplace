@@ -10,7 +10,7 @@ import { OrchestratorEditor } from "./orchestrator-editor";
 import { PreviewExportPanel } from "./preview-export-panel";
 
 export function EveBuilderClient(){
- const [state,setState]=useState<AgentState>({agentName:"research-operations-agent",model:"google/gemini-2.5-pro",instructions:DEFAULT_INSTRUCTIONS_MD,selectedTools:["firecrawl_mcp"]});
+ const [state,setState]=useState<AgentState>({agentName:"research-operations-agent",model:"xai/grok-4.5",instructions:DEFAULT_INSTRUCTIONS_MD,selectedTools:["firecrawl_mcp"]});
  const [settings,setSettings]=useState(false);
  const issues=useMemo(()=>validate(state),[state]);
  const updateState=(updates:Partial<AgentState>)=>setState(current=>({...current,...updates}));

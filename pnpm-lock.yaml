@@ -63,8 +63,14 @@ importers:
         specifier: ^2.5.0
         version: 2.5.0
       '@vercel/sandbox':
-        specifier: ^2.4.0
-        version: 2.4.0
+        specifier: 2.7.1
+        version: 2.7.1
+      '@wterm/dom':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wterm/react':
+        specifier: 0.3.0
+        version: 0.3.0(@wterm/dom@0.3.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@xyflow/react':
         specifier: ^12.11.1
         version: 12.11.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -1621,14 +1627,27 @@ packages:
     resolution: {integrity: sha512-r00laGW6Pv778RoR6M2NxX91ycSj+PBwVo+fOb9Bif+F0IyUKt25zrvBzfEzQpeAzbqOgPZyQibEWDdDFApd+A==}
     engines: {node: '>= 20'}
 
-  '@vercel/sandbox@2.4.0':
-    resolution: {integrity: sha512-pifnr8hex/rgQ3EPyLYHYwHyf0Kwmc4Vbya9kHGk4aERFVGj44P+742S8/SDdt2guMxBriXBOMkMLq1Kaiyyeg==}
+  '@vercel/sandbox@2.7.1':
+    resolution: {integrity: sha512-znyIIn08cxEw11kMOk9oo2Slmst5j052RJBFxhrQdSrup1ZVobhmnk0Rgj/VZGqwGDKU/yceyvQoB69tOsBOOw==}
 
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
   '@workflow/serde@4.1.0-beta.2':
     resolution: {integrity: sha512-8kkeoQKLDaKXefjV5dbhBj2aErfKp1Mc4pb6tj8144cF+Em5SPbyMbyLCHp+BVrFfFVCBluCtMx+jjvaFVZGww==}
+
+  '@wterm/core@0.3.0':
+    resolution: {integrity: sha512-aQ73QBP+eyA3kcn31mA7DmAi7qmEsQijZdmvgwxtSjCi2248EAOZgtkGDpjlspfrxyVxQbUl/IF+gCVcXt4nZQ==}
+
+  '@wterm/dom@0.3.0':
+    resolution: {integrity: sha512-OiUl7reGSlW02yb5wGXMplMZhW2HBkBSFxvbFj15I832UK0QFIHRvhE2l6Xgae8ROn9bNLaALoKDFvcUuz80iQ==}
+
+  '@wterm/react@0.3.0':
+    resolution: {integrity: sha512-1rua/roQGCIGkNxjs9TVq+EkXJ0n2IK6aCoaGIQJpvzuHv7iU9/lngG3i1SCpX6deOOO/wpfhtjDTI+z9XF0aA==}
+    peerDependencies:
+      '@wterm/dom': 0.3.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
 
   '@xyflow/react@12.11.1':
     resolution: {integrity: sha512-L+zBoLGSXham0MnlY8QqjfR7/C5JNw0zxkaey5aZ5XmCgJBAdH4+WRIu8CR40d3l/BdU635V6YbhBK1jMo8/6Q==}
@@ -5413,7 +5432,7 @@ snapshots:
       '@vercel/cli-exec': 1.0.0
       jose: 5.10.0
 
-  '@vercel/sandbox@2.4.0':
+  '@vercel/sandbox@2.7.1':
     dependencies:
       '@vercel/oidc': 3.2.0
       '@workflow/serde': 4.1.0-beta.2
@@ -5433,6 +5452,18 @@ snapshots:
   '@workflow/serde@4.1.0': {}
 
   '@workflow/serde@4.1.0-beta.2': {}
+
+  '@wterm/core@0.3.0': {}
+
+  '@wterm/dom@0.3.0':
+    dependencies:
+      '@wterm/core': 0.3.0
+
+  '@wterm/react@0.3.0(@wterm/dom@0.3.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@wterm/dom': 0.3.0
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
 
   '@xyflow/react@12.11.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
