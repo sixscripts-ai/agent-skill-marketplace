@@ -50,7 +50,7 @@ export function SkillDetailClient({
       <FirebenchHeroCard
         actionsLeft={
           <>
-            <FirebenchCta href={`/skills/${skill.slug}/run?mode=autopilot`}>
+            <FirebenchCta href={`/skills/${skill.slug}?stage=sandbox`}>
               <Play className="size-4" aria-hidden="true" />
               Run skill
             </FirebenchCta>

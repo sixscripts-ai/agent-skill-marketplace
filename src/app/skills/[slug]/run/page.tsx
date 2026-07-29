@@ -10,7 +10,6 @@ export default async function SkillRunPage({
   const { slug } = await params;
   const { replay, mode } = await searchParams;
   const query = new URLSearchParams({ stage: "sandbox" });
-  if (mode === "autopilot") query.set("mode", "autopilot");
   if (replay) query.set("replay", replay);
   redirect(`/skills/${slug}?${query.toString()}`);
 }

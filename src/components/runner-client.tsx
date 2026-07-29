@@ -120,16 +120,6 @@ export function RunnerClient({
   const [run, setRun] = useState<SkillRun>(initialRun);
   const [isRunning, setIsRunning] = useState(false);
   const [autopilotPlan, setAutopilotPlan] = useState<AutopilotPlan | null>(null);
-  const [autoExecuted, setAutoExecuted] = useState(false);
-
-  // Auto-execute when initialMode is autopilot
-  useEffect(() => {
-    if (initialMode === "autopilot" && !autoExecuted && !isRunning) {
-      setAutoExecuted(true);
-      void execute("", "autopilot");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMode]);
 
   useEffect(() => {
     const apply = () => {
@@ -718,8 +708,14 @@ export function RunnerClient({
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold text-neutral-950">Files</h2>
-                <p className="mt-1 text-sm text-neutral-600">Uploaded packages, workspace files, and generated artifacts.</p>
+                <h2 className="font-semibold text-neutral-950">Run workspace</h2>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Context for this sandbox run only — not the Projects Build package editor.{" "}
+                  <a href={`/projects/${skill.slug}`} className="text-[var(--primary)] underline-offset-2 hover:underline">
+                    Edit SKILL.md in Build
+                  </a>
+                  .
+                </p>
               </div>
               <button
                 onClick={addWorkspaceFile}

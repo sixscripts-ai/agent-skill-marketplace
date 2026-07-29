@@ -41,7 +41,7 @@ function urlsForSlug(skillSlug: string) {
     detail: `/skills/${skillSlug}`,
     marketplace: "/marketplace",
     mySkills: "/skills",
-    run: `/skills/${skillSlug}?stage=sandbox&mode=autopilot`,
+    run: `/skills/${skillSlug}?stage=sandbox`,
     edit: `/builder/${encodeURIComponent(skillSlug)}`,
   };
 }

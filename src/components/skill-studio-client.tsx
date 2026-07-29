@@ -147,8 +147,8 @@ export function SkillStudioClient({
               Distribute
             </FirebenchButton>
             <ForkSkillButton slug={skill.slug} />
-            <FirebenchCta href={`/builder/${skill.slug}`} variant="ghost">
-              Edit in builder
+            <FirebenchCta href={`/projects/${skill.slug}`} variant="ghost">
+              Edit in Build
             </FirebenchCta>
           </div>
         </>
@@ -158,10 +158,15 @@ export function SkillStudioClient({
             <div className="sw-studio-compact-kicker">sandbox</div>
             <h1 className="sw-studio-compact-title">{skill.name}</h1>
           </div>
-          <FirebenchButton type="button" variant="ghost" onClick={() => goStage("package")}>
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to Package
-          </FirebenchButton>
+          <div className="flex flex-wrap gap-2">
+            <FirebenchCta href={`/projects/${skill.slug}`} variant="ghost">
+              Edit in Build
+            </FirebenchCta>
+            <FirebenchButton type="button" variant="ghost" onClick={() => goStage("package")}>
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Back to Package
+            </FirebenchButton>
+          </div>
         </div>
       )}
 

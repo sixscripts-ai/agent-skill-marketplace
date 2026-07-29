@@ -50,7 +50,7 @@ export async function POST(request: Request) {
           detail: `/skills/${skill.slug}`,
           marketplace: "/marketplace",
           mySkills: "/skills",
-          run: `/skills/${skill.slug}?stage=sandbox&mode=autopilot`,
+          run: `/skills/${skill.slug}?stage=sandbox`,
           edit: `/builder/${skill.slug}`,
         },
       },
