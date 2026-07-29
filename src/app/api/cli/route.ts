@@ -2,7 +2,7 @@ import { createZip } from "@/lib/zip";
 
 export async function GET() {
   const cli = `#!/usr/bin/env node
-const [, , command, slug = "agent-observer"] = process.argv;
+const [, , command, slug = ""] = process.argv;
 const baseUrl = process.env.AGENT_SKILL_MARKETPLACE_URL || "http://localhost:3000";
 
 async function main() {
@@ -12,6 +12,7 @@ async function main() {
     console.log("  run <slug>        Start a live browser-sandbox run");
     return;
   }
+  if (!slug) throw new Error("Missing skill slug. Example: agent-skill install <slug>");
   if (command === "install") {
     const res = await fetch(baseUrl + "/api/packages/" + slug);
     if (!res.ok) throw new Error("Package download failed: " + res.status);
@@ -54,8 +55,8 @@ chmod +x bin/agent-skill.mjs
 ## Commands
 
 \`\`\`bash
-AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install agent-observer
-AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run agent-observer
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install <slug>
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run <slug>
 \`\`\`
 `;
 

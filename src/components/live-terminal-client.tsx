@@ -44,7 +44,7 @@ export function LiveTerminalClient({
     if (initialSkillSlug && skills.some((skill) => skill.slug === initialSkillSlug)) {
       return initialSkillSlug;
     }
-    return skills[0]?.slug ?? "agent-observer";
+    return skills[0]?.slug ?? "";
   }, [initialSkillSlug, skills]);
 
   const [skillSlug, setSkillSlug] = useState(initial);

@@ -572,6 +572,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         permissions: selectedPermissions,
         compatibilityTargets: selectedTargets,
         visibility,
+        status: visibility === "public" || visibility === "unlisted" ? "released" : "draft",
         packageUploadId: packageUploadId || undefined,
         forgeEvidenceIds: visibility === "public" ? forgeEvidenceIds : undefined,
         validationOk: visibility === "public" ? forgeValidationOk : undefined,

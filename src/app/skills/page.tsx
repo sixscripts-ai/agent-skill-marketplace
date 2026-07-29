@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
-import { getCurrentUser } from "@/lib/auth";
-import { listVisibleSkills } from "@/lib/repository";
+import { getCurrentUser, isAuthenticatedUser } from "@/lib/auth";
+import { listOwnedSkills, listVisibleSkills } from "@/lib/repository";
 import { MySkillsClient } from "@/components/my-skills-client";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "My Skills | Agent Skill Marketplace",
-  description: "Dev library for managing and sandboxed-testing agent skills.",
+  title: "Projects | Agent Skill Marketplace",
+  description: "Owner library for managing skill project lifecycle, edits, and sandboxed runs.",
 };
 
 export default async function MySkillsPage() {
   const user = await getCurrentUser();
-  const skills = await listVisibleSkills(user);
+  if (!isAuthenticatedUser(user)) redirect("/sign-in");
+  const skills = user.role === "admin" ? await listVisibleSkills(user) : await listOwnedSkills(user);
 
   return (
     <AppShell mode="wide" sidebarDefaultOpen={false}>

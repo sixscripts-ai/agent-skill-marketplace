@@ -15,6 +15,7 @@ import type {
   PermissionKey,
   Skill,
   SkillDraftInput,
+  SkillLifecycleStatus,
   SkillPackage,
   SkillPackageFile,
   SkillRun,
@@ -22,6 +23,20 @@ import type {
 } from "./types";
 
 assertDurableDatabaseConfigured();
+
+function resolveLifecycleStatus(
+  status: string | undefined | null,
+  visibility: string | undefined | null,
+): SkillLifecycleStatus {
+  if (status === "draft" || status === "review" || status === "released" || status === "deprecated") return status;
+  return visibility === "private" ? "draft" : "released";
+}
+
+function lifecycleForPublish(input: SkillDraftInput): SkillLifecycleStatus {
+  if (input.status) return input.status;
+  if (input.visibility === "public" || input.visibility === "unlisted") return "released";
+  return "draft";
+}
 
 const dataDir = isVercelDeployment()
   ? path.join(os.tmpdir(), "agent-skill-marketplace")
@@ -90,6 +105,7 @@ async function seedDatabase() {
         rating: skill.rating,
         ownerId: skill.ownerId ?? author.id,
         visibility: skill.visibility ?? "public",
+        status: skill.status ?? (skill.visibility === "private" ? "draft" : "released"),
         currentVersion: skill.currentVersion,
         author: { connect: { id: author.id } },
         permissions: {
@@ -224,6 +240,7 @@ function toSkill(row: any): Skill {
     author: row.author?.name ?? "Unknown author",
     ownerId: row.ownerId ?? undefined,
     visibility: row.visibility as Skill["visibility"],
+    status: resolveLifecycleStatus(row.status, row.visibility),
     installCount: row.installCount,
     rating: row.rating,
     currentVersion: row.currentVersion,
@@ -320,15 +337,36 @@ export async function listVisibleSkills(user: MarketplaceUser = seedUser) {
   return rows.map(toSkill);
 }
 
+export async function listOwnedSkills(user: MarketplaceUser = seedUser) {
+  if (!hasDatabase) {
+    const state = await readState();
+    if (user.role === "admin") return state.skills;
+    return state.skills.filter((skill) => skill.ownerId === user.id);
+  }
+
+  await ensureSeeded();
+  if (isAuthenticatedUser(user)) await upsertUser(user);
+  const rows = await prisma.skill.findMany({
+    where: user.role === "admin" ? {} : { ownerId: user.id },
+    include: skillInclude,
+    orderBy: { updatedAt: "desc" },
+  });
+  return rows.map(toSkill);
+}
+
 export async function listMarketplaceSkills() {
   if (!hasDatabase) {
     const state = await readState();
-    return state.skills.filter((skill) => (skill.visibility ?? "public") === "public");
+    return state.skills.filter(
+      (skill) =>
+        (skill.visibility ?? "public") === "public" &&
+        resolveLifecycleStatus(skill.status, skill.visibility) === "released",
+    );
   }
 
   await ensureSeeded();
   const rows = await prisma.skill.findMany({
-    where: { visibility: "public" },
+    where: { visibility: "public", status: "released" },
     include: skillInclude,
     orderBy: { updatedAt: "desc" },
   });
@@ -525,6 +563,7 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
   const version = existing ? bumpPatch(existing.currentVersion) : "v0.1.0";
   const installTargets = buildInstallTargets(input.slug, input.name, input.compatibilityTargets);
   const parsed = parseSkillMarkdown(input.skillMd);
+  const status = lifecycleForPublish(input);
 
   const skill = await prisma.$transaction(async (tx) => {
     const savedSkill = await tx.skill.upsert({
@@ -537,6 +576,7 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
         trustLevel: "Experimental",
         ownerId: user.id,
         visibility: input.visibility,
+        status,
         currentVersion: version,
         authorId: author.id,
       },
@@ -546,6 +586,7 @@ export async function createOrUpdateSkill(input: SkillDraftInput, user: Marketpl
         category: input.category,
         ownerId: existing?.ownerId ?? user.id,
         visibility: input.visibility,
+        status,
         currentVersion: version,
         authorId: author.id,
       },
@@ -616,6 +657,7 @@ async function createOrUpdateSkillFile(input: SkillDraftInput, user: Marketplace
   const version = existing ? bumpPatch(existing.currentVersion) : "v0.1.0";
   const installTargets = buildInstallTargets(input.slug, input.name, input.compatibilityTargets);
   const parsed = parseSkillMarkdown(input.skillMd);
+  const status = lifecycleForPublish(input);
   const nextSkill: Skill = {
     id: existing?.id ?? `skill-${input.slug}`,
     slug: input.slug,
@@ -626,6 +668,7 @@ async function createOrUpdateSkillFile(input: SkillDraftInput, user: Marketplace
     author: user.name,
     ownerId: user.id,
     visibility: input.visibility,
+    status,
     installCount: existing?.installCount ?? 0,
     rating: existing?.rating ?? 0,
     currentVersion: version,

@@ -4,11 +4,23 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Pencil, Play, Plus, Search } from "lucide-react";
 import { latestVersion } from "@/lib/data";
-import type { Skill } from "@/lib/types";
+import type { Skill, SkillLifecycleStatus } from "@/lib/types";
 import "@/app/my-skills-console.css";
 
-type StatusFilter = "all" | "published" | "draft";
+type StatusFilter = "all" | SkillLifecycleStatus;
 type SortKey = "updated" | "runs" | "rating";
+
+function lifecycleOf(skill: Skill): SkillLifecycleStatus {
+  if (skill.status === "draft" || skill.status === "review" || skill.status === "released" || skill.status === "deprecated") {
+    return skill.status;
+  }
+  return skill.visibility === "private" ? "draft" : "released";
+}
+
+function lifecycleLabel(status: SkillLifecycleStatus) {
+  if (status === "review") return "in review";
+  return status;
+}
 
 export function MySkillsClient({ skills }: { skills: Skill[] }) {
   const [query, setQuery] = useState("");
@@ -16,12 +28,16 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
   const [sort, setSort] = useState<SortKey>("updated");
 
   const counts = useMemo(() => {
-    const published = skills.filter((skill) => skill.visibility !== "private").length;
-    const draft = skills.length - published;
+    const byStatus = {
+      draft: 0,
+      review: 0,
+      released: 0,
+      deprecated: 0,
+    };
+    for (const skill of skills) byStatus[lifecycleOf(skill)] += 1;
     return {
       total: skills.length,
-      published,
-      draft,
+      ...byStatus,
       runs: skills.reduce((sum, skill) => sum + skill.installCount, 0),
     };
   }, [skills]);
@@ -37,8 +53,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
           skill.slug.toLowerCase().includes(needle),
       );
     }
-    if (status === "published") result = result.filter((skill) => skill.visibility !== "private");
-    if (status === "draft") result = result.filter((skill) => skill.visibility === "private");
+    if (status !== "all") result = result.filter((skill) => lifecycleOf(skill) === status);
 
     return [...result].sort((a, b) => {
       if (sort === "runs") return b.installCount - a.installCount;
@@ -54,26 +69,29 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
     <div className="ms-console">
       <header className="ms-console__bar">
         <div className="ms-console__title">
-          <h1>$ my-skills</h1>
-          <p>Dev library — edit, run, or open a live sandbox session against a skill package.</p>
+          <h1>$ projects</h1>
+          <p>Owner library — lifecycle separate from visibility. Edit, run, or open a sandbox against a skill package.</p>
         </div>
         <div className="ms-console__actions">
-          <Link href="/builder" className="ms-btn ms-btn--primary">
+          <Link href="/projects/new" className="ms-btn ms-btn--primary">
             <Plus className="size-3.5" aria-hidden="true" />
-            New skill
+            New project
           </Link>
         </div>
       </header>
 
       <div className="ms-console__meta" aria-label="Library stats">
         <span>
-          skills <strong>{counts.total}</strong>
-        </span>
-        <span>
-          live <strong>{counts.published}</strong>
+          projects <strong>{counts.total}</strong>
         </span>
         <span>
           draft <strong>{counts.draft}</strong>
+        </span>
+        <span>
+          review <strong>{counts.review}</strong>
+        </span>
+        <span>
+          released <strong>{counts.released}</strong>
         </span>
         <span>
           runs <strong>{counts.runs.toLocaleString()}</strong>
@@ -81,12 +99,14 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
       </div>
 
       <div className="ms-console__toolbar">
-        <div className="ms-tabs" role="tablist" aria-label="Status">
+        <div className="ms-tabs" role="tablist" aria-label="Lifecycle">
           {(
             [
               ["all", "All"],
-              ["published", "Live"],
               ["draft", "Draft"],
+              ["review", "In review"],
+              ["released", "Released"],
+              ["deprecated", "Deprecated"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -102,7 +122,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
         </div>
         <label className="ms-console__search">
           <Search className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className="sr-only">Search skills</span>
+          <span className="sr-only">Search projects</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -120,12 +140,12 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
         </select>
       </div>
 
-      <div className="ms-table" role="table" aria-label="Skill processes">
+      <div className="ms-table" role="table" aria-label="Projects">
         <div className="ms-table__head" role="row">
-          <span>Skill</span>
+          <span>Project</span>
           <span>Version</span>
-          <span>Status</span>
-          <span>Runs</span>
+          <span>Lifecycle</span>
+          <span>Visibility</span>
           <span>Updated</span>
           <span>Actions</span>
         </div>
@@ -133,15 +153,16 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
         {rows.length === 0 ? (
           <div className="ms-empty">
             No matches. Clear filters or{" "}
-            <Link href="/builder" className="text-[var(--ms-heat)] underline-offset-2 hover:underline">
-              create a skill
+            <Link href="/projects/new" className="text-[var(--ms-heat)] underline-offset-2 hover:underline">
+              create a project
             </Link>
             .
           </div>
         ) : (
           rows.map((skill) => {
             const version = latestVersion(skill);
-            const isDraft = skill.visibility === "private";
+            const lifecycle = lifecycleOf(skill);
+            const visibility = skill.visibility ?? "public";
             return (
               <div key={skill.slug} className="ms-table__row" role="row">
                 <div className="ms-skill">
@@ -158,10 +179,10 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
                   </div>
                 </div>
                 <span className="ms-mono">{skill.currentVersion}</span>
-                <span className={`ms-badge ${isDraft ? "ms-badge--draft" : "ms-badge--live"}`}>
-                  {isDraft ? "draft" : "live"}
+                <span className={`ms-badge ${lifecycle === "released" ? "ms-badge--live" : "ms-badge--draft"}`}>
+                  {lifecycleLabel(lifecycle)}
                 </span>
-                <span className="ms-mono">{skill.installCount.toLocaleString()}</span>
+                <span className="ms-mono">{visibility}</span>
                 <span className="ms-mono">{version.createdAt}</span>
                 <div className="ms-row-actions">
                   <Link
@@ -173,7 +194,7 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
                     Run
                   </Link>
                   <Link
-                    href={`/builder/${skill.slug}`}
+                    href={`/projects/${skill.slug}`}
                     className="ms-btn ms-btn--ghost"
                     style={{ minHeight: "1.9rem", fontSize: "0.72rem" }}
                   >

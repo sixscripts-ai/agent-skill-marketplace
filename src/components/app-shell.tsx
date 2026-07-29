@@ -33,8 +33,7 @@ type AppShellMode = "content" | "wide" | "canvas";
 
 const topNav = [
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/builder", label: "Builder" },
-  { href: "/skills", label: "My Skills" },
+  { href: "/projects", label: "Projects" },
   { href: "/terminal", label: "Terminal" },
   { href: "/settings", label: "Settings" },
   { href: "/docs", label: "Docs" },
@@ -45,14 +44,14 @@ const sections = [
     title: "Catalog",
     items: [
       { href: "/marketplace", label: "Marketplace", icon: Boxes },
-      { href: "/skills", label: "My Skills", icon: Sparkles },
+      { href: "/skills", label: "Projects", icon: Sparkles },
     ],
   },
   {
     title: "Studio",
     items: [
-      { href: "/builder", label: "Skill Builder", icon: Hammer },
-      { href: "/builder/eve", label: "Eve Builder", icon: TerminalSquare },
+      { href: "/projects/new", label: "Build", icon: Hammer },
+      { href: "/builder/eve", label: "Agent workspace", icon: TerminalSquare },
       { href: "/ai-elements", label: "AI Elements", icon: Boxes },
     ],
   },
@@ -329,7 +328,12 @@ function TopButton({ href, icon, label }: { href: string; icon: ReactNode; label
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/marketplace") return pathname === "/" || pathname === "/marketplace";
-  if (href === "/builder") return pathname === "/builder" || (/^\/builder\/[^/]+$/.test(pathname) && !pathname.startsWith("/builder/eve"));
+  if (href === "/projects" || href === "/skills") {
+    return pathname === "/projects" || pathname === "/skills" || pathname.startsWith("/projects/");
+  }
+  if (href === "/projects/new") {
+    return pathname === "/projects/new" || pathname === "/builder" || (/^\/builder\/[^/]+$/.test(pathname) && !pathname.startsWith("/builder/eve"));
+  }
   if (href === "/builder/eve") return pathname === "/builder/eve" || pathname.startsWith("/builder/eve/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -31,6 +31,7 @@ model Skill {
   authorId String
   ownerId String?
   visibility String @default("public")
+  status String @default("draft")
   author User @relation(fields: [authorId], references: [id])
   currentVersion String
   versions SkillVersion[]

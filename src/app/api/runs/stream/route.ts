@@ -16,8 +16,12 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { skillSlug?: string; input?: string; deniedPermissions?: string[]; provider?: SandboxProvider; executionMode?: ExecutionMode; command?: string; networkAllowlist?: string[]; workspaceFiles?: WorkspaceFile[]; replayOf?: string; draftSkill?: SkillDraftInput };
   let networkAllowlist: string[] = [];
   try { networkAllowlist = normalizeNetworkAllowlist(body.networkAllowlist ?? []); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid network allowlist." }, { status: 400 }); }
-  const skill = body.draftSkill ? toDraftSkill(body.draftSkill, user.id, user.name) : await findSkill(body.skillSlug ?? "agent-observer", user);
-  if (!skill) return NextResponse.json({ error: "Skill not found" }, { status: 404 });
+  const skill = body.draftSkill
+    ? toDraftSkill(body.draftSkill, user.id, user.name)
+    : body.skillSlug
+      ? await findSkill(body.skillSlug, user)
+      : undefined;
+  if (!skill) return NextResponse.json({ error: "Skill not found. Provide skillSlug or draftSkill." }, { status: 404 });
   const stream = new ReadableStream({ async start(controller) {
     const encoder = new TextEncoder();
     const payloads = body.executionMode === "autopilot" ? streamAutopilotRun(skill, user, body.workspaceFiles ?? [], networkAllowlist) : body.executionMode === "real-shell" ? streamRealShellSandboxRun(skill, { owner: user, input: body.input ?? "Run skill.", deniedPermissions: body.deniedPermissions ?? [], workspaceFiles: body.workspaceFiles ?? [], command: body.command, networkAllowlist, replayOf: body.replayOf }) : streamLiveSandboxRun(skill, user, body.input ?? "Run skill.", body.deniedPermissions ?? [], body.provider ?? "openai", body.workspaceFiles ?? [], body.replayOf);

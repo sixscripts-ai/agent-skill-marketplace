@@ -16,9 +16,13 @@ test.describe("Anonymous Visitor Flow", () => {
     await expect(skillCards.first()).toBeVisible();
   });
 
-  test("should be redirected to login when accessing builder", async ({ page }) => {
+  test("should be redirected to Clerk sign-in when accessing builder", async ({ page }) => {
     await page.goto("/builder");
-    // page.url() is a synchronous read, so it races Clerk's redirect under parallel load.
+    await page.waitForURL(/sign-in/);
+  });
+
+  test("should be redirected to Clerk sign-in when accessing projects", async ({ page }) => {
+    await page.goto("/projects/new");
     await page.waitForURL(/sign-in/);
   });
 });

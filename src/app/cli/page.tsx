@@ -39,8 +39,8 @@ export default function CliPage() {
           <CodeBlock
             code={`unzip agent-skill-cli.zip
 chmod +x bin/agent-skill.mjs
-AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install agent-observer
-AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run agent-observer`}
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs install <slug>
+AGENT_SKILL_MARKETPLACE_URL=http://localhost:3000 ./bin/agent-skill.mjs run <slug>`}
           />
         </FirebenchHeroCard>
 
