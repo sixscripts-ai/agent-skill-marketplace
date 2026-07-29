@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BookOpen, Boxes, Hammer, Search, Sparkles, TerminalSquare } from "lucide-react";
+import { Bell, BookOpen, Boxes, Hammer, Search, Settings2, Sparkles, TerminalSquare } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { getUserAction } from "@/app/actions";
 import type { MarketplaceUser } from "@/lib/types";
+import {
+  markNotificationsRead,
+  readNotifications,
+  type AppNotification,
+} from "@/lib/user-prefs";
 import {
   Sidebar,
   SidebarContent,
@@ -31,20 +36,20 @@ const topNav = [
   { href: "/builder", label: "Builder" },
   { href: "/skills", label: "My Skills" },
   { href: "/terminal", label: "Terminal" },
+  { href: "/settings", label: "Settings" },
   { href: "/docs", label: "Docs" },
-  { href: "/cli", label: "CLI" },
 ];
 
 const sections = [
   {
-    title: "Discover",
+    title: "Catalog",
     items: [
       { href: "/marketplace", label: "Marketplace", icon: Boxes },
       { href: "/skills", label: "My Skills", icon: Sparkles },
     ],
   },
   {
-    title: "Create",
+    title: "Studio",
     items: [
       { href: "/builder", label: "Skill Builder", icon: Hammer },
       { href: "/builder/eve", label: "Eve Builder", icon: TerminalSquare },
@@ -52,14 +57,15 @@ const sections = [
     ],
   },
   {
-    title: "Run",
+    title: "Operations",
     items: [
       { href: "/terminal", label: "Live Terminal", icon: TerminalSquare },
     ],
   },
   {
-    title: "Learn",
+    title: "Account",
     items: [
+      { href: "/settings", label: "Settings", icon: Settings2 },
       { href: "/docs", label: "Documentation", icon: BookOpen },
       { href: "/cli", label: "CLI", icon: TerminalSquare },
     ],
@@ -81,11 +87,24 @@ export function AppShell({
   const [search, setSearch] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [user, setUser] = useState<MarketplaceUser | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
     getUserAction().then(setUser).catch(() => setUser(null));
   }, []);
 
+  useEffect(() => {
+    const refresh = () => setNotifications(readNotifications());
+    refresh();
+    window.addEventListener("asm:notifications", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("asm:notifications", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((item) => !item.read).length;
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -122,8 +141,8 @@ export function AppShell({
                     <Sparkles className="size-4" aria-hidden="true" />
                   </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate text-sm font-semibold">Agent Skills</span>
-                    <span className="truncate text-xs text-sidebar-foreground/70">Portable agent capabilities</span>
+                    <span className="truncate text-sm font-semibold">Agent Skill Marketplace</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">Catalog · Studio · Account</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -163,7 +182,7 @@ export function AppShell({
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton size="lg" render={<Link href={user ? "/skills" : "/sign-in"} />}>
+                <SidebarMenuButton size="lg" render={<Link href={user ? "/settings" : "/sign-in"} />}>
                   <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border">
                     {initials}
                   </span>
@@ -222,15 +241,24 @@ export function AppShell({
               <button
                 aria-label="Notifications"
                 aria-expanded={notificationsOpen}
-                onClick={() => setNotificationsOpen((value) => !value)}
-                className="grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => {
+                  setNotificationsOpen((value) => {
+                    const next = !value;
+                    if (next) markNotificationsRead();
+                    return next;
+                  });
+                }}
+                className="relative grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                 type="button"
               >
                 <Bell className="size-4" />
+                {unreadCount ? (
+                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" aria-hidden="true" />
+                ) : null}
               </button>
               <Link
-                href={user ? "/skills" : "/sign-in"}
-                aria-label={user ? `Open account for ${user.name}` : "Sign in"}
+                href={user ? "/settings" : "/sign-in"}
+                aria-label={user ? `Open settings for ${user.name}` : "Sign in"}
                 className="ml-1 grid size-9 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border"
               >
                 {initials}
@@ -240,7 +268,23 @@ export function AppShell({
             {notificationsOpen ? (
               <div className="absolute right-4 top-12 w-80 rounded-md border border-border bg-popover p-4 shadow-lg">
                 <div className="text-sm font-semibold text-popover-foreground">Notifications</div>
-                <p className="mt-2 text-sm leading-5 text-muted-foreground">No unread notifications.</p>
+                {notifications.length ? (
+                  <ul className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+                    {notifications.slice(0, 8).map((item) => (
+                      <li key={item.id} className="rounded-md border border-border bg-background px-3 py-2">
+                        <div className="text-sm font-medium text-foreground">{item.title}</div>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.body}</p>
+                        {item.href ? (
+                          <Link href={item.href} className="mt-2 inline-block text-xs font-semibold text-primary hover:underline" onClick={() => setNotificationsOpen(false)}>
+                            Open
+                          </Link>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm leading-5 text-muted-foreground">No notifications yet.</p>
+                )}
               </div>
             ) : null}
           </header>
@@ -285,5 +329,7 @@ function TopButton({ href, icon, label }: { href: string; icon: ReactNode; label
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/marketplace") return pathname === "/" || pathname === "/marketplace";
+  if (href === "/builder") return pathname === "/builder" || (/^\/builder\/[^/]+$/.test(pathname) && !pathname.startsWith("/builder/eve"));
+  if (href === "/builder/eve") return pathname === "/builder/eve" || pathname.startsWith("/builder/eve/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }

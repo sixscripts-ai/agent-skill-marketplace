@@ -92,7 +92,7 @@ export function SkillStudioClient({
 
   const openEvidence = useCallback(
     (item: Exclude<StudioEvidence, null>) => {
-      setStudioQuery({ evidence: item });
+      setStudioQuery({ stage: "package", evidence: item });
     },
     [setStudioQuery],
   );

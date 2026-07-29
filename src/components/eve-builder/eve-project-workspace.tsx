@@ -47,6 +47,8 @@ type Props = {
   onSelectFile: (path: string) => void;
   onEditFile: (content: string) => void;
   onCollapse?: () => void;
+  tab?: "files" | "history";
+  onTabChange?: (tab: string) => void;
 };
 
 export function EveProjectWorkspace(props: Props) {
@@ -54,6 +56,8 @@ export function EveProjectWorkspace(props: Props) {
   const activeFile = files.find((file) => file.path === props.selectedFile) ?? files[0];
   const saveChip = saveChipLabel(props.saveState);
   const statusChip = titleCase(props.status);
+  const tab = props.tab ?? "files";
+  const onTabChange = props.onTabChange ?? (() => undefined);
 
   return (
     <aside className="eve-project-workspace" id="eve-project-workspace-panel" aria-label="Project">
@@ -138,7 +142,7 @@ export function EveProjectWorkspace(props: Props) {
 
       {props.workspaceError ? <div className="eve-workspace-error" role="alert">{props.workspaceError}</div> : null}
 
-      <Tabs defaultValue="files" className="eve-workspace-tabs">
+      <Tabs value={tab} onValueChange={onTabChange} className="eve-workspace-tabs">
         <TabsList className="eve-workspace-tabs-list" aria-label="Workspace views">
           <TabsTrigger value="files" className="eve-workspace-tab">
             <FileCode2 className="size-3.5" aria-hidden="true" />

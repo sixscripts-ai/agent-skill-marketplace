@@ -52,9 +52,9 @@ export default async function SkillDetailPage({
   return (
     <AppShell mode="wide" sidebarDefaultOpen={false}>
       <div className="sw-page mb-2">
-        <Link href="/skills" className="sw-back">
+        <Link href="/marketplace" className="sw-back">
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to My Skills
+          Back to Marketplace
         </Link>
       </div>
       <Suspense fallback={<div className="sw-page p-6 text-sm text-[var(--sw-muted)]">Loading studio…</div>}>

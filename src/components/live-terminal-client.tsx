@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, PlugZap, SquareTerminal, Unplug } from "lucide-react";
 import { DEFAULT_TERMINAL_MODEL, TERMINAL_MODEL_OPTIONS, type TerminalModelId } from "@/lib/terminal-models";
+import { readDefaultAiModel } from "@/lib/user-prefs";
 import type { SandboxReadiness } from "@/lib/sandbox-status";
 import type { Skill } from "@/lib/types";
 import { PtyBridge } from "@/components/terminal/pty-bridge";
@@ -64,6 +65,23 @@ export function LiveTerminalClient({
       text: "Connect a sandbox, then ask the agent to run code. Default model: Grok 4.3.",
     },
   ]);
+
+  useEffect(() => {
+    const apply = () => {
+      const next = readDefaultAiModel() as TerminalModelId;
+      setModel(next);
+      setAgentMessages((current) =>
+        current.map((item) =>
+          item.id === "welcome"
+            ? { ...item, text: `Connect a sandbox, then ask the agent to run code. Default model: ${next}.` }
+            : item,
+        ),
+      );
+    };
+    apply();
+    window.addEventListener("asm:prefs", apply);
+    return () => window.removeEventListener("asm:prefs", apply);
+  }, []);
 
   const writeRef = useRef<((data: string | Uint8Array) => void) | null>(null);
   const bridgeRef = useRef<PtyBridge | null>(null);

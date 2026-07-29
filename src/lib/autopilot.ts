@@ -109,8 +109,12 @@ export async function* streamAutopilotRun(
   skill: Skill,
   owner: MarketplaceUser,
   workspaceFiles: WorkspaceFile[] = [],
+  networkAllowlistOverride?: string[],
 ): AsyncGenerator<AutopilotPayload> {
   const plan = buildAutopilotPlan(skill, workspaceFiles);
+  if (networkAllowlistOverride) {
+    plan.networkAllowlist = networkAllowlistOverride;
+  }
 
   // Emit the plan first so the UI can show what autopilot decided
   yield { kind: "plan", plan };

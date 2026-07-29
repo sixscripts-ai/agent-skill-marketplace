@@ -38,10 +38,10 @@ function isForgeEvent(value: unknown): value is ForgeEvent {
 function urlsForSlug(skillSlug: string) {
   return {
     detail: `/skills/${skillSlug}`,
-    marketplace: "/",
-    mySkills: "/my-skills",
+    marketplace: "/marketplace",
+    mySkills: "/skills",
     run: `/skills/${skillSlug}?stage=sandbox&mode=autopilot`,
-    edit: `/builder?slug=${encodeURIComponent(skillSlug)}`,
+    edit: `/builder/${encodeURIComponent(skillSlug)}`,
   };
 }
 
@@ -62,6 +62,7 @@ export function ForgePanel({
   const [pendingHitl, setPendingHitl] = useState<PendingHitl | null>(null);
   const [pendingContinuation, setPendingContinuation] = useState<string | undefined>();
   const [batchCount, setBatchCount] = useState(0);
+  const [publishedUrls, setPublishedUrls] = useState<ReturnType<typeof urlsForSlug> | null>(null);
   const ledgerIdRef = useRef(0);
 
   function pushLedger(entry: Omit<LedgerEntry, "id">) {
@@ -89,7 +90,11 @@ export function ForgePanel({
         if (event.result.ok && (event.tool === "publish_skill_draft" || event.tool === "request_public_publish")) {
           const data = event.result.data as { skill?: { slug?: string }; packageId?: string } | undefined;
           const publishedSlug = data?.skill?.slug;
-          if (publishedSlug && onDraftPublished) onDraftPublished(urlsForSlug(publishedSlug));
+          if (publishedSlug) {
+            const urls = urlsForSlug(publishedSlug);
+            setPublishedUrls(urls);
+            if (onDraftPublished) onDraftPublished(urls);
+          }
         }
         break;
       }
@@ -331,6 +336,26 @@ export function ForgePanel({
               Continue
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {publishedUrls ? (
+        <div className="builder-finish-links mt-3" aria-label="Published skill destinations">
+          <Link href={publishedUrls.detail} className="builder-secondary-button">
+            Skill page
+          </Link>
+          <Link href={publishedUrls.run} className="builder-secondary-button">
+            Sandbox
+          </Link>
+          <Link href={publishedUrls.mySkills} className="builder-secondary-button">
+            My Skills
+          </Link>
+          <Link href={publishedUrls.edit} className="builder-secondary-button">
+            Edit
+          </Link>
+          <Link href={publishedUrls.marketplace} className="builder-secondary-button">
+            Marketplace
+          </Link>
         </div>
       ) : null}
 

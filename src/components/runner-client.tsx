@@ -39,6 +39,11 @@ import { sandboxProviders } from "@/lib/providers";
 import { detectRunnableCommands } from "@/lib/run-state";
 import type { AutopilotPlan } from "@/lib/autopilot";
 import type { SandboxReadiness } from "@/lib/sandbox-status";
+import {
+  networkAllowlistTextFromPref,
+  pushNotification,
+  readSandboxNetworkPref,
+} from "@/lib/user-prefs";
 import type {
   ExecutionMode,
   PermissionKey,
@@ -125,6 +130,19 @@ export function RunnerClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMode]);
+
+  useEffect(() => {
+    const apply = () => {
+      const pref = readSandboxNetworkPref();
+      setNetworkAllowlist(networkAllowlistTextFromPref(pref));
+      if (pref === "block-all") {
+        setDenied((current) => (current.includes("network") ? current : [...current, "network"]));
+      }
+    };
+    apply();
+    window.addEventListener("asm:prefs", apply);
+    return () => window.removeEventListener("asm:prefs", apply);
+  }, []);
 
   const detectedCommands = useMemo(() => detectRunnableCommands(skill, workspaceFiles), [skill, workspaceFiles]);
   const permissions = useMemo(() => {
@@ -239,6 +257,14 @@ export function RunnerClient({
         setRun(payloadRun);
         setWorkspaceFiles(payloadRun.workspaceFiles ?? workspaceFiles);
         onRunComplete?.(payloadRun);
+        if (payloadRun.status === "failed") {
+          pushNotification({
+            kind: "run-failed",
+            title: "Sandbox run failed",
+            body: payloadRun.output?.slice(0, 160) || `${skill.name} did not complete successfully.`,
+            href: `/skills/${skill.slug}?stage=sandbox`,
+          });
+        }
       },
       onError: (message) => {
         setRun((current) => ({
@@ -246,6 +272,12 @@ export function RunnerClient({
           status: "failed",
           output: message,
         }));
+        pushNotification({
+          kind: "run-failed",
+          title: "Sandbox run failed",
+          body: message.slice(0, 160),
+          href: `/skills/${skill.slug}?stage=sandbox`,
+        });
       },
     });
 

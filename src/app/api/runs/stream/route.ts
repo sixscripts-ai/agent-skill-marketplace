@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (!skill) return NextResponse.json({ error: "Skill not found" }, { status: 404 });
   const stream = new ReadableStream({ async start(controller) {
     const encoder = new TextEncoder();
-    const payloads = body.executionMode === "autopilot" ? streamAutopilotRun(skill, user, body.workspaceFiles ?? []) : body.executionMode === "real-shell" ? streamRealShellSandboxRun(skill, { owner: user, input: body.input ?? "Run skill.", deniedPermissions: body.deniedPermissions ?? [], workspaceFiles: body.workspaceFiles ?? [], command: body.command, networkAllowlist, replayOf: body.replayOf }) : streamLiveSandboxRun(skill, user, body.input ?? "Run skill.", body.deniedPermissions ?? [], body.provider ?? "openai", body.workspaceFiles ?? [], body.replayOf);
+    const payloads = body.executionMode === "autopilot" ? streamAutopilotRun(skill, user, body.workspaceFiles ?? [], networkAllowlist) : body.executionMode === "real-shell" ? streamRealShellSandboxRun(skill, { owner: user, input: body.input ?? "Run skill.", deniedPermissions: body.deniedPermissions ?? [], workspaceFiles: body.workspaceFiles ?? [], command: body.command, networkAllowlist, replayOf: body.replayOf }) : streamLiveSandboxRun(skill, user, body.input ?? "Run skill.", body.deniedPermissions ?? [], body.provider ?? "openai", body.workspaceFiles ?? [], body.replayOf);
     for await (const payload of payloads) controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
     controller.close();
   }});

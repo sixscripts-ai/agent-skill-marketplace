@@ -30,6 +30,7 @@ import { executeSkillRunStream } from "@/lib/runner";
 import { compatibilityTargets, permissionKeys, permissionLabels } from "@/lib/data";
 import { inferSkillTestPrompt, parseSkillMarkdown } from "@/lib/skill-import";
 import { FULL_PACKAGE_REQUIRED_SECTIONS } from "@/lib/skill-package-profile";
+import { pushNotification, readDefaultAiModel, writeDefaultAiModel } from "@/lib/user-prefs";
 import type {
   CompatibilityTarget,
   ParsedSkillImport,
@@ -53,17 +54,24 @@ const MarkdownEditor = dynamic(() => import("./markdown-editor"), { ssr: false }
 type BuilderPath = "create" | "import" | null;
 type BuilderStep = "source" | "instructions" | "package" | "configuration" | "test" | "finish";
 
-const MODEL_STORAGE_KEY = "builder_copilot_model";
-
 const createSteps: BuilderStep[] = ["source", "instructions", "package", "configuration", "test", "finish"];
 const importSteps: BuilderStep[] = ["source", "package", "instructions", "configuration", "test", "finish"];
 const stepLabels: Record<BuilderStep, string> = {
-  source: "Start",
-  instructions: "Instructions",
-  package: "Package",
-  configuration: "Configuration",
-  test: "Validate and test",
-  finish: "Finish",
+  source: "Intent",
+  instructions: "Craft",
+  package: "Files",
+  configuration: "Contract",
+  test: "Prove",
+  finish: "Ship",
+};
+
+const stepHints: Record<BuilderStep, string> = {
+  source: "How you start",
+  instructions: "Write with AI",
+  package: "Package files",
+  configuration: "Access & listing",
+  test: "Validate & run",
+  finish: "Download or publish",
 };
 
 const starterSkill = `---
@@ -168,6 +176,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [draftSaved, setDraftSaved] = useState(false);
   const [downloadedPackage, setDownloadedPackage] = useState("");
   const [activeApiKey, setActiveApiKey] = useState(false);
+  const [craftPane, setCraftPane] = useState<"write" | "helper" | "forge">("write");
 
   // An existing draft owns its slug; otherwise the slug follows the SKILL.md frontmatter
   // until the author edits it by hand.
@@ -182,15 +191,17 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const stored = resolveAiModelId(localStorage.getItem(MODEL_STORAGE_KEY));
-    setCopilotModel(stored);
+    setCopilotModel(readDefaultAiModel());
+    const onPrefs = () => setCopilotModel(readDefaultAiModel());
+    window.addEventListener("asm:prefs", onPrefs);
+    return () => window.removeEventListener("asm:prefs", onPrefs);
   }, []);
 
   useEffect(() => {
     const apiKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}";
     copilotStateRef.current = { model: copilotModel, currentSkill: skillMd, currentFiles: packageFiles, apiKeys };
     setActiveApiKey(hasKeyForModel(copilotModel, apiKeys));
-    if (typeof window !== "undefined") localStorage.setItem(MODEL_STORAGE_KEY, copilotModel);
+    if (typeof window !== "undefined") writeDefaultAiModel(copilotModel);
   }, [copilotModel, packageFiles, settingsRevision, skillMd]);
 
   const transport = useMemo(() => new DefaultChatTransport({
@@ -242,6 +253,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         setSkillMd(markdown);
         void importSkill(markdown);
         setViewMode("markdown");
+        setCraftPane("write");
       }
       if (toolPart.output?.packageFiles?.length) setPackageFiles(toolPart.output.packageFiles);
       if (toolPart.output?.packageUploadId) setPackageUploadId(toolPart.output.packageUploadId);
@@ -282,8 +294,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
       setPackageUploadId("");
       setUploadedFileName("");
       setImportResult(null);
+      setCraftPane("helper");
+      setActiveStep("instructions");
+      return;
     }
-    setActiveStep(path === "create" ? "instructions" : "source");
+    setActiveStep("source");
   }
 
   function goRelative(direction: -1 | 1) {
@@ -539,6 +554,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     if (response.ok && payload.skill && payload.urls) {
       setPublishedSlug(payload.skill.slug);
       setSavedUrls(payload.urls);
+      pushNotification({
+        kind: "publish",
+        title: "Skill published",
+        body: `${payload.skill.slug} is available in My Skills.`,
+        href: payload.urls.detail,
+      });
     } else setSaveError(payload.error ?? "Skill save failed.");
     setIsSaving(false);
   }
@@ -589,9 +610,9 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
       <div className="builder-workbench-shell">
         <header className="builder-guided-header">
           <div className="min-w-0">
-            <div className="builder-eyebrow">Skill Studio</div>
+            <div className="builder-eyebrow">Skill journey</div>
             <h1>Build a portable agent skill</h1>
-            <p>Describe the skill, refine the package, then download or publish.</p>
+            <p>Move chapter by chapter — Intent, Craft, Files, Contract, Prove, Ship. Less stacking, clearer focus.</p>
           </div>
           <div className="builder-model-bar" aria-label="AI model and API key settings">
             <label>
@@ -612,14 +633,21 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         </header>
 
         {builderPath ? (
-          <nav className="builder-progress" aria-label="Skill creation progress">
+          <nav className="builder-journey-film" aria-label="Skill creation journey">
             {orderedSteps.map((step, index) => {
               const selected = activeStep === step;
               const complete = index < currentStepIndex;
               return (
-                <button type="button" key={step} aria-current={selected ? "step" : undefined} onClick={() => setActiveStep(step)}>
-                  <span className={`builder-progress-index ${complete ? "is-complete" : ""}`}>{complete ? <Check className="size-3.5" aria-hidden="true" /> : index + 1}</span>
-                  <span>{stepLabels[step]}</span>
+                <button
+                  type="button"
+                  key={step}
+                  className={`builder-journey-frame ${complete ? "is-complete" : ""}`}
+                  aria-current={selected ? "step" : undefined}
+                  onClick={() => setActiveStep(step)}
+                >
+                  <div className="builder-journey-n">{complete ? "✓" : String(index + 1).padStart(2, "0")}</div>
+                  <b>{stepLabels[step]}</b>
+                  <span>{stepHints[step]}</span>
                 </button>
               );
             })}
@@ -640,7 +668,36 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
             </div>
           ) : null}
 
-          {activeStep === "source" ? (
+          {activeStep === "source" && builderPath ? (
+            <section className="builder-band" aria-label="Chosen start path">
+              <header className="builder-band-header">
+                <div>
+                  <h3>Intent locked</h3>
+                  <p>
+                    You chose to {builderPath === "create" ? "create with AI" : "import an existing package"}. Continue to Craft, or change path.
+                  </p>
+                </div>
+              </header>
+              <div className="builder-start-actions">
+                <button type="button" className="builder-primary-button" onClick={() => goRelative(1)}>
+                  Continue to {stepLabels[orderedSteps[1] ?? "instructions"]}
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="builder-secondary-button"
+                  onClick={() => {
+                    setBuilderPath(null);
+                    setActiveStep("source");
+                  }}
+                >
+                  Change path
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {activeStep === "source" && !builderPath ? (
             <section className="builder-start-stack" aria-label="How to start">
               <article className="builder-start-primary">
                 <div className="builder-start-copy">
@@ -691,41 +748,65 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
           {activeStep === "instructions" ? (
             <div className="builder-instructions-workbench">
-              <BuilderCopilot
-                messages={messages as BuilderCopilotMessage[]}
-                input={input}
-                model={copilotModel}
-                isGenerating={isGenerating}
-                error={copilotError}
-                showControls={false}
-                onInputChange={setInput}
-                onModelChange={(value) => setCopilotModel(resolveAiModelId(value))}
-                onSubmit={submitCopilot}
-                onStop={() => void stop()}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-              />
-              <div className="builder-section-rule" role="separator" aria-hidden="true" />
-              <ForgePanel
-                skillMarkdown={skillMd}
-                skillName={name}
-                slug={slug}
-                packageId={packageUploadId || undefined}
-                onDraftPublished={(urls) => {
-                  const next = urls as BuilderSavedUrls;
-                  if (next?.detail) {
-                    setSavedUrls(next);
-                    setPublishedSlug(slug);
-                  }
-                }}
-              />
-              <div className="builder-section-rule" role="separator" aria-hidden="true" />
-              <BuilderEditor
-                viewMode={viewMode}
-                issueCount={issues.length}
-                editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={handleSkillMdChange} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
-                preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
-                onViewModeChange={setViewMode}
-              />
+              <div className="builder-craft-tabs" role="tablist" aria-label="Craft tools">
+                <button type="button" className="builder-craft-tab" role="tab" aria-selected={craftPane === "write"} onClick={() => setCraftPane("write")}>
+                  Write
+                </button>
+                <button type="button" className="builder-craft-tab" role="tab" aria-selected={craftPane === "helper"} onClick={() => setCraftPane("helper")}>
+                  AI helper
+                </button>
+                <button type="button" className="builder-craft-tab" role="tab" aria-selected={craftPane === "forge"} onClick={() => setCraftPane("forge")}>
+                  Forge
+                </button>
+              </div>
+              <div className="builder-craft-pane" hidden={craftPane !== "helper"}>
+                <BuilderCopilot
+                  messages={messages as BuilderCopilotMessage[]}
+                  input={input}
+                  model={copilotModel}
+                  isGenerating={isGenerating}
+                  error={copilotError}
+                  showControls={false}
+                  onInputChange={setInput}
+                  onModelChange={(value) => setCopilotModel(resolveAiModelId(value))}
+                  onSubmit={submitCopilot}
+                  onStop={() => void stop()}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
+                />
+              </div>
+              <div className="builder-craft-pane" hidden={craftPane !== "forge"}>
+                <ForgePanel
+                  skillMarkdown={skillMd}
+                  skillName={name}
+                  slug={slug}
+                  packageId={packageUploadId || undefined}
+                  onDraftPublished={(urls) => {
+                    const next = urls as BuilderSavedUrls;
+                    if (next?.detail) {
+                      setSavedUrls(next);
+                      const fromDetail = next.detail.replace(/^\/skills\//, "").split(/[?#]/)[0];
+                      const published = fromDetail || slug;
+                      setPublishedSlug(published);
+                      pushNotification({
+                        kind: "publish",
+                        title: "Forge draft published",
+                        body: `${published} is ready to inspect.`,
+                        href: next.detail,
+                      });
+                      setActiveStep("finish");
+                    }
+                  }}
+                />
+              </div>
+              <div className="builder-craft-pane" hidden={craftPane !== "write"}>
+                <BuilderEditor
+                  viewMode={viewMode}
+                  issueCount={issues.length}
+                  editor={viewMode === "markdown" ? <MarkdownEditor value={skillMd} onValueChange={handleSkillMdChange} textareaId="builder-skill-md" textareaClassName="focus:outline-none" /> : <CanvasEditor />}
+                  preview={<SafeMessageResponse>{skillMd}</SafeMessageResponse>}
+                  onViewModeChange={setViewMode}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -866,7 +947,21 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               </div>
               {issues.length ? <div className="builder-warning-banner">Resolve {issues.length} validation issue{issues.length === 1 ? "" : "s"} in the previous step before downloading or publishing.</div> : null}
               {downloadedPackage ? <div className="builder-success-banner"><CheckCircle2 className="size-4" aria-hidden="true" />Downloaded {downloadedPackage}</div> : null}
-              {publishedSlug ? <div className="builder-success-banner"><PackageCheck className="size-4" aria-hidden="true" /><span>Published <strong>{publishedSlug}</strong>.</span>{savedUrls ? <a href={savedUrls.detail}>Open skill</a> : null}</div> : null}
+              {publishedSlug ? (
+                <div className="builder-success-banner">
+                  <PackageCheck className="size-4" aria-hidden="true" />
+                  <span>Published <strong>{publishedSlug}</strong>.</span>
+                </div>
+              ) : null}
+              {savedUrls ? (
+                <div className="builder-finish-links" aria-label="Published skill destinations">
+                  <a className="builder-secondary-button" href={savedUrls.detail}>Skill page</a>
+                  <a className="builder-secondary-button" href={savedUrls.run}>Sandbox</a>
+                  <a className="builder-secondary-button" href={savedUrls.mySkills}>My Skills</a>
+                  <a className="builder-secondary-button" href={savedUrls.edit}>Edit</a>
+                  {visibility === "public" ? <a className="builder-secondary-button" href={savedUrls.marketplace}>Marketplace</a> : null}
+                </div>
+              ) : null}
               {packageError || saveError ? <div className="builder-error-banner">{packageError || saveError}</div> : null}
             </section>
           ) : null}
