@@ -9,6 +9,7 @@ export {
 } from "./evidence";
 export { buildMetrics } from "./metrics";
 export { canPublishPublic } from "./publish-gate";
+export { enforcePublicPublishGate, type PublicPublishGateBody } from "./enforce-public-publish";
 export { executeForgeTool, forgeToolSchemas } from "./tools";
 export { runForgeLoop, type ForgeLoopInput } from "./loop";
 export {

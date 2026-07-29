@@ -279,6 +279,35 @@
   font-size: 0.75rem;
 }
 
+.eve-chat-questions {
+  margin-top: 0.75rem;
+}
+
+.eve-chat-questions strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.eve-chat-question-chips,
+.eve-composer-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.eve-chat-question-chips .builder-secondary-button {
+  max-width: 100%;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+}
+
 .eve-chat-message small {
   color: var(--muted-foreground);
   font-size: 0.72rem;

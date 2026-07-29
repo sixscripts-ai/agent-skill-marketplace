@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { AlertCircle, Bot, CheckCircle2, KeyRound, Send, Sparkles, Square } from "lucide-react";
 import { AI_MODEL_OPTIONS } from "@/lib/ai-model-catalog";
 
@@ -12,13 +12,15 @@ export type BuilderCopilotMessage = {
     text?: string;
     toolCallId?: string;
     state?: string;
+    output?: unknown;
+    input?: unknown;
   }>;
 };
 
 const starterPrompts = [
   {
-    label: "Create from an idea",
-    prompt: "Create a complete production-ready skill from my idea. Ask only for essential missing information, then update SKILL.md directly.",
+    label: "Discover then build",
+    prompt: "I want a new skill. Start with discovery questions before writing SKILL.md.",
   },
   {
     label: "Improve this skill",
@@ -42,6 +44,7 @@ export function BuilderCopilot({
   onSubmit,
   onStop,
   onOpenSettings,
+  onDiscoveryReady,
 }: {
   messages: BuilderCopilotMessage[];
   input: string;
@@ -54,12 +57,20 @@ export function BuilderCopilot({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onStop: () => void;
   onOpenSettings: () => void;
+  onDiscoveryReady?: () => void;
 }) {
+  const latestQuestions = useMemo(() => extractLatestQuestions(messages), [messages]);
+
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey)) return;
     event.preventDefault();
     if (!input.trim() || isGenerating) return;
     onSubmit(event as unknown as FormEvent<HTMLFormElement>);
+  }
+
+  function answerQuestion(question: string) {
+    if (isGenerating) return;
+    onInputChange(input.trim() ? `${input.trim()}\n\n${question}\n` : `${question}\n`);
   }
 
   return (
@@ -68,8 +79,8 @@ export function BuilderCopilot({
         <span className="builder-copilot-icon" aria-hidden="true"><Bot className="size-5" /></span>
         <div className="min-w-0">
           <div className="builder-eyebrow">AI Copilot</div>
-          <h2 id="builder-copilot-title">Describe the skill. Copilot updates the draft.</h2>
-          <p>Copilot reads the current SKILL.md and package files, then writes changes directly.</p>
+          <h2 id="builder-copilot-title">Discover the job. Then write the skill.</h2>
+          <p>Copilot asks a few questions first so the package is useful — then updates SKILL.md directly.</p>
         </div>
         {showControls ? (
           <div className="builder-copilot-controls">
@@ -95,9 +106,11 @@ export function BuilderCopilot({
           {messages.length === 0 ? (
             <div className="builder-copilot-empty">
               <p>No messages yet.</p>
-              <p>Describe what you want Eve-style: “Build a social media growth skill for Shopify stores.”</p>
+              <p>Describe the outcome. Copilot will interview briefly, then draft the package.</p>
             </div>
-          ) : messages.map((message) => <CopilotMessage key={message.id} message={message} />)}
+          ) : messages.map((message) => (
+            <CopilotMessage key={message.id} message={message} onAnswerQuestion={answerQuestion} disabled={isGenerating} />
+          ))}
         </div>
       </div>
 
@@ -125,7 +138,32 @@ export function BuilderCopilot({
         />
         <p id="builder-copilot-hint" className="builder-composer-hint">
           Press Cmd or Ctrl + Enter to generate. Enter adds a new line.
+          {latestQuestions.length ? " Click a discovery chip to draft your answer." : ""}
         </p>
+        {latestQuestions.length && !isGenerating ? (
+          <div className="builder-copilot-discovery-actions">
+            <button
+              type="button"
+              className="builder-secondary-button"
+              onClick={() => {
+                onDiscoveryReady?.();
+                onInputChange(`${input.trim()}\n\nI answered the discovery questions. I have enough — build the skill now.`.trim());
+              }}
+            >
+              I have enough — build
+            </button>
+            <button
+              type="button"
+              className="builder-secondary-button"
+              onClick={() => {
+                onDiscoveryReady?.();
+                onInputChange(`${input.trim()}\n\nGenerate anyway with best-effort assumptions.`.trim());
+              }}
+            >
+              Generate anyway
+            </button>
+          </div>
+        ) : null}
         <div className="builder-composer-footer">
           <label className="builder-composer-model">
             <span>Model</span>
@@ -148,7 +186,7 @@ export function BuilderCopilot({
           ) : (
             <button type="submit" disabled={!input.trim()} className="builder-primary-button">
               <Send className="size-4" aria-hidden="true" />
-              Generate and update
+              {latestQuestions.length ? "Send answers" : "Generate and update"}
             </button>
           )}
         </div>
@@ -157,12 +195,21 @@ export function BuilderCopilot({
   );
 }
 
-function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
+function CopilotMessage({
+  message,
+  onAnswerQuestion,
+  disabled,
+}: {
+  message: BuilderCopilotMessage;
+  onAnswerQuestion: (question: string) => void;
+  disabled: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const textParts = message.parts.filter((part) => part.type === "text" && part.text);
   const toolParts = message.parts.filter((part) => part.type.startsWith("tool-"));
   const combinedText = textParts.map((part) => part.text ?? "").join("\n");
   const isLongUserPrompt = message.role === "user" && (combinedText.length > 420 || combinedText.split("\n").length > 6);
+  const clarify = extractClarifyFromParts(message.parts);
 
   return (
     <article className={`builder-copilot-message ${message.role === "user" ? "user" : "assistant"}`}>
@@ -172,6 +219,18 @@ function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
             {textParts.map((part, index) => <p key={index}>{part.text}</p>)}
           </div>
         ) : null}
+        {clarify ? (
+          <div className="builder-copilot-clarify">
+            <p>{clarify.message}</p>
+            <div className="builder-copilot-question-chips" aria-label="Discovery questions">
+              {clarify.questions.map((question) => (
+                <button key={question} type="button" className="builder-secondary-button" disabled={disabled} onClick={() => onAnswerQuestion(question)}>
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {isLongUserPrompt ? (
           <button type="button" className="builder-copilot-expand" onClick={() => setExpanded((value) => !value)}>
             {expanded ? "Collapse prompt" : "Show full prompt"}
@@ -179,14 +238,42 @@ function CopilotMessage({ message }: { message: BuilderCopilotMessage }) {
         ) : null}
         {toolParts.map((part, index) => {
           const complete = part.state === "output-available";
+          const isClarify = part.type === "tool-clarify_skill_intent";
+          const isUpdate = part.type === "tool-update_skill_markdown";
+          if (isClarify && complete) return null;
           return (
             <div key={part.toolCallId ?? index} className="builder-copilot-tool-status">
               {complete ? <CheckCircle2 className="size-3.5" aria-hidden="true" /> : <Sparkles className="size-3.5" aria-hidden="true" />}
-              {complete ? "SKILL.md and package synchronized." : "Updating the skill package…"}
+              {isUpdate
+                ? complete
+                  ? "SKILL.md and package synchronized."
+                  : "Updating the skill package…"
+                : complete
+                  ? "Discovery questions ready."
+                  : "Preparing discovery questions…"}
             </div>
           );
         })}
       </div>
     </article>
   );
+}
+
+function extractClarifyFromParts(parts: BuilderCopilotMessage["parts"]) {
+  for (const part of parts) {
+    if (part.type !== "tool-clarify_skill_intent") continue;
+    const output = (part.output ?? part.input) as { message?: string; questions?: string[] } | undefined;
+    if (output?.message && Array.isArray(output.questions) && output.questions.length) {
+      return { message: output.message, questions: output.questions };
+    }
+  }
+  return null;
+}
+
+function extractLatestQuestions(messages: BuilderCopilotMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const clarify = extractClarifyFromParts(messages[index]?.parts ?? []);
+    if (clarify?.questions.length) return clarify.questions;
+  }
+  return [] as string[];
 }

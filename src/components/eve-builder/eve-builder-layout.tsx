@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Download, PanelLeftOpen, Play, Save, ShieldCheck, Wrench } from "lucide-react";
-import { runAgentTest } from "@/lib/eve/agent-project";
+import {
+  AGENT_TOOL_CATALOG,
+  runAgentTest,
+  type AgentPermissionDecision,
+} from "@/lib/eve/agent-project";
 import { downloadWorkspaceProject } from "@/lib/eve/workspace-project";
 import { EveAiChat } from "./eve-ai-chat";
 import { EveProjectWorkspaceClient } from "./eve-project-workspace-client";
@@ -29,6 +33,24 @@ export function EveBuilderLayout() {
     () => (Array.isArray(project.permissions) ? project.permissions : []),
     [project.permissions],
   );
+
+  function toggleTool(toolId: string) {
+    const next = toolNames.includes(toolId)
+      ? toolNames.filter((id) => id !== toolId)
+      : [...toolNames, toolId];
+    setLocalProject({ ...project, tools: next });
+    markUnsaved();
+  }
+
+  function setPermissionDecision(permissionId: string, decision: AgentPermissionDecision) {
+    setLocalProject({
+      ...project,
+      permissions: permissionEntries.map((item) =>
+        item.id === permissionId ? { ...item, decision } : item,
+      ),
+    });
+    markUnsaved();
+  }
 
   function openChapter(next: EveChapter) {
     setChapter(next);
@@ -113,7 +135,7 @@ export function EveBuilderLayout() {
           <header className="builder-band-header">
             <div>
               <h3 id="eve-agent-title">Agent contract</h3>
-              <p>Tools, permissions, and model for this Eve project. Refine via Intent chat if something is missing.</p>
+              <p>Edit tool contracts and the approval matrix here. Intent chat can refine; this chapter is the source of truth.</p>
             </div>
             <button type="button" className="builder-secondary-button" onClick={() => openChapter("intent")}>
               Refine in chat
@@ -123,29 +145,63 @@ export function EveBuilderLayout() {
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Wrench className="size-4 text-primary" aria-hidden="true" />
-                Tools
+                Tool contracts
               </div>
-              <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                {toolNames.length ? toolNames.map((name) => <li key={name} className="font-mono text-foreground">{name}</li>) : <li>No tools yet — describe needed capabilities in Intent.</li>}
-              </ul>
+              <div className="mt-3 grid gap-2">
+                {AGENT_TOOL_CATALOG.map((tool) => {
+                  const selected = toolNames.includes(tool.id);
+                  return (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`rounded-lg border p-3 text-left transition ${selected ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+                      aria-pressed={selected}
+                      onClick={() => toggleTool(tool.id)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <strong className="text-sm text-foreground">{tool.name}</strong>
+                        <span className="font-mono text-[10px] uppercase text-muted-foreground">{selected ? "on" : "off"}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{tool.description}</p>
+                      {tool.env.length ? (
+                        <p className="mt-1 font-mono text-[10px] text-muted-foreground">env: {tool.env.join(", ")}</p>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-                Permissions & gates
+                Approval matrix
               </div>
-              <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+              <div className="mt-3 space-y-3">
                 {permissionEntries.length ? (
                   permissionEntries.map((item) => (
-                    <li key={item.id}>
-                      <span className="font-medium text-foreground">{item.label}</span>
-                      <span className="ml-2 font-mono text-xs uppercase">{item.decision}</span>
-                    </li>
+                    <div key={item.id} className="rounded-lg border border-border p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground">{item.label}</div>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                        </div>
+                        <select
+                          className="builder-compact-select"
+                          value={item.decision}
+                          aria-label={`${item.label} decision`}
+                          onChange={(event) => setPermissionDecision(item.id, event.target.value as AgentPermissionDecision)}
+                        >
+                          <option value="allow">Allow</option>
+                          <option value="ask">Ask</option>
+                          <option value="block">Block</option>
+                        </select>
+                      </div>
+                    </div>
                   ))
                 ) : (
-                  <li>No permission map yet. High-risk tools should stay gated until you approve.</li>
+                  <p className="text-sm text-muted-foreground">No permission map yet. Ask Eve in Intent to seed approvals, then edit them here.</p>
                 )}
-              </ul>
+              </div>
             </div>
             <div className="rounded-lg border border-border p-4 lg:col-span-2">
               <div className="text-sm font-semibold">Model & brief</div>

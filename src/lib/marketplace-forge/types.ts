@@ -3,7 +3,8 @@ export type ForgeToolName =
   | "validate_skill_package"
   | "run_sandbox_prove"
   | "publish_skill_draft"
-  | "request_public_publish";
+  | "request_public_publish"
+  | "repair_skill_from_evidence";
 
 export type ForgeEvidence = {
   id: string;
@@ -34,7 +35,7 @@ export type ForgeEvent =
   | { type: "tool_start"; tool: ForgeToolName; input: unknown }
   | { type: "tool_result"; tool: ForgeToolName; result: ForgeToolResult }
   | { type: "message"; role: "assistant"; content: string }
-  | { type: "hitl"; reason: string; action: "approve_publish" | "confirm_destructive" | "clarify" }
+  | { type: "hitl"; reason: string; action: "approve_publish" | "confirm_destructive" | "clarify" | "repair_from_evidence" }
   | { type: "complete"; packageId?: string; evidenceIds: string[]; metrics: ForgeRunMetrics }
   | { type: "continuation"; prompt: string; batch: number };
 

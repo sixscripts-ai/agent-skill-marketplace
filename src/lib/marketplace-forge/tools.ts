@@ -90,6 +90,19 @@ const publicPublishSchema = z.object({
   userApprovedHighRisk: z.boolean().default(false),
 });
 
+const repairSchema = z.object({
+  skillMd: z.string().min(1),
+  skillName: z.string().optional(),
+  slug: z.string().optional(),
+  category: z.string().optional(),
+  summary: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  targets: z.array(z.string()).optional(),
+  files: z.array(fileSchema).optional(),
+  packageId: z.string().optional(),
+  evidenceIds: z.array(z.string()).optional(),
+});
+
 export type ForgeToolContext = {
   user: MarketplaceUser;
   evidence: ForgeEvidence[];
@@ -101,6 +114,7 @@ export const forgeToolSchemas: Record<ForgeToolName, z.ZodTypeAny> = {
   run_sandbox_prove: proveSchema,
   publish_skill_draft: publishSchema,
   request_public_publish: publicPublishSchema,
+  repair_skill_from_evidence: repairSchema,
 };
 
 export async function executeForgeTool(
@@ -120,6 +134,8 @@ export async function executeForgeTool(
         return publishSkillDraft(publishSchema.parse(rawInput), ctx.user);
       case "request_public_publish":
         return requestPublicPublish(publicPublishSchema.parse(rawInput), ctx);
+      case "repair_skill_from_evidence":
+        return repairSkillFromEvidence(repairSchema.parse(rawInput), ctx);
       default:
         return { ok: false, error: `Unknown forge tool: ${tool as string}` };
     }
@@ -195,6 +211,81 @@ async function updateSkillPackage(input: z.infer<typeof updateSchema>, user: Mar
       profile: generated.profile,
       permissions: generated.metadata.permissions,
     },
+  };
+}
+
+async function repairSkillFromEvidence(
+  input: z.infer<typeof repairSchema>,
+  ctx: ForgeToolContext,
+): Promise<ForgeToolResult> {
+  const selected = (input.evidenceIds?.length
+    ? input.evidenceIds.map((id) => getEvidence(id) ?? ctx.evidence.find((item) => item.id === id)).filter(Boolean)
+    : ctx.evidence.filter((item) => !item.ok)) as ForgeEvidence[];
+  const failed = selected.length ? selected : ctx.evidence.filter((item) => !item.ok).slice(-2);
+  if (!failed.length) {
+    return { ok: false, error: "No failed evidence available to repair from." };
+  }
+
+  const parsed = parseSkillMarkdown(input.skillMd);
+  let skillMd = parsed.suggestedSkillMd?.trim() ? parsed.suggestedSkillMd : input.skillMd;
+  const errorNotes = failed
+    .map((item) => {
+      const detailErrors = Array.isArray(item.details?.errors)
+        ? (item.details?.errors as unknown[]).map(String).join("; ")
+        : "";
+      const preview = typeof item.details?.outputPreview === "string" ? item.details.outputPreview.slice(0, 400) : "";
+      return `- [${item.kind}] ${item.summary}${detailErrors ? ` | ${detailErrors}` : ""}${preview ? ` | ${preview}` : ""}`;
+    })
+    .join("\n");
+
+  if (!/^##\s+Failure Handling\s*$/im.test(skillMd)) {
+    skillMd += `\n\n## Failure Handling\n\nRepair notes from Marketplace Forge evidence:\n${errorNotes}\n`;
+  } else {
+    skillMd = skillMd.replace(
+      /^(##\s+Failure Handling\s*\n)/im,
+      `$1\nRepair notes from Marketplace Forge evidence:\n${errorNotes}\n\n`,
+    );
+  }
+
+  if (!/^##\s+Gotchas\s*$/im.test(skillMd)) {
+    skillMd += `\n\n## Gotchas\n\n- Re-run sandbox prove after applying Forge repair notes.\n`;
+  }
+
+  const updated = await updateSkillPackage(
+    {
+      skillMd,
+      skillName: input.skillName || parsed.name,
+      slug: input.slug || parsed.slug,
+      category: input.category || parsed.category,
+      summary: input.summary || parsed.description,
+      permissions: input.permissions ?? parsed.permissions,
+      targets: input.targets ?? parsed.compatibilityTargets,
+      files: input.files,
+      packageId: input.packageId,
+    },
+    ctx.user,
+  );
+
+  if (!updated.ok) return updated;
+
+  const evidence = createEvidence({
+    kind: "validation",
+    ok: true,
+    summary: `Repaired skill package from ${failed.length} failed evidence item(s).`,
+    details: {
+      repairedFrom: failed.map((item) => item.id),
+      notes: errorNotes,
+    },
+  });
+
+  return {
+    ok: true,
+    data: {
+      ...(updated.data as Record<string, unknown>),
+      skillMd,
+      repairedFrom: failed.map((item) => ({ id: item.id, kind: item.kind, summary: item.summary })),
+    },
+    evidence,
   };
 }
 

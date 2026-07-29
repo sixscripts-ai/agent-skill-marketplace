@@ -13,6 +13,7 @@ export type ForgePanelProps = {
   slug?: string;
   packageId?: string;
   onDraftPublished?: (urls: unknown) => void;
+  onEvidenceUpdate?: (payload: { evidenceIds: string[]; validationOk: boolean; proveOk: boolean }) => void;
 };
 
 type LedgerEntry = {
@@ -51,6 +52,7 @@ export function ForgePanel({
   slug,
   packageId,
   onDraftPublished,
+  onEvidenceUpdate,
 }: ForgePanelProps) {
   const [goal, setGoal] = useState("Validate, prove in sandbox, and publish a private draft.");
   const [useSkillMd, setUseSkillMd] = useState(true);
@@ -63,7 +65,10 @@ export function ForgePanel({
   const [pendingContinuation, setPendingContinuation] = useState<string | undefined>();
   const [batchCount, setBatchCount] = useState(0);
   const [publishedUrls, setPublishedUrls] = useState<ReturnType<typeof urlsForSlug> | null>(null);
+  const [canRepair, setCanRepair] = useState(false);
+  const [lastEvidenceIds, setLastEvidenceIds] = useState<string[]>([]);
   const ledgerIdRef = useRef(0);
+  const evidenceOkRef = useRef({ validationOk: false, proveOk: false });
 
   function pushLedger(entry: Omit<LedgerEntry, "id">) {
     ledgerIdRef.current += 1;
@@ -87,6 +92,11 @@ export function ForgePanel({
           tone: event.result.ok ? "ok" : "error",
         });
         if (evidence) pushEvidence(evidence);
+        if (event.tool === "validate_skill_package") evidenceOkRef.current.validationOk = event.result.ok;
+        if (event.tool === "run_sandbox_prove") evidenceOkRef.current.proveOk = Boolean(event.result.ok && evidence?.ok);
+        if (!event.result.ok && (event.tool === "validate_skill_package" || event.tool === "run_sandbox_prove")) {
+          setCanRepair(true);
+        }
         if (event.result.ok && (event.tool === "publish_skill_draft" || event.tool === "request_public_publish")) {
           const data = event.result.data as { skill?: { slug?: string }; packageId?: string } | undefined;
           const publishedSlug = data?.skill?.slug;
@@ -103,6 +113,7 @@ export function ForgePanel({
         break;
       case "hitl":
         pushLedger({ kind: "hitl", title: `HITL · ${event.action}`, detail: event.reason, tone: "warn" });
+        if (event.action === "repair_from_evidence") setCanRepair(true);
         break;
       case "continuation":
         pushLedger({ kind: "continuation", title: `Continuation · batch ${event.batch}`, detail: event.prompt });
@@ -114,6 +125,13 @@ export function ForgePanel({
           detail: `package=${event.packageId ?? "none"} · evidence=${event.evidenceIds.length} · steps=${event.metrics.steps}`,
           tone: "ok",
         });
+        setLastEvidenceIds(event.evidenceIds);
+        onEvidenceUpdate?.({
+          evidenceIds: event.evidenceIds,
+          validationOk: evidenceOkRef.current.validationOk,
+          proveOk: evidenceOkRef.current.proveOk,
+        });
+        if (evidenceOkRef.current.validationOk && evidenceOkRef.current.proveOk) setCanRepair(false);
         break;
       default:
         break;
@@ -254,7 +272,7 @@ export function ForgePanel({
     void runBatches(undefined, {}, 1);
   }
 
-  function onHitl(action: "approve_publish" | "confirm_destructive" | "continue") {
+  function onHitl(action: "approve_publish" | "confirm_destructive" | "continue" | "repair_from_evidence") {
     if (busy) return;
     const flags: ForgeFlags =
       action === "approve_publish"
@@ -263,7 +281,11 @@ export function ForgePanel({
           ? { confirmDestructive: true, userApprovedHighRisk: true }
           : {};
     const nextBatch = Math.min(batchCount + 1, MAX_BATCHES);
-    void runBatches(pendingContinuation || "Continue forge lifecycle.", flags, nextBatch);
+    const continuation =
+      action === "repair_from_evidence"
+        ? "Run repair_skill_from_evidence using the failed evidence, then re-validate and re-prove before publishing."
+        : pendingContinuation || "Continue forge lifecycle.";
+    void runBatches(continuation, flags, nextBatch);
   }
 
   return (
@@ -326,9 +348,16 @@ export function ForgePanel({
         <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <p className="text-sm text-foreground">{pendingHitl.reason}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="builder-primary-button" disabled={busy} onClick={() => onHitl("approve_publish")}>
-              Approve Publish
-            </button>
+            {pendingHitl.action === "repair_from_evidence" || canRepair ? (
+              <button type="button" className="builder-primary-button" disabled={busy} onClick={() => onHitl("repair_from_evidence")}>
+                Repair from evidence
+              </button>
+            ) : null}
+            {pendingHitl.action === "approve_publish" ? (
+              <button type="button" className="builder-primary-button" disabled={busy} onClick={() => onHitl("approve_publish")}>
+                Approve Publish
+              </button>
+            ) : null}
             <button type="button" className="builder-secondary-button" disabled={busy} onClick={() => onHitl("confirm_destructive")}>
               Confirm Destructive
             </button>
@@ -336,6 +365,17 @@ export function ForgePanel({
               Continue
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {!pendingHitl && canRepair ? (
+        <div className="mt-3">
+          <button type="button" className="builder-primary-button" disabled={busy} onClick={() => onHitl("repair_from_evidence")}>
+            Repair from evidence
+          </button>
+          {lastEvidenceIds.length ? (
+            <p className="mt-2 text-xs text-muted-foreground">Using latest forge evidence ({lastEvidenceIds.length} items).</p>
+          ) : null}
         </div>
       ) : null}
 

@@ -120,9 +120,25 @@ function validate(body: Body) {
 }
 
 function systemPrompt(project: AgentProject, continuation?: string) {
+  const brief = project.brief ?? {};
+  const underspecified = [
+    !String(brief.purpose || "").trim() || String(brief.purpose).length < 24,
+    !Array.isArray(project.tools) || project.tools.length === 0,
+    !Array.isArray(project.permissions) || !project.permissions.some((item) => item.decision === "ask" || item.decision === "block"),
+    !Array.isArray(project.tests) || project.tests.length === 0,
+  ].filter(Boolean).length;
+
   return `You are Eve's production Agent Architect. Return exactly one JSON object and no markdown.
 Clarification shape: {"status":"clarify","message":"...","questions":["..."],"plan":["..."]}
 Update shape: {"status":"update","update":{...},"plan":["..."],"complete":true|false,"continuationPrompt":"..."}
+
+Discovery rules (mandatory):
+1. Prefer clarify when the user request is vague or the project is underspecified (missing purpose, tools, approval gates, or success tests).
+2. Ask 3–6 concrete questions covering: job/purpose, users, inputs/outputs, success test, must-not-do, tools/approvals.
+3. Do NOT return status "update" with a full project write on a vague first message. Clarify first.
+4. Only return status "update" when the user answered discovery questions, said "generate anyway" / "I have enough — build", or the project already has a clear brief + tools + at least one ask/block permission + tests.
+5. Underspecification score for current project: ${underspecified}/4 (higher means you should clarify unless user explicitly waived discovery).
+
 Allowed project fields: metadata, brief, runtimeModel, runtime, tools, skills, permissions, tests, files. Preserve unrelated fields. Each file needs path and content. Do not include secrets. Keep this batch bounded to the most important changes.
 Current project: ${JSON.stringify(project)}
 Continuation: ${continuation || "None"}`;

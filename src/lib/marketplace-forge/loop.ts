@@ -153,6 +153,71 @@ export async function* runForgeLoop(input: ForgeLoopInput): AsyncGenerator<Forge
     }
   }
 
+  const failedEvidence = state.evidence.filter((item) => !item.ok && (item.kind === "validation" || item.kind === "sandbox_prove"));
+  if (failedEvidence.length && !input.continuation?.includes("repair_skill_from_evidence")) {
+    state.hitlCount += 1;
+    yield {
+      type: "hitl",
+      reason: `Validate/prove failed (${failedEvidence.map((item) => item.kind).join(", ")}). Repair from evidence, then re-run validate + prove.`,
+      action: "repair_from_evidence",
+    };
+    if (batch < maxBatches) {
+      yield {
+        type: "continuation",
+        prompt: "Run repair_skill_from_evidence using the failed evidence, then re-validate and re-prove before publishing.",
+        batch: batch + 1,
+      };
+    }
+    return;
+  }
+
+  if (input.continuation?.includes("repair_skill_from_evidence") && state.skillMd && state.steps < maxSteps) {
+    for await (const event of invokeTool(state, input.user, "repair_skill_from_evidence", {
+      skillMd: state.skillMd,
+      skillName: state.skillName,
+      slug: state.slug,
+      permissions: state.permissions,
+      files: input.files,
+      packageId: state.packageId,
+      evidenceIds: failedEvidence.map((item) => item.id),
+    })) {
+      yield event;
+      if (event.type === "tool_result" && event.result.ok && event.result.data && typeof event.result.data === "object") {
+        const data = event.result.data as { skillMd?: string; packageId?: string; metadata?: { displayName?: string; directoryName?: string; permissions?: string[] } };
+        if (typeof data.skillMd === "string") state.skillMd = data.skillMd;
+        state.packageId = data.packageId ?? state.packageId;
+        state.skillName = data.metadata?.displayName ?? state.skillName;
+        state.slug = data.metadata?.directoryName ?? state.slug;
+        state.permissions = data.metadata?.permissions ?? state.permissions;
+        trackEvidence(state, event.result);
+      }
+    }
+    for await (const event of invokeTool(state, input.user, "validate_skill_package", {
+      skillMd: state.skillMd,
+      directoryName: state.slug,
+      files: input.files,
+    })) {
+      yield event;
+      if (event.type === "tool_result") {
+        state.validationOk = event.result.ok;
+        trackEvidence(state, event.result);
+      }
+    }
+    for await (const event of invokeTool(state, input.user, "run_sandbox_prove", {
+      skillMd: state.skillMd,
+      skillName: state.skillName,
+      slug: state.slug,
+      permissions: state.permissions,
+      files: input.files,
+    })) {
+      yield event;
+      if (event.type === "tool_result") {
+        trackEvidence(state, event.result);
+        if (event.result.evidence?.ok) state.latestProve = event.result.evidence;
+      }
+    }
+  }
+
   if (state.steps < maxSteps && state.skillName && state.slug) {
     const draftVisibility = input.visibility === "unlisted" ? "unlisted" : "private";
     for await (const event of invokeTool(state, input.user, "publish_skill_draft", {

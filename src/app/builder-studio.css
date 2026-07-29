@@ -159,6 +159,33 @@
   font-size: 0.72rem;
 }
 
+.builder-copilot-clarify {
+  margin-top: 0.65rem;
+}
+
+.builder-copilot-clarify p {
+  margin: 0 0 0.5rem;
+}
+
+.builder-copilot-question-chips,
+.builder-copilot-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.builder-copilot-question-chips .builder-secondary-button {
+  max-width: 100%;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+}
+
 .builder-copilot-error {
   display: flex;
   align-items: center;

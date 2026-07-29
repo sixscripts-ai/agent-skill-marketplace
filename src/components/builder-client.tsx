@@ -177,6 +177,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   const [downloadedPackage, setDownloadedPackage] = useState("");
   const [activeApiKey, setActiveApiKey] = useState(false);
   const [craftPane, setCraftPane] = useState<"write" | "helper" | "forge">("write");
+  const [discoveryReady, setDiscoveryReady] = useState(false);
+  const [forgeEvidenceIds, setForgeEvidenceIds] = useState<string[]>([]);
+  const [forgeProveOk, setForgeProveOk] = useState(false);
+  const [forgeValidationOk, setForgeValidationOk] = useState(false);
+  const [userApprovedHighRisk, setUserApprovedHighRisk] = useState(false);
 
   // An existing draft owns its slug; otherwise the slug follows the SKILL.md frontmatter
   // until the author edits it by hand.
@@ -187,6 +192,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
     currentSkill: skillMd,
     currentFiles: packageFiles,
     apiKeys: typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}",
+    discoveryReady: false,
   });
 
   useEffect(() => {
@@ -199,10 +205,16 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
 
   useEffect(() => {
     const apiKeys = typeof window !== "undefined" ? localStorage.getItem("ai_api_keys") || "{}" : "{}";
-    copilotStateRef.current = { model: copilotModel, currentSkill: skillMd, currentFiles: packageFiles, apiKeys };
+    copilotStateRef.current = {
+      model: copilotModel,
+      currentSkill: skillMd,
+      currentFiles: packageFiles,
+      apiKeys,
+      discoveryReady,
+    };
     setActiveApiKey(hasKeyForModel(copilotModel, apiKeys));
     if (typeof window !== "undefined") writeDefaultAiModel(copilotModel);
-  }, [copilotModel, packageFiles, settingsRevision, skillMd]);
+  }, [copilotModel, discoveryReady, packageFiles, settingsRevision, skillMd]);
 
   const transport = useMemo(() => new DefaultChatTransport({
     api: "/api/skills/generate",
@@ -216,6 +228,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
           model: state.model,
           currentSkill: state.currentSkill,
           currentFiles: state.currentFiles,
+          discoveryReady: state.discoveryReady,
         },
         headers: { "x-api-keys": state.apiKeys },
       };
@@ -258,6 +271,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
       if (toolPart.output?.packageFiles?.length) setPackageFiles(toolPart.output.packageFiles);
       if (toolPart.output?.packageUploadId) setPackageUploadId(toolPart.output.packageUploadId);
       if (metadata) applyGeneratedMetadata(metadata);
+      if (markdown) setDiscoveryReady(true);
     }
   }, [messages, skillMd]);
 
@@ -296,6 +310,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
       setImportResult(null);
       setCraftPane("helper");
       setActiveStep("instructions");
+      setDiscoveryReady(false);
       return;
     }
     setActiveStep("source");
@@ -534,6 +549,16 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
   async function publishSkill() {
     setSaveError("");
     setSavedUrls(null);
+    if (visibility === "public" && (!forgeProveOk || !forgeEvidenceIds.length)) {
+      setSaveError("Public publish requires a fresh successful Forge sandbox prove. Run Marketplace Forge first, then publish.");
+      setCraftPane("forge");
+      return;
+    }
+    const needsHighRisk = selectedPermissions.some((permission) => permission === "shell" || permission === "api_keys");
+    if (visibility === "public" && needsHighRisk && !userApprovedHighRisk) {
+      setSaveError("Public publish with shell or api_keys requires high-risk approval. Confirm below, then publish again.");
+      return;
+    }
     setIsSaving(true);
     const response = await fetch("/api/skills", {
       method: "POST",
@@ -548,9 +573,12 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         compatibilityTargets: selectedTargets,
         visibility,
         packageUploadId: packageUploadId || undefined,
+        forgeEvidenceIds: visibility === "public" ? forgeEvidenceIds : undefined,
+        validationOk: visibility === "public" ? forgeValidationOk : undefined,
+        userApprovedHighRisk: visibility === "public" ? userApprovedHighRisk : undefined,
       }),
     });
-    const payload = (await response.json()) as { skill?: { slug: string }; urls?: BuilderSavedUrls; error?: string };
+    const payload = (await response.json()) as { skill?: { slug: string }; urls?: BuilderSavedUrls; error?: string; reason?: string };
     if (response.ok && payload.skill && payload.urls) {
       setPublishedSlug(payload.skill.slug);
       setSavedUrls(payload.urls);
@@ -560,7 +588,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
         body: `${payload.skill.slug} is available in My Skills.`,
         href: payload.urls.detail,
       });
-    } else setSaveError(payload.error ?? "Skill save failed.");
+    } else setSaveError(payload.error ?? payload.reason ?? "Skill save failed.");
     setIsSaving(false);
   }
 
@@ -772,6 +800,7 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                   onSubmit={submitCopilot}
                   onStop={() => void stop()}
                   onOpenSettings={() => setIsSettingsOpen(true)}
+                  onDiscoveryReady={() => setDiscoveryReady(true)}
                 />
               </div>
               <div className="builder-craft-pane" hidden={craftPane !== "forge"}>
@@ -795,6 +824,11 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
                       });
                       setActiveStep("finish");
                     }
+                  }}
+                  onEvidenceUpdate={({ evidenceIds, validationOk, proveOk }) => {
+                    setForgeEvidenceIds(evidenceIds);
+                    setForgeValidationOk(validationOk);
+                    setForgeProveOk(proveOk);
                   }}
                 />
               </div>
@@ -943,8 +977,27 @@ export function BuilderClient({ initialDraft }: { initialDraft?: SkillDraftInput
               <div className="builder-finish-list">
                 <FinishCard icon={<Save className="size-4" aria-hidden="true" />} title="Save browser draft" description="Keep the current Builder state in this browser without publishing." action={<button type="button" className="builder-secondary-button" onClick={saveDraft}>{draftSaved ? <Check className="size-4" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}{draftSaved ? "Draft saved" : "Save draft"}</button>} />
                 <FinishCard icon={<Download className="size-4" aria-hidden="true" />} title="Download skill package" description={`Create ${slug || "agent-skill"}.zip with SKILL.md and scaffold folders.`} action={<button type="button" className="builder-secondary-button" onClick={() => void downloadZip()} disabled={isPackaging || issues.length > 0}><Download className="size-4" aria-hidden="true" />{isPackaging ? "Preparing..." : "Download ZIP"}</button>} />
-                <FinishCard icon={<Rocket className="size-4" aria-hidden="true" />} title="Publish to Marketplace" description={`Publish a ${visibility} marketplace version with the selected targets and permissions.`} action={<button type="button" data-testid="builder-publish" className="builder-primary-button" onClick={() => void publishSkill()} disabled={isSaving || issues.length > 0}><Rocket className="size-4" aria-hidden="true" />{isSaving ? "Publishing..." : "Publish to Marketplace"}</button>} />
+                <FinishCard icon={<Rocket className="size-4" aria-hidden="true" />} title="Publish to Marketplace" description={`Publish a ${visibility} marketplace version with the selected targets and permissions.`} action={<button type="button" data-testid="builder-publish" className="builder-primary-button" onClick={() => void publishSkill()} disabled={isSaving || issues.length > 0 || (visibility === "public" && !forgeProveOk)}><Rocket className="size-4" aria-hidden="true" />{isSaving ? "Publishing..." : "Publish to Marketplace"}</button>} />
               </div>
+              {visibility === "public" && !forgeProveOk ? (
+                <div className="builder-warning-banner">
+                  Public publish is hard-gated: run Marketplace Forge until sandbox prove succeeds, then publish.
+                  <button type="button" className="builder-secondary-button ml-2" onClick={() => { setActiveStep("instructions"); setCraftPane("forge"); }}>
+                    Open Forge
+                  </button>
+                </div>
+              ) : null}
+              {visibility === "public" && selectedPermissions.some((permission) => permission === "shell" || permission === "api_keys") ? (
+                <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-[var(--primary)]"
+                    checked={userApprovedHighRisk}
+                    onChange={(event) => setUserApprovedHighRisk(event.target.checked)}
+                  />
+                  I approve high-risk permissions (shell / api_keys) for this public publish
+                </label>
+              ) : null}
               {issues.length ? <div className="builder-warning-banner">Resolve {issues.length} validation issue{issues.length === 1 ? "" : "s"} in the previous step before downloading or publishing.</div> : null}
               {downloadedPackage ? <div className="builder-success-banner"><CheckCircle2 className="size-4" aria-hidden="true" />Downloaded {downloadedPackage}</div> : null}
               {publishedSlug ? (
