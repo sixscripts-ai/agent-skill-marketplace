@@ -1,0 +1,203 @@
+/* Production Firecrawl-inspired theme: heat, graphite, and paper. */
+
+:root {
+  color-scheme: light;
+  --fire-heat: #fa5d19;
+  --fire-heat-hover: #e94f0f;
+  --fire-heat-soft: rgba(250, 93, 25, 0.1);
+  --fire-heat-line: rgba(250, 93, 25, 0.34);
+  --fire-graphite: #262626;
+  --fire-paper: #f9f9f7;
+  --fire-panel: #ffffff;
+  --fire-subtle: #f1f1ed;
+  --fire-line: #deded8;
+  --fire-line-strong: #bdbdb5;
+  --fire-muted: #70706a;
+
+  --background: var(--fire-paper);
+  --foreground: var(--fire-graphite);
+  --card: var(--fire-panel);
+  --card-foreground: var(--fire-graphite);
+  --panel-subtle: var(--fire-subtle);
+  --border: var(--fire-line);
+  --border-strong: var(--fire-line-strong);
+  --muted: var(--fire-subtle);
+  --muted-foreground: var(--fire-muted);
+  --topbar: rgba(249, 249, 247, 0.92);
+  --topbar-border: var(--fire-line);
+  --topbar-text: var(--fire-graphite);
+  --topbar-muted: var(--fire-muted);
+  --sidebar: #f4f4f0;
+  --sidebar-foreground: #41413d;
+  --sidebar-accent: #eaeae4;
+  --sidebar-accent-foreground: var(--fire-graphite);
+  --sidebar-border: var(--fire-line);
+  --sidebar-ring: var(--fire-heat);
+  --sidebar-primary: var(--fire-heat);
+  --sidebar-primary-foreground: #ffffff;
+  --primary: var(--fire-heat);
+  --primary-hover: var(--fire-heat-hover);
+  --primary-foreground: #ffffff;
+  --secondary: var(--fire-subtle);
+  --secondary-foreground: var(--fire-graphite);
+  --accent: #ecece7;
+  --accent-foreground: var(--fire-graphite);
+  --popover: var(--fire-panel);
+  --popover-foreground: var(--fire-graphite);
+  --input: var(--fire-line);
+  --ring: var(--fire-heat);
+  --brand: var(--fire-heat);
+  --brand-foreground: #ffffff;
+  --brand-soft: var(--fire-heat-soft);
+  --brand-border: var(--fire-heat-line);
+  --brand-glow: transparent;
+
+  --surface-canvas: var(--fire-paper);
+  --surface-panel: var(--fire-panel);
+  --surface-raised: var(--fire-panel);
+  --surface-subtle: var(--fire-subtle);
+  --surface-hover: #ebebe5;
+  --text-strong: var(--fire-graphite);
+  --text-body: #3f3f3b;
+  --text-muted: var(--fire-muted);
+  --line-soft: var(--fire-line);
+  --line-strong: var(--fire-line-strong);
+  --accent-solid: var(--fire-heat);
+  --accent-hover: var(--fire-heat-hover);
+  --accent-soft: var(--fire-heat-soft);
+  --accent-line: var(--fire-heat-line);
+  --focus-ring: rgba(250, 93, 25, 0.28);
+  --shadow-panel: 0 1px 0 rgba(38, 38, 38, 0.04), 0 10px 30px rgba(38, 38, 38, 0.055);
+  --shadow-float: 0 22px 60px rgba(38, 38, 38, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --fire-paper: #171717;
+    --fire-panel: #202020;
+    --fire-subtle: #292927;
+    --fire-line: #3a3a36;
+    --fire-line-strong: #55554f;
+    --fire-muted: #aaa9a1;
+
+    --background: var(--fire-paper);
+    --foreground: #f9f9f7;
+    --card: var(--fire-panel);
+    --card-foreground: #f9f9f7;
+    --panel-subtle: var(--fire-subtle);
+    --border: var(--fire-line);
+    --border-strong: var(--fire-line-strong);
+    --muted: var(--fire-subtle);
+    --muted-foreground: var(--fire-muted);
+    --topbar: rgba(23, 23, 23, 0.92);
+    --topbar-border: var(--fire-line);
+    --topbar-text: #f9f9f7;
+    --topbar-muted: var(--fire-muted);
+    --sidebar: #1a1a1a;
+    --sidebar-foreground: #d8d8d2;
+    --sidebar-accent: #2a2a27;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: var(--fire-line);
+    --secondary: var(--fire-subtle);
+    --secondary-foreground: #f9f9f7;
+    --accent: #30302d;
+    --accent-foreground: #ffffff;
+    --popover: var(--fire-panel);
+    --popover-foreground: #f9f9f7;
+    --input: var(--fire-line);
+
+    --surface-canvas: var(--fire-paper);
+    --surface-panel: var(--fire-panel);
+    --surface-raised: #252523;
+    --surface-subtle: var(--fire-subtle);
+    --surface-hover: #32322f;
+    --text-strong: #f9f9f7;
+    --text-body: #d5d5cf;
+    --text-muted: var(--fire-muted);
+    --line-soft: var(--fire-line);
+    --line-strong: var(--fire-line-strong);
+    --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.025), 0 16px 38px rgba(0, 0, 0, 0.2);
+    --shadow-float: 0 24px 70px rgba(0, 0, 0, 0.42);
+  }
+}
+
+html,
+body {
+  background: var(--surface-canvas);
+}
+
+body {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--line-soft) 30%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  color: var(--text-body);
+  letter-spacing: -0.005em;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+:where(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.workspace {
+  background: transparent;
+}
+
+[data-slot="sidebar"] {
+  background: color-mix(in srgb, var(--sidebar) 96%, transparent);
+}
+
+[data-slot="sidebar-menu-button"] {
+  border-radius: 0.45rem;
+}
+
+[data-slot="sidebar-menu-button"]:hover {
+  background: var(--sidebar-accent);
+}
+
+[data-slot="button"] {
+  border-radius: 0.4rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: none;
+}
+
+[data-slot="input"],
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-color: var(--line-soft);
+  background: var(--surface-panel);
+  color: var(--text-strong);
+}
+
+[data-slot="card"] {
+  border: 1px solid var(--line-soft);
+  border-radius: 0.55rem;
+  background: var(--surface-panel);
+  color: var(--text-body);
+  box-shadow: none;
+}
+
+pre,
+code[data-theme] {
+  border-color: var(--line-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

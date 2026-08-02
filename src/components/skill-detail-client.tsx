@@ -1,168 +1,238 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { CodeBlock } from "@/components/code-block";
+import { useState, type ReactNode } from "react";
+import { ArrowRight, Download, Play, ShieldCheck, Star } from "lucide-react";
+import {
+  FirebenchCta,
+  FirebenchHeroCard,
+  FirebenchHeroIntro,
+  FirebenchPage,
+  FirebenchTag,
+} from "@/components/firebench";
+import { ForkSkillButton } from "@/components/fork-skill-button";
+import type { Skill, SkillVersion } from "@/lib/types";
+import "@/app/firebench.css";
+import "@/app/skill-workspace.css";
 
-function CyberBadge({ tone = "green", children }: { tone?: "green" | "amber" | "red" | "blue" | "neutral"; children: React.ReactNode }) {
-  const toneClass =
-    tone === "green" ? "cyber-badge" :
-    tone === "amber" ? "cyber-badge cyber-badge-amber" :
-    tone === "red" ? "cyber-badge cyber-badge-red" :
-    tone === "blue" ? "cyber-badge cyber-badge-blue" :
-    "cyber-badge cyber-badge-neutral";
-  return <span className={`${toneClass} inline-flex h-6 items-center px-3 text-xs`}>{children}</span>;
+type DetailTab = "overview" | "code" | "reviews";
+
+export function SkillDetailClient({
+  skill,
+  version,
+  latestScore,
+}: {
+  skill: Skill;
+  version: SkillVersion;
+  latestScore: number;
+}) {
+  const [activeTab, setActiveTab] = useState<DetailTab>("overview");
+  const permissions = skill.permissions ?? [];
+  const reviews = skill.reviews ?? [];
+  const targets = version.compatibilityTargets ?? [];
+
+  return (
+    <FirebenchPage heat="soft" className="sw-page">
+      <FirebenchHeroIntro
+        kicker="skill package"
+        title={skill.name}
+        lead={skill.summary}
+      />
+
+      <div className="fb-tags" style={{ justifyContent: "center" }}>
+        <FirebenchTag>{skill.category}</FirebenchTag>
+        <FirebenchTag>{skill.trustLevel}</FirebenchTag>
+        <span className="sw-chip sw-chip--muted">v{skill.currentVersion}</span>
+        {skill.visibility ? <span className="sw-chip sw-chip--muted">{skill.visibility}</span> : null}
+        <span className="sw-chip sw-chip--muted">{skill.author}</span>
+      </div>
+
+      <FirebenchHeroCard
+        actionsLeft={
+          <>
+            <FirebenchCta href={`/skills/${skill.slug}?stage=sandbox`}>
+              <Play className="size-4" aria-hidden="true" />
+              Run skill
+            </FirebenchCta>
+            <FirebenchCta href={`/install/${skill.slug}`} variant="ghost">
+              <Download className="size-4" aria-hidden="true" />
+              Install
+            </FirebenchCta>
+            <ForkSkillButton slug={skill.slug} />
+            <FirebenchCta href={`/builder/${skill.slug}`} variant="ghost">
+              Edit in builder
+            </FirebenchCta>
+          </>
+        }
+        actionsRight={
+          <FirebenchCta href="/skills" variant="ghost">
+            My Skills
+          </FirebenchCta>
+        }
+      >
+        <div className="sw-metrics">
+          <Metric label="Evaluation score" value={`${latestScore}%`} />
+          <Metric label="Rating" value={skill.rating.toFixed(1)} icon={<Star className="size-4" aria-hidden="true" />} />
+          <Metric label="Installs" value={skill.installCount.toLocaleString()} />
+          <Metric label="Compatibility" value={`${targets.length} targets`} />
+        </div>
+      </FirebenchHeroCard>
+
+      <div className="sw-tabs" role="tablist" aria-label="Skill details">
+        <Tab active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>
+          Overview
+        </Tab>
+        <Tab active={activeTab === "code"} onClick={() => setActiveTab("code")}>
+          README &amp; Code
+        </Tab>
+        <Tab active={activeTab === "reviews"} onClick={() => setActiveTab("reviews")}>
+          Reviews ({reviews.length})
+        </Tab>
+      </div>
+
+      {activeTab === "overview" ? (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+          <section className="sw-panel">
+            <div className="sw-panel__head">
+              <div>
+                <h2 className="inline-flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-[var(--sw-heat)]" aria-hidden="true" />
+                  Required permissions
+                </h2>
+                <p>Review what this skill may access before running or installing it.</p>
+              </div>
+            </div>
+            <div className="sw-panel__pad flex flex-col gap-3">
+              {permissions.map((permission) => (
+                <div key={permission.key} className="sw-perm">
+                  <div className="flex items-start justify-between gap-3">
+                    <code>{permission.key}</code>
+                    <span
+                      className={
+                        permission.risk === "high"
+                          ? "sw-chip sw-chip--danger"
+                          : permission.risk === "medium"
+                            ? "sw-chip sw-chip--warn"
+                            : "sw-chip sw-chip--ok"
+                      }
+                    >
+                      {permission.risk} risk
+                    </span>
+                  </div>
+                  <p>{permission.reason}</p>
+                </div>
+              ))}
+              {permissions.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No permissions declared.</p> : null}
+            </div>
+          </section>
+
+          <div className="flex flex-col gap-4">
+            <section className="sw-panel">
+              <div className="sw-panel__head">
+                <div>
+                  <h2>Compatibility</h2>
+                  <p>Install targets for this package.</p>
+                </div>
+              </div>
+              <div className="sw-panel__pad flex flex-wrap gap-2">
+                {targets.map((target) => (
+                  <span key={target} className="sw-chip sw-chip--muted">
+                    {target}
+                  </span>
+                ))}
+                {targets.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No targets listed.</p> : null}
+              </div>
+            </section>
+
+            <section className="sw-panel">
+              <div className="sw-panel__head">
+                <div>
+                  <h2>Inspect this skill</h2>
+                  <p>Versions, evals, and dependency map.</p>
+                </div>
+              </div>
+              <div className="sw-panel__pad flex flex-col">
+                <DetailLink href={`/skills/${skill.slug}/versions`} label="Version history and diffs" />
+                <DetailLink href={`/skills/${skill.slug}/evals`} label="Evaluation suites" />
+                <DetailLink href={`/skills/${skill.slug}/graph`} label="Dependency map" />
+                <DetailLink href={`/terminal?skill=${skill.slug}`} label="Open in live terminal" />
+              </div>
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "code" ? (
+        <section className="sw-panel">
+          <div className="sw-panel__head">
+            <div>
+              <h2>Package source</h2>
+              <p>README and SKILL.md for the current version.</p>
+            </div>
+          </div>
+          <div className="sw-panel__pad">
+            <h3 className="m-0 text-base font-semibold">README</h3>
+            <p className="mt-3 max-w-4xl whitespace-pre-wrap text-sm leading-7 text-[var(--sw-muted)]">{version.readme}</p>
+            <h3 className="mt-8 m-0 text-base font-semibold">SKILL.md</h3>
+            <pre className="sw-code mt-3">{version.skillMd}</pre>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "reviews" ? (
+        <section className="sw-panel">
+          <div className="sw-panel__head">
+            <div>
+              <h2>Reviews</h2>
+              <p>Community feedback for this skill.</p>
+            </div>
+          </div>
+          <div className="sw-panel__pad flex flex-col gap-3">
+            {reviews.map((review, index) => (
+              <article key={`${review.user}-${index}`} className="sw-perm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">{review.user}</span>
+                  <span className="inline-flex items-center gap-1 text-sm text-[var(--sw-muted)]">
+                    <Star className="size-4" aria-hidden="true" />
+                    {review.rating.toFixed(1)}
+                  </span>
+                </div>
+                <p>{review.comment}</p>
+              </article>
+            ))}
+            {reviews.length === 0 ? <p className="text-sm text-[var(--sw-muted)]">No reviews yet.</p> : null}
+          </div>
+        </section>
+      ) : null}
+    </FirebenchPage>
+  );
 }
 
-function MiniMetric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
   return (
-    <div>
-      <div className="truncate text-xl font-semibold text-white">{value}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-gray-500">{label}</div>
+    <div className="sw-metric">
+      <strong>
+        {icon}
+        {value}
+      </strong>
+      <span>{label}</span>
     </div>
   );
 }
 
-export function SkillDetailClient({ skill, version, latestScore }: { skill: any; version: any; latestScore: number }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "code" | "reviews">("overview");
-
-  const permissions = Array.isArray(skill.permissions) ? skill.permissions : (skill.permissions ? [skill.permissions] : []);
-  const reviews = Array.isArray(skill.reviews) ? skill.reviews : (skill.reviews ? [skill.reviews] : []);
-  const targets = Array.isArray(version.compatibilityTargets) ? version.compatibilityTargets : (version.compatibilityTargets ? [version.compatibilityTargets] : []);
-
+function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-6">
-      {/* Main Header Card */}
-      <div className="cyber-card p-6 md:p-10">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
-              <CyberBadge tone="blue">{skill.category}</CyberBadge>
-              <CyberBadge tone={skill.trustLevel === "Verified" ? "green" : "amber"}>{skill.trustLevel}</CyberBadge>
-            </div>
-            <h1 className="font-mono text-4xl font-semibold tracking-tight text-white md:text-5xl">{skill.name}</h1>
-            <p className="max-w-3xl text-base leading-7 text-gray-400">{skill.summary}</p>
-          </div>
-          
-          {/* Actions */}
-          <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row md:flex-col lg:flex-row">
-            <Link href={`/skills/${skill.slug}/run?mode=autopilot`} className="cyber-btn-primary flex h-11 items-center justify-center px-6 text-sm font-semibold whitespace-nowrap">
-              ⚡ Quick Run
-            </Link>
-            <Link href={`/install/${skill.slug}`} className="cyber-btn-secondary flex h-11 items-center justify-center px-6 text-sm font-semibold whitespace-nowrap">
-              Install Code
-            </Link>
-          </div>
-        </div>
+    <button type="button" role="tab" aria-selected={active} data-active={active} className="sw-tab" onClick={onClick}>
+      {children}
+    </button>
+  );
+}
 
-        {/* Metrics */}
-        <div className="cyber-inset mt-10 grid grid-cols-2 gap-5 p-6 sm:grid-cols-4">
-          <MiniMetric label="version" value={skill.currentVersion} />
-          <MiniMetric label="eval score" value={`${latestScore}%`} />
-          <MiniMetric label="rating" value={skill.rating.toFixed(1)} />
-          <MiniMetric label="installs" value={skill.installCount.toLocaleString()} />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-white/10 pb-px">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 ${activeTab === "overview" ? "border-heat-100 text-heat-100" : "border-transparent text-gray-500 hover:text-gray-300"}`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab("code")}
-          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 ${activeTab === "code" ? "border-heat-100 text-heat-100" : "border-transparent text-gray-500 hover:text-gray-300"}`}
-        >
-          README & Code
-        </button>
-        <button
-          onClick={() => setActiveTab("reviews")}
-          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 ${activeTab === "reviews" ? "border-heat-100 text-heat-100" : "border-transparent text-gray-500 hover:text-gray-300"}`}
-        >
-          Reviews ({reviews.length})
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Permissions Panel */}
-          <div className="cyber-card p-6">
-            <h2 className="font-semibold text-white">Required Permissions</h2>
-            <div className="mt-6 flex flex-col gap-3">
-              {permissions.map((permission: any) => (
-                <div key={permission.key} className="cyber-inset p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-mono text-sm font-medium text-white">{permission.key}</span>
-                    <CyberBadge tone={permission.risk === "high" ? "red" : permission.risk === "medium" ? "amber" : "green"}>
-                      {permission.risk}
-                    </CyberBadge>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">{permission.reason}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <div className="cyber-card p-6">
-              <h2 className="font-semibold text-white">Compatibility</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {targets.map((target: string) => (
-                  <CyberBadge key={target} tone="neutral">{target}</CyberBadge>
-                ))}
-              </div>
-            </div>
-
-            <div className="cyber-card p-6">
-              <h2 className="font-semibold text-white">Project Links</h2>
-              <div className="mt-4 flex flex-col gap-4">
-                <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/versions`}>
-                  Version history & diffs
-                </Link>
-                <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/evals`}>
-                  Evaluation suites
-                </Link>
-                <Link className="text-sm font-medium text-cyan-400 underline-offset-4 hover:underline" href={`/skills/${skill.slug}/graph`}>
-                  Dependency graph
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "code" && (
-        <div className="cyber-card p-6 md:p-10">
-          <h2 className="text-xl font-semibold text-white">README</h2>
-          <p className="mt-4 text-base leading-7 text-gray-400">{version.readme}</p>
-          
-          <h2 className="mt-12 text-xl font-semibold text-white">SKILL.md</h2>
-          <div className="mt-4">
-            <CodeBlock code={version.skillMd} />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "reviews" && (
-        <div className="cyber-card p-6">
-          <h2 className="font-semibold text-white">Reviews</h2>
-          <div className="mt-6 flex flex-col gap-4">
-            {reviews.map((review: any, index: number) => (
-              <div key={index} className="cyber-inset p-4">
-                <span className="font-mono text-sm font-semibold text-white">{review.user}</span>
-                <p className="mt-2 text-sm leading-6 text-gray-400">{review.comment}</p>
-              </div>
-            ))}
-            {reviews.length === 0 && (
-              <p className="text-sm text-gray-400">No reviews yet.</p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+function DetailLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="sw-list-link">
+      {label}
+      <ArrowRight className="size-4" aria-hidden="true" />
+    </Link>
   );
 }

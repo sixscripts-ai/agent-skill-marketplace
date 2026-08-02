@@ -1,0 +1,29 @@
+---
+description: Agent Skill Marketplace product rules — Forge, Eve, Live Terminal, Firebench UI
+alwaysApply: true
+---
+
+# Marketplace autorun (repo-specific)
+
+Universal loop / secrets / retries / destructive-HITL live in
+`~/.cursor/rules/global-autorun.mdc`. This file adds **Agent Skill Marketplace**
+product rules only.
+
+## Scope
+
+Exe=order66: Forge, Eve (`/builder/eve`), Live Terminal, My Skills / run lab,
+Firebench UI.
+
+## Product rules
+
+1. **Product HITL:** do not weaken public-publish gates or destructive-shell
+   confirms for convenience.
+2. **Skill lifecycle tests:** prefer `/api/forge` and sandbox prove over
+   inventing pass/fail.
+3. **Eve:** before writing eve-framework code, read `node_modules/eve/docs/`
+   (start at `README.md`) for the installed version. Prefer existing
+   `/api/eve/*` and project workspace APIs over inventing parallel stacks.
+4. **UI:** Firebench only (paper + heat `#fa5d19`); no neon green or purple AI
+   SaaS restyles.
+5. **Terminal packages:** mount real package files when present; fall back to
+   version `SKILL.md` when `SkillPackage` rows are missing — do not fake mounts.

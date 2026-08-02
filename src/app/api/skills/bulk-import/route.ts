@@ -1,103 +1,73 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { requireCurrentUser } from "@/lib/auth";
+import { securityErrorResponse } from "@/lib/api-errors";
+import { createOrUpdateSkill } from "@/lib/repository";
+import type { CompatibilityTarget, PermissionKey, SkillDraftInput } from "@/lib/types";
 
-const prisma = new PrismaClient();
+type BulkSkillInput = {
+  slug: string;
+  name: string;
+  summary?: string;
+  category?: string;
+  skillMd?: string;
+  permissions?: PermissionKey[];
+  compatibilityTargets?: CompatibilityTarget[];
+  visibility?: SkillDraftInput["visibility"];
+  versions?: Array<{ skillMd?: string; compatibilityTargets?: CompatibilityTarget[] }>;
+};
 
 export async function POST(req: Request) {
   try {
-    const skills = await req.json();
+    const user = await requireCurrentUser();
+    const skills = (await req.json()) as unknown;
 
     if (!Array.isArray(skills)) {
       return NextResponse.json({ error: "Expected an array of skills" }, { status: 400 });
     }
 
-    // Default to the admin user
-    let user = await prisma.user.findUnique({ where: { email: "admin@admin.com" } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          name: "Admin",
-          email: "admin@admin.com",
-          role: "admin",
-          clerkId: "admin",
-        },
-      });
-    }
+    const results: Array<{ slug: string; status: string; reason?: string }> = [];
 
-    const results = [];
-    for (const skill of skills) {
-      const existing = await prisma.skill.findUnique({ where: { slug: skill.slug } });
-      if (existing) {
-        results.push({ slug: skill.slug, status: "skipped", reason: "Already exists" });
+    for (const raw of skills as BulkSkillInput[]) {
+      const slug = String(raw.slug || "").trim();
+      if (!slug) {
+        results.push({ slug: "(missing)", status: "skipped", reason: "Missing slug" });
         continue;
       }
 
-      await prisma.skill.create({
-        data: {
-          slug: skill.slug,
-          name: skill.name,
-          summary: skill.summary,
-          category: skill.category,
-          trustLevel: skill.trustLevel,
-          installCount: skill.installCount,
-          rating: skill.rating,
-          visibility: skill.visibility,
-          currentVersion: skill.currentVersion,
-          author: { connect: { id: user.id } },
-          versions: {
-            create: skill.versions.map((v: any) => ({
-              version: v.version,
-              skillMd: v.skillMd,
-              readme: v.readme,
-              changelog: v.changelog,
-              compatibilityTargets: JSON.stringify(v.compatibilityTargets),
-            })),
-          },
-          permissions: {
-            create: skill.permissions?.map((p: any) => ({
-              key: p.key,
-              reason: p.reason,
-              risk: p.risk,
-            })) || [],
-          },
-          installTargets: {
-            create: skill.installTargets?.map((t: any) => ({
-              platform: t.platform,
-              installCommand: t.installCommand,
-              configSnippet: t.configSnippet,
-              packageFormat: t.packageFormat,
-              notes: t.notes,
-            })) || [],
-          },
-          evalSuites: {
-            create: skill.evalSuites?.map((suite: any) => ({
-              name: suite.name,
-              cases: {
-                create: suite.cases.map((c: any) => ({
-                  input: c.input,
-                  expected: c.expected,
-                  assertionType: c.assertionType,
-                })),
-              },
-              results: {
-                create: suite.results.map((r: any) => ({
-                  version: r.version,
-                  score: r.score,
-                  passed: r.passed,
-                  failed: r.failed,
-                  regressions: r.regressions,
-                })),
-              },
-            })) || [],
-          },
-        },
-      });
-      results.push({ slug: skill.slug, status: "imported" });
+      const version = raw.versions?.[0];
+      const skillMd = raw.skillMd ?? version?.skillMd ?? `# ${raw.name || slug}\n`;
+      const draft: SkillDraftInput = {
+        name: raw.name || slug,
+        slug,
+        category: raw.category || "Automation",
+        summary: raw.summary || "Bulk imported skill.",
+        skillMd,
+        permissions: raw.permissions?.length ? raw.permissions : (["read_files"] as PermissionKey[]),
+        compatibilityTargets:
+          raw.compatibilityTargets ??
+          version?.compatibilityTargets ??
+          (["Codex", "Claude", "VS Code"] as CompatibilityTarget[]),
+        visibility: raw.visibility === "public" || raw.visibility === "unlisted" ? "private" : (raw.visibility ?? "private"),
+      };
+
+      try {
+        await createOrUpdateSkill(draft, user);
+        results.push({ slug, status: "imported" });
+      } catch (error) {
+        results.push({
+          slug,
+          status: "failed",
+          reason: error instanceof Error ? error.message : "Import failed",
+        });
+      }
     }
 
-    return NextResponse.json({ success: true, imported: results.filter(r => r.status === "imported").length, results });
+    return NextResponse.json({
+      success: true,
+      imported: results.filter((item) => item.status === "imported").length,
+      results,
+    });
   } catch (error) {
-    console.error("Bulk import error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return securityErrorResponse(error) ?? NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -48,7 +48,7 @@ export function buildSkillGraph(skill: Skill) {
       detail: permission.reason,
       risk: permission.risk,
     })),
-    ...currentVersion.compatibilityTargets.map((target) => ({
+    ...(Array.isArray(currentVersion.compatibilityTargets) ? currentVersion.compatibilityTargets : []).map((target) => ({
       id: `target:${target}`,
       label: target,
       type: "target" as const,
@@ -91,7 +91,7 @@ export function buildSkillGraph(skill: Skill) {
       to: `permission:${permission.key}`,
       label: permission.risk,
     })),
-    ...currentVersion.compatibilityTargets.map((target) => ({
+    ...(Array.isArray(currentVersion.compatibilityTargets) ? currentVersion.compatibilityTargets : []).map((target) => ({
       from: `version:${currentVersion.version}`,
       to: `target:${target}`,
       label: "exports",

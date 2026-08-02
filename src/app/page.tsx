@@ -1,91 +1,260 @@
 import Link from "next/link";
-import { ArrowRight, Code, Database, Globe, LineChart, ShoppingCart, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  Package,
+  ShieldCheck,
+  Sparkles,
+  TerminalSquare,
+} from "lucide-react";
 
-const CATEGORIES = [
-  { name: "Ecommerce", icon: ShoppingCart, description: "Manage stores, products, and checkout flows.", color: "text-blue-500" },
-  { name: "Coding", icon: Code, description: "Format, lint, test, and write code automatically.", color: "text-green-500" },
-  { name: "Research", icon: Globe, description: "Search the web, read documentation, and summarize.", color: "text-purple-500" },
-  { name: "Automation", icon: Zap, description: "Connect APIs, run workflows, and schedule tasks.", color: "text-yellow-500" },
-  { name: "Marketing", icon: LineChart, description: "Generate copy, manage campaigns, and track metrics.", color: "text-pink-500" },
-  { name: "Data Analysis", icon: Database, description: "Query databases, build charts, and find insights.", color: "text-cyan-500" },
+import { LandingPlayground } from "@/components/landing-playground";
+
+import "@/app/firebench.css";
+import "@/app/landing.css";
+
+const features = [
+  {
+    title: "Inspect",
+    body: "Read instructions, permissions, compatibility, and version history before you install or run.",
+    icon: Eye,
+    href: "/marketplace",
+  },
+  {
+    title: "Sandbox run",
+    body: "Execute skills with explicit controls, network policy, and a full trace of what happened.",
+    icon: TerminalSquare,
+    href: "/docs",
+  },
+  {
+    title: "Install",
+    body: "Ship portable skills into agent environments with CLI install targets and clear provenance.",
+    icon: Package,
+    href: "/cli",
+  },
+];
+
+const steps = [
+  {
+    title: "Discover",
+    body: "Browse the marketplace for capabilities that match your agent’s job.",
+  },
+  {
+    title: "Evaluate",
+    body: "Check permissions, evals, and versions so you know what you’re trusting.",
+  },
+  {
+    title: "Run & install",
+    body: "Prove the skill in a sandbox, then install it where your agents work.",
+  },
+];
+
+const faqs = [
+  {
+    q: "What is Agent Skill Marketplace?",
+    a: "A place to discover, inspect, evaluate, run, and install portable AI skills with transparent permissions and sandboxed execution.",
+  },
+  {
+    q: "Can I run a skill before installing it?",
+    a: "Yes. Open any skill’s run lab to execute in a controlled workspace, review artifacts, and inspect the resulting trace.",
+  },
+  {
+    q: "How do agents install skills?",
+    a: "Use the CLI install targets published with each skill, or pull the skill package into supported agent environments.",
+  },
+  {
+    q: "What stack powers the marketplace?",
+    a: "Next.js, Prisma, Vercel Sandbox, and Clerk — with Firebench UI for inspectable, developer-first surfaces.",
+  },
 ];
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="flex items-center justify-between p-6 border-b border-neutral-800">
-        <div className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <Zap className="h-6 w-6 text-neutral-400" />
-          Agent Skill Marketplace
-        </div>
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <Link href="/marketplace" className="text-neutral-400 hover:text-white transition-colors">
-            Marketplace
+    <div className="lp">
+      <header className="lp-header">
+        <div className="lp-container lp-header__inner">
+          <Link href="/" className="lp-logo">
+            <span className="lp-logo__mark" aria-hidden="true">
+              <Sparkles className="size-3.5" />
+            </span>
+            <span className="lp-logo__name">Agent Skill Marketplace</span>
           </Link>
-          <Link href="/docs" className="text-neutral-400 hover:text-white transition-colors">
-            Documentation
-          </Link>
-          <Link href="/builder" className="text-neutral-400 hover:text-white transition-colors">
-            Builder
-          </Link>
+          <nav className="lp-nav" aria-label="Public navigation">
+            <Link href="/marketplace">Marketplace</Link>
+            <Link href="/docs">Docs</Link>
+            <Link href="/cli">CLI</Link>
+          </nav>
+          <div className="lp-header__actions">
+            <Link className="lp-link" href="/sign-in">
+              Sign in
+            </Link>
+            <Link className="fb-cta fb-cta--primary hidden sm:inline-flex" href="/builder">
+              Create a skill
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center py-24 px-6">
-        <div className="max-w-4xl w-full text-center space-y-8">
-          <div className="inline-flex items-center rounded-full border border-neutral-800 bg-neutral-900/50 px-3 py-1 text-sm font-medium text-neutral-300">
-            <span className="flex h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-            Public Beta Now Live
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white !leading-tight">
-            Find ready to use skills for Codex, Claude Code, Cursor, and AI agents.
-          </h1>
-          
-          <p className="text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-            Browse, run, evaluate, and install portable AI agent skills with traced execution. Turn your AI from a chatbot into a capable software engineer.
-          </p>
-
-          <div className="flex items-center justify-center gap-4 pt-8">
-            <Link 
-              href="/marketplace" 
-              className="inline-flex h-12 items-center justify-center rounded-md bg-white px-8 text-sm font-medium text-neutral-950 transition-colors hover:bg-neutral-200"
-            >
-              Browse Marketplace
-            </Link>
-            <Link 
-              href="/builder" 
-              className="inline-flex h-12 items-center justify-center rounded-md border border-neutral-800 bg-transparent px-8 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
-            >
-              Publish a Skill <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="max-w-5xl w-full mt-32">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight text-white">Explore by Category</h2>
-            <p className="text-neutral-400 mt-2">Find the right tool for your agent's next task.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.name} className="cyber-card p-6 flex flex-col items-start gap-4 hover:border-neutral-700 transition-colors cursor-pointer group">
-                <div className="p-3 rounded-md bg-neutral-900 border border-neutral-800 group-hover:bg-neutral-800 transition-colors">
-                  <cat.icon className={`h-6 w-6 ${cat.color}`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{cat.name}</h3>
-                  <p className="text-sm text-neutral-400 mt-1">{cat.description}</p>
-                </div>
+      <main>
+        <section className="lp-hero">
+          <div className="lp-hero__wash" aria-hidden="true" />
+          <div className="lp-container lp-hero__inner">
+            <div className="lp-hero__copy">
+              <p className="lp-kicker">// Inspect before you install</p>
+              <h1 className="lp-title">
+                Power agents with <em>portable skills</em>
+              </h1>
+              <p className="lp-lead">
+                Discover, evaluate, run, and install AI skills with transparent permissions,
+                sandbox controls, and traceable execution.
+              </p>
+              <div className="lp-cta-row">
+                <Link href="/marketplace" className="fb-cta fb-cta--primary">
+                  Browse marketplace <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+                <Link href="/builder" className="fb-cta fb-cta--ghost">
+                  <TerminalSquare className="size-4" aria-hidden="true" /> Create a skill
+                </Link>
               </div>
-            ))}
+            </div>
+
+            <LandingPlayground />
+          </div>
+        </section>
+
+        <div className="lp-trust">
+          <div className="lp-container lp-trust__inner">
+            <span>Next.js</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Prisma</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Vercel Sandbox</span>
+            <span className="lp-trust__sep" aria-hidden="true">
+              ·
+            </span>
+            <span>Clerk</span>
           </div>
         </div>
+
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// Developer first</p>
+              <h2>Built for agents that do real work</h2>
+              <p>
+                Every skill should show its workflow, permissions, and install path before it
+                touches your environment.
+              </p>
+            </div>
+            <div className="lp-features">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <article key={feature.title} className="lp-feature">
+                    <span className="lp-feature__icon" aria-hidden="true">
+                      <Icon className="size-4" />
+                    </span>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                    <Link className="lp-feature__link" href={feature.href}>
+                      Learn more <ArrowRight className="size-3.5" aria-hidden="true" />
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// How it works</p>
+              <h2>From discovery to a verified run</h2>
+              <p>Three steps from browsing a skill to proving it in a sandbox.</p>
+            </div>
+            <div className="lp-steps">
+              {steps.map((step, index) => (
+                <div key={step.title} className="lp-step">
+                  <span className="lp-step__num" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3>{step.title}</h3>
+                    <p>{step.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section">
+          <div className="lp-container lp-agent">
+            <div className="lp-section__head" style={{ marginBottom: 0 }}>
+              <p className="lp-kicker lp-kicker--section">// Agent ready</p>
+              <h2>Install skills where your agents live</h2>
+              <p>
+                One command to pull a skill into your agent toolkit. Inspect first, then install
+                with confidence.
+              </p>
+              <div className="lp-cta-row" style={{ justifyContent: "flex-start", marginTop: "1rem" }}>
+                <Link href="/cli" className="fb-cta fb-cta--primary">
+                  View CLI docs <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+                <Link href="/docs" className="fb-cta fb-cta--ghost">
+                  <ShieldCheck className="size-4" aria-hidden="true" /> Permissions guide
+                </Link>
+              </div>
+            </div>
+            <div className="lp-agent__panel">
+              <div className="lp-agent__bar">
+                <span className="lp-agent__dot" aria-hidden="true" />
+                skill install
+              </div>
+              <pre className="lp-code">{`# Install a marketplace skill
+npx asm skill install code-review
+
+# Or fetch the skill package
+curl -s https://asm.dev/skills/code-review/SKILL.md
+`}</pre>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--center">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <p className="lp-kicker lp-kicker--section">// FAQ</p>
+              <h2>Frequently asked questions</h2>
+              <p>Everything you need to know about browsing, running, and installing skills.</p>
+            </div>
+            <div className="lp-faq">
+              {faqs.map((item) => (
+                <details key={item.q}>
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-8 text-center text-sm text-neutral-500 border-t border-neutral-800 mt-auto">
-        &copy; {new Date().getFullYear()} Agent Skill Marketplace.
+      <footer className="lp-footer">
+        <div className="lp-container lp-footer__inner">
+          <span>Agent Skill Marketplace</span>
+          <div className="lp-footer__links">
+            <Link href="/marketplace">Marketplace</Link>
+            <Link href="/docs">Docs</Link>
+            <Link href="/cli">CLI</Link>
+            <Link href="/builder">Create</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -1,5 +1,5 @@
 import type { AutopilotPlan } from "./autopilot";
-import type { ExecutionMode, SandboxProvider, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
+import type { ExecutionMode, SandboxProvider, SkillDraftInput, SkillRun, SkillTraceEvent, WorkspaceFile } from "./types";
 
 export type RunStreamPayload =
   | { kind: "plan"; plan: AutopilotPlan }
@@ -10,6 +10,7 @@ export type RunStreamPayload =
 
 export interface ExecuteSkillRunOptions {
   skillSlug: string;
+  draftSkill?: SkillDraftInput;
   input: string;
   deniedPermissions?: string[];
   provider?: SandboxProvider;
@@ -29,6 +30,7 @@ export interface ExecuteSkillRunOptions {
 export async function executeSkillRunStream(options: ExecuteSkillRunOptions): Promise<void> {
   const {
     skillSlug,
+    draftSkill,
     input,
     deniedPermissions = [],
     provider = "openai",
@@ -45,6 +47,7 @@ export async function executeSkillRunStream(options: ExecuteSkillRunOptions): Pr
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         skillSlug,
+        draftSkill,
         input,
         deniedPermissions,
         provider,
@@ -76,7 +79,7 @@ export async function executeSkillRunStream(options: ExecuteSkillRunOptions): Pr
         if (!line) continue;
         const payload = JSON.parse(line.slice(6)) as RunStreamPayload;
         if (payload.kind === "plan") {
-          options.onPlan?.((payload as { kind: "plan"; plan: AutopilotPlan }).plan);
+          options.onPlan?.(payload.plan);
         } else if (payload.kind === "run") {
           options.onRun?.(payload.run);
         } else if (payload.kind === "event") {

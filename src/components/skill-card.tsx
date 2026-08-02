@@ -2,66 +2,34 @@ import Link from "next/link";
 import { Download, Star } from "lucide-react";
 import type { Skill } from "@/lib/types";
 
-function trustTone(trust: Skill["trustLevel"]): "green" | "amber" | "blue" {
-  if (trust === "Verified") return "green";
-  if (trust === "Reviewed") return "blue";
-  return "amber";
-}
-
-function badgeToneClass(tone: "green" | "amber" | "red" | "blue" | "neutral") {
-  if (tone === "green") return "cyber-badge";
-  if (tone === "amber") return "cyber-badge cyber-badge-amber";
-  if (tone === "red") return "cyber-badge cyber-badge-red";
-  if (tone === "blue") return "cyber-badge cyber-badge-blue";
-  return "cyber-badge cyber-badge-neutral";
+function trustToneClass(trust: Skill["trustLevel"]) {
+  if (trust === "Verified") return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+  if (trust === "Reviewed") return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300";
+  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300";
 }
 
 export function SkillCard({ skill }: { skill: Skill }) {
-  const tone = trustTone(skill.trustLevel);
-
   return (
-    <Link
-      href={`/skills/${skill.slug}`}
-      data-testid="skill-card"
-      data-skill-slug={skill.slug}
-      className="cyber-card group flex h-full flex-col p-5 transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-cyan-500/10 hover:ring-1 hover:ring-cyan-500/30"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-500/20 to-green-400/20 font-mono text-sm font-semibold text-cyan-400 ring-1 ring-white/10 group-hover:ring-cyan-400/50 transition-all">
-            {skill.name.slice(0, 2).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <h3 className="line-clamp-2 font-mono text-[15px] leading-tight font-semibold text-white group-hover:text-cyan-400 transition-colors">
-              {skill.name}
-            </h3>
-            <p className="mt-1 truncate text-sm text-gray-500">{skill.author} &middot; {skill.category}</p>
-          </div>
+    <Link href={`/skills/${skill.slug}`} data-testid="skill-card" data-skill-slug={skill.slug} className="skill-card-v2 group flex h-full flex-col p-5">
+      <div className="flex items-start gap-3">
+        <div className="skill-icon-v2 grid size-10 shrink-0 place-items-center font-mono text-sm font-semibold">
+          {skill.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 text-[15px] font-semibold leading-tight text-foreground transition-colors group-hover:text-brand">{skill.name}</h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">{skill.author} &middot; {skill.category}</p>
         </div>
       </div>
-      
-      <p className="mt-4 text-sm leading-6 text-gray-400 line-clamp-2 flex-1" title={skill.summary}>
-        {skill.summary}
-      </p>
 
-      <div className="mt-6 flex items-center justify-between border-t border-neutral-800 pt-4">
-        <div className="flex items-center gap-3 text-xs text-neutral-400 font-mono">
-          <div className="flex items-center gap-1">
-            <Download className="h-3.5 w-3.5" />
-            {(skill.installCount || 0).toLocaleString()}
-          </div>
-          <div className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 text-yellow-500" />
-            {(skill.rating || 0).toFixed(1)}
-          </div>
+      <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground" title={skill.summary}>{skill.summary}</p>
+
+      <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Download className="size-3.5" aria-hidden="true" />{(skill.installCount || 0).toLocaleString()}</span>
+          <span className="flex items-center gap-1"><Star className="size-3.5 text-amber-500" aria-hidden="true" />{(skill.rating || 0).toFixed(1)}</span>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={`${badgeToneClass(tone)} inline-flex h-5 shrink-0 items-center px-2 py-0.5 text-xs`}>
-            {skill.trustLevel}
-          </span>
-        </div>
+        <span className={`inline-flex h-6 items-center rounded-md border px-2 text-xs font-medium ${trustToneClass(skill.trustLevel)}`}>{skill.trustLevel}</span>
       </div>
     </Link>
   );
 }
-

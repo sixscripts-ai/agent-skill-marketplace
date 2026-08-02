@@ -1,0 +1,503 @@
+.builder-studio {
+  color: var(--foreground);
+}
+
+.builder-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--card);
+  padding: 1.25rem;
+}
+
+.builder-copilot-workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.builder-copilot-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.builder-copilot-heading h2 {
+  margin-top: 0.15rem;
+  color: var(--foreground);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.builder-copilot-heading p {
+  margin-top: 0.3rem;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.builder-copilot-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-copilot-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.builder-copilot-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 12rem;
+  max-height: min(42vh, 24rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--background);
+  padding: 0.8rem;
+}
+
+.builder-copilot-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.builder-prompt-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 0 0.7rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.builder-prompt-chip:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+  color: var(--foreground);
+}
+
+.builder-copilot-thread {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.builder-copilot-empty {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.builder-copilot-message {
+  max-width: min(92%, 40rem);
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--card);
+  padding: 0.7rem 0.8rem;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.builder-copilot-message.user {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
+.builder-copilot-message p { white-space: pre-wrap; }
+
+.builder-copilot-message-collapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+
+.builder-copilot-expand {
+  margin-top: 0.4rem;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.builder-copilot-tool-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.builder-copilot-clarify {
+  margin-top: 0.65rem;
+}
+
+.builder-copilot-clarify p {
+  margin: 0 0 0.5rem;
+}
+
+.builder-copilot-question-chips,
+.builder-copilot-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.builder-copilot-question-chips .builder-secondary-button {
+  max-width: 100%;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+}
+
+.builder-copilot-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.6rem;
+  background: #fef2f2;
+  padding: 0.7rem;
+  color: #991b1b;
+  font-size: 0.78rem;
+}
+
+.builder-copilot-error button {
+  margin-left: auto;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.builder-copilot-composer {
+  display: grid;
+  gap: 0.45rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: 0.15rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding: 0.75rem;
+}
+
+.builder-composer-label {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.builder-composer-textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.builder-composer-hint {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.builder-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.builder-composer-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.builder-editor-band {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.builder-editor-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.builder-editor-toolbar h3 {
+  color: var(--foreground);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.builder-editor-toolbar p {
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.builder-editor-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.builder-editor-pane {
+  min-height: 16rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--background);
+}
+
+.builder-editor-preview {
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--background);
+  padding: 0.65rem 0.8rem;
+}
+
+.builder-editor-preview summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.builder-editor-preview-body {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+
+.builder-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr) minmax(18rem, 22rem);
+  align-items: start;
+  gap: 1rem;
+}
+
+.builder-input,
+.builder-textarea,
+.builder-compact-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.builder-input,
+.builder-compact-select {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+}
+
+.builder-textarea {
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+}
+
+.builder-compact-select {
+  min-height: 2.5rem;
+  width: auto;
+  font-size: 0.75rem;
+}
+
+.builder-input:focus,
+.builder-textarea:focus,
+.builder-compact-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.builder-primary-button,
+.builder-secondary-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.builder-primary-button {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.builder-primary-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.builder-primary-button:disabled,
+.builder-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.builder-secondary-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.builder-secondary-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+
+.builder-chip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  padding: 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.builder-chip:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--foreground);
+}
+
+.builder-chip-active {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  color: var(--primary);
+}
+
+.builder-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--muted);
+  padding: 0.2rem;
+}
+
+.builder-segmented button {
+  min-height: 1.9rem;
+  border-radius: 0.35rem;
+  padding: 0 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.builder-segmented button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.builder-studio input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card);
+  padding: 0.4rem 0.65rem;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+@media (max-width: 1380px) {
+  .builder-workspace-grid {
+    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 960px) {
+  .builder-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .builder-copilot-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .builder-copilot-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .builder-composer-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .builder-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-workspace-grid > :last-child {
+    grid-column: auto;
+    display: block;
+  }
+
+  .builder-workspace-grid > :last-child > * + * {
+    margin-top: 1rem;
+  }
+}

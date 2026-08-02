@@ -1,0 +1,48 @@
+.builder-copilot-message-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.builder-copilot-message-user {
+  max-width: min(78%, 42rem);
+}
+
+.builder-copilot-message-collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.builder-copilot-expand {
+  margin-top: 0.55rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+  opacity: 0.9;
+}
+
+.builder-copilot-expand:hover {
+  opacity: 1;
+}
+
+.builder-copilot-tool-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  padding-top: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+@media (max-width: 720px) {
+  .builder-copilot-message-user {
+    max-width: 94%;
+  }
+}

@@ -97,6 +97,8 @@ export type InstallTarget = {
   notes: string;
 };
 
+export type SkillLifecycleStatus = "draft" | "review" | "released" | "deprecated";
+
 export type Skill = {
   id: string;
   slug: string;
@@ -107,6 +109,7 @@ export type Skill = {
   author: string;
   ownerId?: string;
   visibility?: "public" | "private" | "unlisted";
+  status?: SkillLifecycleStatus;
   installCount: number;
   rating: number;
   currentVersion: string;
@@ -209,6 +212,7 @@ export type SkillDraftInput = {
   permissions: PermissionKey[];
   compatibilityTargets: CompatibilityTarget[];
   visibility: "public" | "private" | "unlisted";
+  status?: SkillLifecycleStatus;
   packageUploadId?: string;
 };
 

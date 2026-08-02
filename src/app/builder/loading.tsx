@@ -1,18 +1,27 @@
 import { AppShell } from "@/components/app-shell";
-import { Panel } from "@/components/ui";
 
 export default function BuilderLoading() {
   return (
-    <AppShell>
-      <div className="flex flex-col gap-6">
-        <div className="h-20 max-w-xl animate-pulse rounded-md bg-muted" />
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
-          <Panel className="h-[620px] animate-pulse"><span className="sr-only">Loading metadata</span></Panel>
-          <Panel className="h-[720px] animate-pulse"><span className="sr-only">Loading editor</span></Panel>
-          <Panel className="h-[620px] animate-pulse lg:col-span-2 2xl:col-span-1">
-            <span className="sr-only">Loading validation</span>
-          </Panel>
+    <AppShell mode="wide">
+      <div className="builder-workbench-shell" aria-busy="true" aria-live="polite">
+        <div className="builder-guided-header">
+          <div className="min-w-0 flex-1">
+            <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+            <div className="mt-3 h-7 max-w-md animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 max-w-sm animate-pulse rounded bg-muted" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-40 animate-pulse rounded bg-muted" />
+            <div className="h-10 w-36 animate-pulse rounded bg-muted" />
+          </div>
         </div>
+        <div className="builder-section-rule" role="separator" aria-hidden="true" />
+        <div className="grid gap-4">
+          <div className="h-28 animate-pulse rounded-lg bg-muted" />
+          <div className="h-px bg-border" />
+          <div className="h-24 animate-pulse rounded-lg bg-muted" />
+        </div>
+        <span className="sr-only">Loading Skill Builder</span>
       </div>
     </AppShell>
   );

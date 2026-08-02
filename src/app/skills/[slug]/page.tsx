@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { ArrowLeft } from "lucide-react";
+import { AppShell } from "@/components/app-shell";
+import { SkillStudioClient } from "@/components/skill-studio-client";
 import { latestVersion } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
-import { findSkill } from "@/lib/repository";
-import type { Skill } from "@/lib/types";
-import { SkillDetailClient } from "@/components/skill-detail-client";
+import { findLatestRunForSkill, findRun, findSkill } from "@/lib/repository";
+import { createPendingRun, workspaceFilesFromSkillPackages } from "@/lib/run-state";
+import { getSandboxReadiness } from "@/lib/sandbox-status";
+import type { ExecutionMode } from "@/lib/types";
+import { notFound } from "next/navigation";
+import "@/app/firebench.css";
+import "@/app/skill-workspace.css";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -21,26 +28,45 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function SkillDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function SkillDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ stage?: string; evidence?: string; replay?: string; mode?: string }>;
+}) {
   const { slug } = await params;
-  const skill = await findSkill(slug, await getCurrentUser());
+  const { replay, mode } = await searchParams;
+  const user = await getCurrentUser();
+  const skill = await findSkill(slug, user);
   if (!skill) notFound();
-  const version = latestVersion(skill) || { readme: "No README available.", skillMd: "No SKILL.md available.", compatibilityTargets: [] } as any;
+
+  const version = latestVersion(skill);
   const latestScore = skill.evalSuites?.[0]?.results?.[0]?.score ?? 0;
+  const replayedRun = replay ? await findRun(replay, user) : undefined;
+  if (replay && !replayedRun) notFound();
+  const latestRun = replayedRun ? undefined : await findLatestRunForSkill(skill.slug, user);
+  const initialRun = replayedRun ?? latestRun ?? createPendingRun(skill, workspaceFilesFromSkillPackages(skill));
+  const initialMode = (mode === "autopilot" ? "autopilot" : undefined) as ExecutionMode | undefined;
 
   return (
-    <div className="marketplace-cyber min-h-screen bg-[#0f1729] pt-10 pb-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
-        {/* Navigation / Header */}
-        <div className="mb-6">
-          <Link href="/marketplace" className="inline-flex items-center text-sm font-medium text-gray-400 transition hover:text-cyan-400">
-            <span className="mr-2">←</span> Back to Marketplace
-          </Link>
-        </div>
-
-        <SkillDetailClient skill={skill} version={version} latestScore={latestScore} />
+    <AppShell mode="wide" sidebarDefaultOpen={false}>
+      <div className="sw-page mb-2">
+        <Link href="/marketplace" className="sw-back">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Back to Marketplace
+        </Link>
       </div>
-    </div>
+      <Suspense fallback={<div className="sw-page p-6 text-sm text-[var(--sw-muted)]">Loading studio…</div>}>
+        <SkillStudioClient
+          skill={skill}
+          version={version}
+          latestScore={latestScore}
+          initialRun={initialRun}
+          sandboxReadiness={getSandboxReadiness()}
+          initialMode={initialMode}
+        />
+      </Suspense>
+    </AppShell>
   );
 }

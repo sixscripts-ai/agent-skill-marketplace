@@ -1,0 +1,154 @@
+/* Shared semantic component patterns for the product-wide redesign. */
+
+.public-shell {
+  min-height: 100vh;
+  background: var(--surface-canvas);
+  color: var(--text-body);
+}
+
+.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--surface-canvas) 92%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.public-container {
+  width: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+}
+
+.public-nav-link {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.public-nav-link:hover {
+  color: var(--text-strong);
+}
+
+.public-hero {
+  padding-block: clamp(4rem, 9vw, 7.5rem);
+}
+
+.public-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 0.45rem;
+  background: var(--accent-soft);
+  padding: 0.45rem 0.7rem;
+  color: var(--accent-solid);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.public-hero h1 {
+  max-width: 13ch;
+  margin-top: 1.5rem;
+  color: var(--text-strong);
+  font-size: clamp(3.25rem, 8vw, 6.75rem);
+  line-height: 0.94;
+  letter-spacing: -0.075em;
+}
+
+.public-lede {
+  max-width: 42rem;
+  margin-top: 1.5rem;
+  color: var(--text-muted);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.75;
+}
+
+.public-primary,
+.public-secondary {
+  display: inline-flex;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.45rem;
+  padding-inline: 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.public-primary {
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+.public-primary:hover { background: var(--accent-hover); }
+
+.public-secondary {
+  border: 1px solid var(--line-soft);
+  background: var(--surface-panel);
+  color: var(--text-strong);
+}
+
+.public-secondary:hover { background: var(--surface-hover); }
+
+.public-proof-grid,
+.public-category-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.public-proof-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.public-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.public-card {
+  border: 1px solid var(--line-soft);
+  border-radius: 0.6rem;
+  background: var(--surface-panel);
+  padding: 1.25rem;
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--line-soft) 60%, transparent);
+}
+
+.public-card:hover {
+  border-color: var(--accent-line);
+  box-shadow: 5px 5px 0 var(--accent-soft);
+}
+
+.public-section {
+  padding-block: 4.5rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.public-section h2 {
+  color: var(--text-strong);
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.public-footer {
+  border-top: 1px solid var(--line-soft);
+  padding-block: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.surface-card,
+.surface-inset {
+  border: 1px solid var(--line-soft);
+  border-radius: 0.55rem;
+  background: var(--surface-panel);
+}
+
+.surface-inset { background: var(--surface-subtle); }
+
+@media (max-width: 900px) {
+  .public-proof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-category-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .public-container { width: min(100% - 1.25rem, 76rem); }
+  .public-proof-grid { grid-template-columns: 1fr; }
+  .public-hero h1 { font-size: clamp(3rem, 16vw, 4.5rem); }
+}

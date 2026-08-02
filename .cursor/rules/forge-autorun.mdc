@@ -1,0 +1,14 @@
+---
+description: Marketplace Forge-specific build rules (inherits marketplace-autorun)
+alwaysApply: true
+---
+
+# Forge autorun
+
+Forge-specific additions on top of `marketplace-autorun`:
+
+1. Prefer `/api/forge` and sandbox prove for skill lifecycle verification.
+2. Keep full-package profile validation (`agent-skill-marketplace-full-package-v1`)
+   intact when publishing skills.
+3. When linking packages, ensure `SkillPackage.skillId` is set — orphan uploads
+   leave terminal Packages empty.
