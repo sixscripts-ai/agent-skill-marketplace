@@ -8,7 +8,13 @@ function trustToneClass(trust: Skill["trustLevel"]) {
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300";
 }
 
+function cleanSkillSummary(summary: string): string {
+  return summary.replace(/^[>\s#\\|'"'`]+/, "").trim();
+}
+
 export function SkillCard({ skill }: { skill: Skill }) {
+  const cleanedSummary = cleanSkillSummary(skill.summary);
+
   return (
     <Link href={`/skills/${skill.slug}`} data-testid="skill-card" data-skill-slug={skill.slug} className="skill-card-v2 group flex h-full flex-col p-5">
       <div className="flex items-start gap-3">
@@ -21,7 +27,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
         </div>
       </div>
 
-      <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground" title={skill.summary}>{skill.summary}</p>
+      <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground" title={cleanedSummary}>{cleanedSummary}</p>
 
       <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
