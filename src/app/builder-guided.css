@@ -5,13 +5,13 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
-  max-width: min(1100px, 100%);
+  max-width: min(1560px, 100%);
   margin: 0 auto;
   overflow-x: hidden;
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--card);
-  padding: 1rem 1.1rem 1.15rem;
+  padding: 1.15rem 1.35rem 1.35rem;
 }
 
 .builder-journey-film {
@@ -24,7 +24,8 @@
 }
 
 .builder-journey-frame {
-  flex: 0 0 148px;
+  flex: 1 1 0;
+  min-width: 148px;
   scroll-snap-align: start;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--background) 65%, var(--card));
@@ -63,14 +64,14 @@
 .builder-journey-frame b {
   display: block;
   margin-top: 0.15rem;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
 }
 
 .builder-journey-frame span {
   display: block;
   margin-top: 0.2rem;
   color: var(--muted-foreground);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   line-height: 1.3;
 }
 
@@ -90,7 +91,7 @@
   background: var(--card);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 650;
   cursor: pointer;
 }
@@ -117,7 +118,7 @@
 
 .builder-eyebrow {
   color: var(--primary);
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -151,7 +152,7 @@
   max-width: 36rem;
   margin-top: 0.35rem;
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   line-height: 1.55;
 }
 
@@ -167,7 +168,7 @@
   display: grid;
   gap: 0.3rem;
   color: var(--muted-foreground);
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -181,7 +182,7 @@
   background: var(--background);
   padding: 0 2rem 0 0.7rem;
   color: var(--foreground);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   text-transform: none;
 }
@@ -196,7 +197,7 @@
   background: color-mix(in srgb, var(--primary) 7%, var(--card));
   padding: 0 0.8rem;
   color: var(--primary);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -225,7 +226,7 @@
   border-right: 1px solid var(--border);
   padding: 0.45rem 0.35rem;
   color: var(--muted-foreground);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   text-align: center;
 }
@@ -244,7 +245,7 @@
   border-radius: 999px;
   background: var(--card);
   color: var(--muted-foreground);
-  font-size: 0.64rem;
+  font-size: 0.8125rem;
 }
 
 .builder-progress button[aria-current="step"] .builder-progress-index {
@@ -284,7 +285,7 @@
   max-width: 42rem;
   margin-top: 0.35rem;
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   line-height: 1.55;
 }
 
@@ -324,7 +325,7 @@
 .builder-start-secondary p {
   margin-top: 0.35rem;
   color: var(--muted-foreground);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   line-height: 1.55;
 }
 
@@ -385,7 +386,7 @@
 .builder-band-header p {
   margin-top: 0.25rem;
   color: var(--muted-foreground);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 
@@ -416,7 +417,7 @@
 .builder-upload-zone p {
   grid-column: 2;
   color: var(--muted-foreground);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 
@@ -435,7 +436,7 @@
   gap: 0.75rem;
   border-bottom: 1px solid var(--border);
   padding: 0.65rem 0.8rem;
-  font-size: 0.74rem;
+  font-size: 0.8125rem;
 }
 
 .builder-package-root {
@@ -474,7 +475,7 @@
   margin-top: 0.55rem;
   white-space: pre-wrap;
   color: var(--muted-foreground);
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -484,7 +485,7 @@
   background: var(--background);
   padding: 0.9rem;
   color: var(--muted-foreground);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 .builder-import-analysis strong { color: var(--foreground); }
 .builder-import-analysis ul { margin: 0.55rem 0; padding-left: 1.1rem; list-style: disc; }
@@ -524,7 +525,7 @@
 .builder-finish-row p {
   margin-top: 0.2rem;
   color: var(--muted-foreground);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 
@@ -550,7 +551,7 @@
   justify-content: center;
   gap: 0.4rem;
   color: var(--muted-foreground);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -560,7 +561,7 @@
 .builder-success-banner {
   border-radius: 0.6rem;
   padding: 0.7rem 0.8rem;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 
@@ -652,7 +653,7 @@
 .builder-eve-rail__hint {
   margin: 0.15rem 0 0;
   color: var(--muted-foreground);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 

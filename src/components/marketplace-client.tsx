@@ -70,7 +70,8 @@ export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?
         </div>
 
         <div ref={gridRef} className="mt-6 scroll-mt-24">
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground">Browse skills</h2>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Browse skills">
             {filtered.length ? filtered.map((skill) => <SkillCard key={skill.slug} skill={skill} />) : (
               <div className="skill-card-v2 flex min-h-[360px] flex-col items-center justify-center p-8 text-center sm:col-span-2 lg:col-span-3 2xl:col-span-4">
                 <div className="mb-4 grid size-12 place-items-center rounded-md border border-border bg-muted text-muted-foreground"><SearchX className="size-5" /></div>

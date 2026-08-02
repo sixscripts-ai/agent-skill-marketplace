@@ -177,7 +177,7 @@ export function AppShellClient({
     mode === "canvas"
       ? "w-full"
       : mode === "wide"
-        ? "mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8"
+        ? "mx-auto w-full max-w-[1760px] px-4 py-5 sm:px-6 lg:px-8"
         : "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8";
 
   return (
@@ -239,7 +239,7 @@ export function AppShellClient({
                   </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold">{accountName}</span>
-                    <span className="truncate text-xs text-sidebar-foreground/50">{accountDetail}</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">{accountDetail}</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -282,7 +282,7 @@ export function AppShellClient({
                 placeholder="Search marketplace skills"
                 className="h-5 flex-1 border-0 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              <button className="ml-2 rounded border border-border px-2 py-0.5 font-mono text-[10px] text-muted-foreground" type="submit">
+              <button className="ml-2 rounded border border-border px-2 py-0.5 font-mono text-xs text-muted-foreground" type="submit">
                 enter
               </button>
             </form>

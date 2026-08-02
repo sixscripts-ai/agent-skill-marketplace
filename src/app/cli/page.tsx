@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { CodeBlock } from "@/components/code-block";
 import {
@@ -7,6 +8,12 @@ import {
   FirebenchPage,
   FirebenchTag,
 } from "@/components/firebench";
+
+export const metadata: Metadata = {
+  title: "CLI",
+  description:
+    "Install the Agent Skill Marketplace CLI to pull portable skill packages and start sandbox runs from your terminal.",
+};
 
 export default function CliPage() {
   return (

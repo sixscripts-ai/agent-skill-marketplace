@@ -13,7 +13,7 @@
   flex-direction: column;
   gap: 0.85rem;
   width: 100%;
-  max-width: 80rem;
+  max-width: min(100%, 1560px);
   margin-inline: auto;
   padding-block: 0.35rem 2rem;
   color: var(--lt-text);
@@ -58,7 +58,7 @@
   flex-wrap: wrap;
   gap: 0.35rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
 }
 
 .lt-pill {
@@ -77,13 +77,13 @@
 
 .lt-shell {
   display: grid;
-  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
-  gap: 0.75rem;
-  min-height: min(70vh, 40rem);
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  gap: 0.85rem;
+  min-height: min(74vh, 46rem);
 }
 
 .lt-shell--agent {
-  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr) minmax(18rem, 22rem);
 }
 
 .lt-agent {
@@ -118,7 +118,7 @@
 
 .lt-agent__msg strong {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.8125rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--lt-heat);
@@ -127,7 +127,7 @@
 
 .lt-agent__msg p {
   margin: 0.2rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--lt-text);
   white-space: pre-wrap;
@@ -173,7 +173,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   color: var(--lt-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -225,7 +225,7 @@
   color: #9f1239;
   background: rgba(159, 18, 57, 0.08);
   border-top: 1px solid rgba(159, 18, 57, 0.25);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 
 .lt-side,
@@ -255,7 +255,7 @@
     color-mix(in srgb, var(--lt-heat) 14%, var(--lt-bg)) 0%,
     var(--lt-bg) 60%
   );
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -297,12 +297,12 @@
 }
 
 .lt-skill strong {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .lt-skill span {
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
   color: var(--lt-muted);
 }
 
@@ -330,7 +330,7 @@
 }
 
 .lt-field label {
-  font-size: 0.65rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -394,7 +394,7 @@
   margin: 0;
   padding: 0.65rem 0.85rem;
   border-top: 1px solid var(--lt-heat-line);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--lt-muted);
   background: var(--lt-heat-soft);
@@ -402,7 +402,7 @@
 
 .lt-note code {
   color: var(--lt-heat);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
 }
 
 @media (max-width: 1100px) {
