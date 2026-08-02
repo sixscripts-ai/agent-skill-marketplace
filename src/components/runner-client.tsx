@@ -121,6 +121,7 @@ export function RunnerClient({
   const [isRunning, setIsRunning] = useState(false);
   const [autopilotPlan, setAutopilotPlan] = useState<AutopilotPlan | null>(null);
   const [contextDock, setContextDock] = useState<"files" | "timeline" | "terminal">("files");
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
 
   useEffect(() => {
     const apply = () => {
@@ -146,6 +147,10 @@ export function RunnerClient({
     () => permissions.every((permission) => !denied.includes(permission.key)),
     [denied, permissions],
   );
+
+  useEffect(() => {
+    if (!allApproved) setPermissionsOpen(true);
+  }, [allApproved]);
   const selectedProvider = sandboxProviders.find((item) => item.id === provider) ?? sandboxProviders[0];
   const fileRecords = useMemo(
     () => collectFileRecords(skill, workspaceFiles, run.artifacts ?? []),
@@ -519,7 +524,11 @@ export function RunnerClient({
           ) : null}
 
           {guided ? (
-            <details className="sw-run-lab__perms" open={!allApproved}>
+            <details
+              className="sw-run-lab__perms"
+              open={permissionsOpen}
+              onToggle={(event) => setPermissionsOpen(event.currentTarget.open)}
+            >
               <summary>
                 <span>
                   2 · Permissions

@@ -92,7 +92,7 @@ export function SkillStudioClient({
 
   const openEvidence = useCallback(
     (item: Exclude<StudioEvidence, null>) => {
-      setStudioQuery({ stage: "package", evidence: item });
+      setStudioQuery({ evidence: item });
     },
     [setStudioQuery],
   );
@@ -314,8 +314,8 @@ export function SkillStudioClient({
             </div>
           ) : null}
 
-          {!evidence && stage === "sandbox" ? (
-            <div className="flex flex-col gap-4">
+          {stage === "sandbox" ? (
+            <div className="flex flex-col gap-4" hidden={Boolean(evidence)}>
               <RunnerClient
                 skill={skill}
                 initialRun={initialRun}
