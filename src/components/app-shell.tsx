@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BookOpen, Boxes, Hammer, Search, Settings2, Sparkles, TerminalSquare } from "lucide-react";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Bell, BookOpen, Boxes, Hammer, LogIn, Search, Settings2, Sparkles, TerminalSquare } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { getUserAction } from "@/app/actions";
 import type { MarketplaceUser } from "@/lib/types";
 import {
@@ -31,7 +31,17 @@ import {
 
 type AppShellMode = "content" | "wide" | "canvas";
 
-const topNav = [
+type NavItem = { href: string; label: string; icon?: typeof Boxes };
+
+const signedOutTopNav: NavItem[] = [
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/docs", label: "Docs" },
+  { href: "/cli", label: "CLI" },
+  { href: "/sign-in", label: "Sign in" },
+  { href: "/projects/new", label: "Create" },
+];
+
+const signedInTopNav: NavItem[] = [
   { href: "/marketplace", label: "Marketplace" },
   { href: "/projects", label: "Projects" },
   { href: "/terminal", label: "Terminal" },
@@ -39,12 +49,27 @@ const topNav = [
   { href: "/docs", label: "Docs" },
 ];
 
-const sections = [
+const signedOutSections: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Catalog",
+    items: [{ href: "/marketplace", label: "Marketplace", icon: Boxes }],
+  },
+  {
+    title: "Account",
+    items: [
+      { href: "/docs", label: "Documentation", icon: BookOpen },
+      { href: "/cli", label: "CLI", icon: TerminalSquare },
+      { href: "/sign-in", label: "Sign in", icon: LogIn },
+    ],
+  },
+];
+
+const signedInSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Catalog",
     items: [
       { href: "/marketplace", label: "Marketplace", icon: Boxes },
-      { href: "/skills", label: "Projects", icon: Sparkles },
+      { href: "/projects", label: "Projects", icon: Sparkles },
     ],
   },
   {
@@ -57,9 +82,7 @@ const sections = [
   },
   {
     title: "Operations",
-    items: [
-      { href: "/terminal", label: "Live Terminal", icon: TerminalSquare },
-    ],
+    items: [{ href: "/terminal", label: "Live Terminal", icon: TerminalSquare }],
   },
   {
     title: "Account",
@@ -86,10 +109,14 @@ export function AppShell({
   const [search, setSearch] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [user, setUser] = useState<MarketplaceUser | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
-    getUserAction().then(setUser).catch(() => setUser(null));
+    getUserAction()
+      .then((next) => setUser(next))
+      .catch(() => setUser(null))
+      .finally(() => setUserLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -103,17 +130,25 @@ export function AppShell({
     };
   }, []);
 
+  const signedIn = Boolean(user);
+  const topNav = signedIn ? signedInTopNav : signedOutTopNav;
+  const sections = signedIn ? signedInSections : signedOutSections;
+  const brandSub = signedIn ? "Catalog · Studio · Account" : "Catalog · Docs · Account";
+
   const unreadCount = notifications.filter((item) => !item.read).length;
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "A";
-  const accountName = user?.name ?? "Account";
-  const accountDetail = user?.email ?? "Sign in to publish and manage skills";
+  const initials = useMemo(() => {
+    if (!user?.name) return "?";
+    return user.name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, [user?.name]);
+  const accountName = signedIn ? (user?.name ?? "Account") : "Sign in";
+  const accountDetail = signedIn
+    ? (user?.email ?? "Signed in")
+    : "Sign in to publish and manage skills";
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,7 +176,7 @@ export function AppShell({
                   </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold">Agent Skill Marketplace</span>
-                    <span className="truncate text-xs text-sidebar-foreground/70">Catalog · Studio · Account</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">{brandSub}</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -156,9 +191,9 @@ export function AppShell({
                   <SidebarMenu>
                     {section.items.map((item) => {
                       const active = isActivePath(pathname, item.href);
-                      const Icon = item.icon;
+                      const Icon = item.icon ?? Boxes;
                       return (
-                        <SidebarMenuItem key={item.href}>
+                        <SidebarMenuItem key={`${item.href}-${item.label}`}>
                           <SidebarMenuButton
                             render={<Link href={item.href} />}
                             isActive={active}
@@ -181,9 +216,9 @@ export function AppShell({
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton size="lg" render={<Link href={user ? "/settings" : "/sign-in"} />}>
+                <SidebarMenuButton size="lg" render={<Link href={signedIn ? "/settings" : "/sign-in"} />}>
                   <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border">
-                    {initials}
+                    {userLoaded ? initials : "·"}
                   </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate text-sm font-semibold">{accountName}</span>
@@ -204,7 +239,7 @@ export function AppShell({
                 const active = isActivePath(pathname, item.href);
                 return (
                   <Link
-                    key={item.href}
+                    key={`${item.href}-${item.label}`}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={`rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition ${
@@ -237,34 +272,36 @@ export function AppShell({
 
             <div className="ml-auto flex items-center gap-1 md:ml-0">
               <TopButton href="/docs" icon={<BookOpen className="size-4" />} label="Docs" />
-              <button
-                aria-label="Notifications"
-                aria-expanded={notificationsOpen}
-                onClick={() => {
-                  setNotificationsOpen((value) => {
-                    const next = !value;
-                    if (next) markNotificationsRead();
-                    return next;
-                  });
-                }}
-                className="relative grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                type="button"
-              >
-                <Bell className="size-4" />
-                {unreadCount ? (
-                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" aria-hidden="true" />
-                ) : null}
-              </button>
+              {signedIn ? (
+                <button
+                  aria-label="Notifications"
+                  aria-expanded={notificationsOpen}
+                  onClick={() => {
+                    setNotificationsOpen((value) => {
+                      const next = !value;
+                      if (next) markNotificationsRead();
+                      return next;
+                    });
+                  }}
+                  className="relative grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  type="button"
+                >
+                  <Bell className="size-4" />
+                  {unreadCount ? (
+                    <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" aria-hidden="true" />
+                  ) : null}
+                </button>
+              ) : null}
               <Link
-                href={user ? "/settings" : "/sign-in"}
-                aria-label={user ? `Open settings for ${user.name}` : "Sign in"}
+                href={signedIn ? "/settings" : "/sign-in"}
+                aria-label={signedIn ? `Open settings for ${user?.name}` : "Sign in"}
                 className="ml-1 grid size-9 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-sidebar-border"
               >
-                {initials}
+                {userLoaded ? initials : "·"}
               </Link>
             </div>
 
-            {notificationsOpen ? (
+            {notificationsOpen && signedIn ? (
               <div className="absolute right-4 top-12 w-80 rounded-md border border-border bg-popover p-4 shadow-lg">
                 <div className="text-sm font-semibold text-popover-foreground">Notifications</div>
                 {notifications.length ? (
@@ -294,7 +331,7 @@ export function AppShell({
                 const active = isActivePath(pathname, item.href);
                 return (
                   <Link
-                    key={item.href}
+                    key={`${item.href}-${item.label}`}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={`shrink-0 rounded-md border px-3 py-2 text-sm font-medium ${
@@ -328,12 +365,13 @@ function TopButton({ href, icon, label }: { href: string; icon: ReactNode; label
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/marketplace") return pathname === "/" || pathname === "/marketplace";
-  if (href === "/projects" || href === "/skills") {
-    return pathname === "/projects" || pathname === "/skills" || pathname.startsWith("/projects/");
+  if (href === "/projects") {
+    return pathname === "/projects" || pathname === "/skills" || (pathname.startsWith("/projects/") && pathname !== "/projects/new");
   }
   if (href === "/projects/new") {
     return pathname === "/projects/new" || pathname === "/builder" || (/^\/builder\/[^/]+$/.test(pathname) && !pathname.startsWith("/builder/eve"));
   }
   if (href === "/builder/eve") return pathname === "/builder/eve" || pathname.startsWith("/builder/eve/");
+  if (href === "/sign-in") return pathname.startsWith("/sign-in");
   return pathname === href || pathname.startsWith(`${href}/`);
 }

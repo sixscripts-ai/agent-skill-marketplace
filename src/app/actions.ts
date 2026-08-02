@@ -1,6 +1,6 @@
 "use server";
-import { getCurrentUser } from "@/lib/auth";
+import { getOptionalUser } from "@/lib/auth";
 
 export async function getUserAction() {
-  return getCurrentUser();
+  return (await getOptionalUser()) ?? null;
 }
