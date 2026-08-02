@@ -14,6 +14,9 @@ function cleanSkillSummary(summary: string): string {
 
 export function SkillCard({ skill }: { skill: Skill }) {
   const cleanedSummary = cleanSkillSummary(skill.summary);
+  const installs = skill.installCount || 0;
+  const rating = skill.rating || 0;
+  const hasStats = installs > 0 || rating > 0;
 
   return (
     <Link href={`/skills/${skill.slug}`} data-testid="skill-card" data-skill-slug={skill.slug} className="skill-card-v2 group flex h-full flex-col p-5">
@@ -31,8 +34,18 @@ export function SkillCard({ skill }: { skill: Skill }) {
 
       <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-3 font-mono text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Download className="size-3.5" aria-hidden="true" />{(skill.installCount || 0).toLocaleString()}</span>
-          <span className="flex items-center gap-1"><Star className="size-3.5 text-amber-500" aria-hidden="true" />{(skill.rating || 0).toFixed(1)}</span>
+          {hasStats ? (
+            <>
+              {installs > 0 ? (
+                <span className="flex items-center gap-1"><Download className="size-3.5" aria-hidden="true" />{installs.toLocaleString()}</span>
+              ) : null}
+              {rating > 0 ? (
+                <span className="flex items-center gap-1"><Star className="size-3.5 text-amber-500" aria-hidden="true" />{rating.toFixed(1)}</span>
+              ) : null}
+            </>
+          ) : (
+            <span>No runs yet</span>
+          )}
         </div>
         <span className={`inline-flex h-6 items-center rounded-md border px-2 text-xs font-medium ${trustToneClass(skill.trustLevel)}`}>{skill.trustLevel}</span>
       </div>

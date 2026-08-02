@@ -124,18 +124,26 @@ export function SkillStudioClient({
             <span className="sw-chip sw-chip--muted">{skill.author}</span>
           </div>
           <div className="sw-trust-strip" aria-label="Trust metrics">
-            <span>
-              <b>{latestScore}%</b> eval
-            </span>
-            <span>
-              <b>{skill.rating.toFixed(1)}</b> rating
-            </span>
-            <span>
-              <b>{skill.installCount.toLocaleString()}</b> installs
-            </span>
-            <span>
-              <b>{targets.length}</b> targets
-            </span>
+            {latestScore > 0 ? (
+              <span>
+                <b>{latestScore}%</b> eval
+              </span>
+            ) : null}
+            {skill.rating > 0 ? (
+              <span>
+                <b>{skill.rating.toFixed(1)}</b> rating
+              </span>
+            ) : null}
+            {skill.installCount > 0 ? (
+              <span>
+                <b>{skill.installCount.toLocaleString()}</b> installs
+              </span>
+            ) : null}
+            {targets.length > 0 ? (
+              <span>
+                <b>{targets.length}</b> targets
+              </span>
+            ) : null}
           </div>
           <div className="sw-studio-actions">
             <FirebenchButton type="button" onClick={() => goStage("sandbox")} data-testid="studio-open-sandbox">
