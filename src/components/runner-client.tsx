@@ -120,6 +120,7 @@ export function RunnerClient({
   const [run, setRun] = useState<SkillRun>(initialRun);
   const [isRunning, setIsRunning] = useState(false);
   const [autopilotPlan, setAutopilotPlan] = useState<AutopilotPlan | null>(null);
+  const [contextDock, setContextDock] = useState<"files" | "timeline" | "terminal">("files");
 
   useEffect(() => {
     const apply = () => {
@@ -297,59 +298,56 @@ export function RunnerClient({
         />
       ) : null}
 
-      <div className="fb-tags" style={{ justifyContent: "center" }}>
-        <FirebenchTag>{skill.slug}</FirebenchTag>
-        <span className={allApproved ? "sw-chip sw-chip--ok" : "sw-chip sw-chip--warn"}>
-          {allApproved ? "permissions approved" : "permissions restricted"}
-        </span>
-        <span
-          className={
-            run.status === "failed"
-              ? "sw-chip sw-chip--danger"
-              : run.status === "running"
-                ? "sw-chip sw-chip--warn"
-                : "sw-chip sw-chip--muted"
-          }
-        >
-          {run.status}
-        </span>
-        <FirebenchButton
-          disabled={isRunning}
-          onClick={() => void execute("", "autopilot")}
-          data-testid="quick-run"
-        >
-          <Zap className="size-4" aria-hidden="true" />
-          Quick run
-        </FirebenchButton>
-      </div>
-
-      {guided ? (
-        <div className="sw-guided-steps" aria-label="Guided sandbox steps">
-          <span className="sw-guided-step"><b>1</b> Prompt</span>
-          <span className="sw-guided-step"><b>2</b> Permissions</span>
-          <span className="sw-guided-step"><b>3</b> Run</span>
-          <span className="sw-guided-step"><b>4</b> Trace</span>
+      {!guided ? (
+        <div className="fb-tags" style={{ justifyContent: "center" }}>
+          <FirebenchTag>{skill.slug}</FirebenchTag>
+          <span className={allApproved ? "sw-chip sw-chip--ok" : "sw-chip sw-chip--warn"}>
+            {allApproved ? "permissions approved" : "permissions restricted"}
+          </span>
+          <span
+            className={
+              run.status === "failed"
+                ? "sw-chip sw-chip--danger"
+                : run.status === "running"
+                  ? "sw-chip sw-chip--warn"
+                  : "sw-chip sw-chip--muted"
+            }
+          >
+            {run.status}
+          </span>
+          <FirebenchButton
+            disabled={isRunning}
+            onClick={() => void execute("", "autopilot")}
+            data-testid="quick-run"
+          >
+            <Zap className="size-4" aria-hidden="true" />
+            Quick run
+          </FirebenchButton>
         </div>
       ) : null}
 
-      <div className="sw-run-grid">
-        <div className="min-w-0 flex flex-col gap-6">
-          <Panel className="p-5">
+      <div className={guided ? "sw-run-lab" : "sw-run-grid"}>
+        <div className={guided ? "sw-run-lab__rail" : "sw-run-grid__controls min-w-0 flex flex-col gap-4"}>
+          <Panel className={guided ? "sw-run-lab__panel p-4" : "p-5"}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-semibold text-neutral-950">{guided ? "1 · Prompt" : "Prompt"}</h2>
-                <p className="mt-1 text-sm text-neutral-600">Send a real run request to the persisted sandbox stream.</p>
+                {!guided ? (
+                  <p className="mt-1 text-sm text-neutral-600">Send a real run request to the persisted sandbox stream.</p>
+                ) : null}
               </div>
               <Badge tone={executionMode === "real-shell" ? "amber" : "blue"}>
                 {executionMode === "real-shell" ? "real shell" : "virtual agent"}
               </Badge>
             </div>
 
-            <div className="mt-4">
-              <div className="mb-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
-                <span className="font-semibold text-neutral-950">Safe test prompt:</span> Inspect the workspace files and summarize risks,
-                useful next steps, and any missing context.
-              </div>
+            <div className="mt-3">
+              {!guided ? (
+                <div className="mb-3 rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">
+                  <span className="font-semibold text-neutral-950">Safe test prompt:</span> Inspect the workspace files and summarize risks,
+                  useful next steps, and any missing context.
+                </div>
+              ) : null}
               <Suggestions>
                 {suggestions.map((suggestion) => (
                   <Suggestion
@@ -362,10 +360,10 @@ export function RunnerClient({
               </Suggestions>
             </div>
 
-            <PromptInput className="mt-4" onSubmit={handlePromptSubmit}>
+            <PromptInput className="mt-3" onSubmit={handlePromptSubmit}>
               <PromptInputBody>
                 <PromptInputTextarea
-                  className="min-h-32"
+                  className={guided ? "min-h-24" : "min-h-32"}
                   data-testid="run-prompt"
                   onChange={(event) => setInput(event.currentTarget.value)}
                   placeholder="Ask the skill to inspect files, run a command, or produce an artifact..."
@@ -376,12 +374,14 @@ export function RunnerClient({
                 <PromptInputTools>
                   <span className="font-mono text-xs text-neutral-500">{workspaceFiles.length} workspace files</span>
                 </PromptInputTools>
-                <PromptInputSubmit
-                  className="fb-cta fb-cta--primary"
-                  data-testid="run-submit"
-                  disabled={!input.trim() || isRunning}
-                  status={isRunning ? "streaming" : "ready"}
-                />
+                {!guided ? (
+                  <PromptInputSubmit
+                    className="fb-cta fb-cta--primary"
+                    data-testid="run-submit"
+                    disabled={!input.trim() || isRunning}
+                    status={isRunning ? "streaming" : "ready"}
+                  />
+                ) : null}
               </PromptInputFooter>
             </PromptInput>
           </Panel>
@@ -518,297 +518,485 @@ export function RunnerClient({
           </Panel>
           ) : null}
 
-          <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">{guided ? "2 · Permissions" : "Approvals"}</h2>
-            <div className="mt-4 flex flex-col gap-3">
-              {permissions.map((permission) => {
-                const isDenied = denied.includes(permission.key);
-                return (
-                  <Confirmation
-                    key={permission.key}
-                    approval={{ id: permission.key }}
-                    className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-black"}
-                    state="approval-requested"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                      <ConfirmationTitle>
-                        <span className="font-mono text-sm font-semibold text-neutral-950">{permission.key}</span>
-                      </ConfirmationTitle>
-                      <Badge tone={isDenied ? "amber" : "ok"}>{isDenied ? "denied" : "approved"}</Badge>
-                    </div>
-                    <ConfirmationRequest>
-                      <p className="text-sm leading-5 text-neutral-600">{permission.reason}</p>
-                    </ConfirmationRequest>
-                    <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
-                      <ConfirmationAction
-                        className="h-10 w-full border border-neutral-300 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
-                        data-testid={`permission-deny-${permission.key}`}
-                        onClick={() => {
-                          if (!isDenied) togglePermission(permission.key);
-                        }}
-                        variant="outline"
-                      >
-                        Deny
-                      </ConfirmationAction>
-                      <ConfirmationAction
-                        className="fb-cta fb-cta--primary h-10 w-full sm:w-auto"
-                        data-testid={`permission-approve-${permission.key}`}
-                        onClick={() => {
-                          if (isDenied) togglePermission(permission.key);
-                        }}
-                      >
-                        Approve
-                      </ConfirmationAction>
-                    </ConfirmationActions>
-                  </Confirmation>
-                );
-              })}
-            </div>
-          </Panel>
+          {guided ? (
+            <details className="sw-run-lab__perms" open={!allApproved}>
+              <summary>
+                <span>
+                  2 · Permissions
+                  {allApproved ? ` · ${permissions.length} approved` : " · review required"}
+                </span>
+                <span className={allApproved ? "sw-run-lab__ok" : "sw-run-lab__warn"} aria-hidden="true" />
+              </summary>
+              <div className="mt-3 flex flex-col gap-3">
+                {permissions.map((permission) => {
+                  const isDenied = denied.includes(permission.key);
+                  return (
+                    <Confirmation
+                      key={permission.key}
+                      approval={{ id: permission.key }}
+                      className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-black"}
+                      state="approval-requested"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                        <ConfirmationTitle>
+                          <span className="font-mono text-sm font-semibold text-neutral-950">{permission.key}</span>
+                        </ConfirmationTitle>
+                        <Badge tone={isDenied ? "amber" : "ok"}>{isDenied ? "denied" : "approved"}</Badge>
+                      </div>
+                      <ConfirmationRequest>
+                        <p className="text-sm leading-5 text-neutral-600">{permission.reason}</p>
+                      </ConfirmationRequest>
+                      <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
+                        <ConfirmationAction
+                          className="h-10 w-full border border-neutral-300 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
+                          data-testid={`permission-deny-${permission.key}`}
+                          onClick={() => {
+                            if (!isDenied) togglePermission(permission.key);
+                          }}
+                          variant="outline"
+                        >
+                          Deny
+                        </ConfirmationAction>
+                        <ConfirmationAction
+                          className="fb-cta fb-cta--primary h-10 w-full sm:w-auto"
+                          data-testid={`permission-approve-${permission.key}`}
+                          onClick={() => {
+                            if (isDenied) togglePermission(permission.key);
+                          }}
+                        >
+                          Approve
+                        </ConfirmationAction>
+                      </ConfirmationActions>
+                    </Confirmation>
+                  );
+                })}
+              </div>
+            </details>
+          ) : (
+            <Panel className="p-5">
+              <h2 className="font-semibold text-neutral-950">Approvals</h2>
+              <div className="mt-4 flex flex-col gap-3">
+                {permissions.map((permission) => {
+                  const isDenied = denied.includes(permission.key);
+                  return (
+                    <Confirmation
+                      key={permission.key}
+                      approval={{ id: permission.key }}
+                      className={isDenied ? "border-yellow-200 bg-yellow-50" : "border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-black"}
+                      state="approval-requested"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                        <ConfirmationTitle>
+                          <span className="font-mono text-sm font-semibold text-neutral-950">{permission.key}</span>
+                        </ConfirmationTitle>
+                        <Badge tone={isDenied ? "amber" : "ok"}>{isDenied ? "denied" : "approved"}</Badge>
+                      </div>
+                      <ConfirmationRequest>
+                        <p className="text-sm leading-5 text-neutral-600">{permission.reason}</p>
+                      </ConfirmationRequest>
+                      <ConfirmationActions className="w-full flex-col items-stretch gap-2 self-stretch sm:w-auto sm:flex-row sm:items-center sm:self-end">
+                        <ConfirmationAction
+                          className="h-10 w-full border border-neutral-300 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] text-neutral-900 hover:bg-neutral-100 sm:w-auto"
+                          data-testid={`permission-deny-${permission.key}`}
+                          onClick={() => {
+                            if (!isDenied) togglePermission(permission.key);
+                          }}
+                          variant="outline"
+                        >
+                          Deny
+                        </ConfirmationAction>
+                        <ConfirmationAction
+                          className="fb-cta fb-cta--primary h-10 w-full sm:w-auto"
+                          data-testid={`permission-approve-${permission.key}`}
+                          onClick={() => {
+                            if (isDenied) togglePermission(permission.key);
+                          }}
+                        >
+                          Approve
+                        </ConfirmationAction>
+                      </ConfirmationActions>
+                    </Confirmation>
+                  );
+                })}
+              </div>
+            </Panel>
+          )}
 
           {guided ? (
-            <Panel className="p-5">
-              <h2 className="font-semibold text-neutral-950">3 · Run</h2>
-              <p className="mt-1 text-sm text-neutral-600">Execute with autopilot, or open Advanced for mode and provider controls.</p>
+            <div className="sw-run-lab__run">
+              <p className="sw-run-lab__run-meta">
+                {allApproved ? "permissions approved" : "permissions restricted"} · {run.status} · {executionMode}
+              </p>
               <button
                 type="button"
                 disabled={isRunning}
-                onClick={() => void execute("", "autopilot")}
+                onClick={() => void execute(input || "", "autopilot")}
                 data-testid="autopilot-run"
-                className="fb-cta fb-cta--primary mt-4 h-10 w-full disabled:opacity-50"
+                className="fb-cta fb-cta--primary h-10 w-full disabled:opacity-50"
               >
                 {isRunning ? "Running…" : "Run with Autopilot"}
               </button>
-            </Panel>
-          ) : null}
-
-          {guided ? (
-            <details className="sw-advanced">
-              <summary>Advanced — mode, provider, network</summary>
-              <SandboxStatusPanel
-                command={command}
-                executionMode={executionMode}
-                networkPolicy={networkPolicy}
-                readiness={sandboxReadiness}
-              />
-              <div className="mt-4 grid gap-4">
-                <label className="block text-sm font-medium text-neutral-700">
-                  Execution mode
-                  <select
-                    value={executionMode}
-                    onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
-                    data-testid="execution-mode"
-                    className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
-                  >
-                    <option value="autopilot">Autopilot (recommended)</option>
-                    <option value="virtual-agent">Virtual provider route</option>
-                    <option value="real-shell">Real shell sandbox</option>
-                  </select>
-                </label>
-                {executionMode === "real-shell" ? (
+              <button
+                type="button"
+                disabled={!input.trim() || isRunning}
+                onClick={() => void execute(input)}
+                data-testid="run-submit"
+                className="sw-chip-btn mt-2 w-full justify-center"
+              >
+                Run with prompt
+              </button>
+              <details className="sw-advanced mt-3">
+                <summary>Advanced — mode, provider, network</summary>
+                <SandboxStatusPanel
+                  command={command}
+                  executionMode={executionMode}
+                  networkPolicy={networkPolicy}
+                  readiness={sandboxReadiness}
+                />
+                <div className="mt-4 grid gap-4">
                   <label className="block text-sm font-medium text-neutral-700">
-                    Approved command
-                    <input
-                      value={command}
-                      onChange={(event) => setCommand(event.target.value)}
-                      data-testid="run-command"
-                      placeholder="npm test"
-                      className="mt-2 h-10 w-full rounded-md border px-3 font-mono text-sm outline-none"
-                    />
-                  </label>
-                ) : null}
-                {executionMode === "virtual-agent" ? (
-                  <label className="block text-sm font-medium text-neutral-700">
-                    Provider
+                    Execution mode
                     <select
-                      value={provider}
-                      onChange={(event) => setProvider(event.target.value as SandboxProvider)}
-                      data-testid="run-provider"
+                      value={executionMode}
+                      onChange={(event) => setExecutionMode(event.target.value as ExecutionMode)}
+                      data-testid="execution-mode"
                       className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
                     >
-                      {sandboxProviders.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.label} - {item.model}
-                        </option>
-                      ))}
+                      <option value="autopilot">Autopilot (recommended)</option>
+                      <option value="virtual-agent">Virtual provider route</option>
+                      <option value="real-shell">Real shell sandbox</option>
                     </select>
                   </label>
-                ) : null}
-              </div>
-            </details>
+                  {executionMode === "real-shell" ? (
+                    <label className="block text-sm font-medium text-neutral-700">
+                      Approved command
+                      <input
+                        value={command}
+                        onChange={(event) => setCommand(event.target.value)}
+                        data-testid="run-command"
+                        placeholder="npm test"
+                        className="mt-2 h-10 w-full rounded-md border px-3 font-mono text-sm outline-none"
+                      />
+                    </label>
+                  ) : null}
+                  {executionMode === "virtual-agent" ? (
+                    <label className="block text-sm font-medium text-neutral-700">
+                      Provider
+                      <select
+                        value={provider}
+                        onChange={(event) => setProvider(event.target.value as SandboxProvider)}
+                        data-testid="run-provider"
+                        className="mt-2 h-10 w-full rounded-md border px-3 text-sm outline-none"
+                      >
+                        {sandboxProviders.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.label} - {item.model}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              </details>
+            </div>
           ) : null}
         </div>
 
-        <Panel className="min-w-0 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
-            <div>
-              <h2 className="font-semibold text-neutral-950">{guided ? "4 · Trace" : "Conversation output"}</h2>
-              <p className="mt-1 font-mono text-sm text-neutral-500">{run.id}</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {run.status !== "pending" ? <ButtonLink href={`/traces/${run.id}`} testId="open-trace" variant="secondary">Open trace</ButtonLink> : null}
-              {run.status !== "pending" ? <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">JSON</ButtonLink> : null}
-            </div>
-          </div>
-          <div className="grid gap-4 border-b border-neutral-200 p-5 sm:grid-cols-3">
-            <RunMetric label="status" value={run.status} />
-            <RunMetric label="latency" value={`${run.latencyMs}ms`} />
-            <RunMetric label="mode" value={run.sandbox?.executionMode ?? executionMode} />
-          </div>
-          <div className="relative h-[640px]">
-            <Conversation className="h-full">
-              <ConversationContent className="gap-5 p-5">
-                {!hasConversation ? (
-                  <ConversationEmptyState
-                    description="Choose a suggestion or enter a prompt to create a persisted run."
-                    title="Start a skill run"
-                  />
-                ) : null}
-                {run.input || input ? (
-                  <Message from="user">
-                    <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-950">
-                      <p className="whitespace-pre-wrap text-sm leading-6">{run.input || input}</p>
-                    </MessageContent>
-                  </Message>
-                ) : null}
-                {run.events.length || isRunning ? (
-                  <Message from="assistant">
-                    <MessageContent className="w-full">
-                      <Reasoning className="w-full" defaultOpen={isRunning} isStreaming={isRunning}>
-                        <ReasoningTrigger
-                          getThinkingMessage={(streaming) => (
-                            <p>{streaming ? "Streaming run trace..." : "Run trace summary"}</p>
-                          )}
-                        />
-                        <ReasoningContent>{traceSummary}</ReasoningContent>
-                      </Reasoning>
-                    </MessageContent>
-                  </Message>
-                ) : null}
-                {run.output ? (
-                  <Message from="assistant" className="max-w-full">
-                    <MessageContent className="w-full rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-4">
-                      <SafeMessageResponse>{run.output}</SafeMessageResponse>
-                    </MessageContent>
-                  </Message>
-                ) : isRunning ? (
-                  <Message from="assistant">
-                    <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
-                      Streaming output...
-                    </MessageContent>
-                  </Message>
-                ) : null}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
-          </div>
-        </Panel>
-
-        <div className="min-w-0 flex flex-col gap-6">
-          <Panel className="p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <h2 className="font-semibold text-neutral-950">Run workspace</h2>
-                <p className="mt-1 text-sm text-neutral-600">
-                  Context for this sandbox run only — not the Projects Build package editor.
-                </p>
+        <div className={guided ? "sw-run-lab__stage" : "contents"}>
+          <Panel className={guided ? "sw-run-lab__trace overflow-hidden" : "sw-run-grid__trace min-w-0 overflow-hidden"}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-4 sm:p-5">
+              <div>
+                <h2 className="font-semibold text-neutral-950">{guided ? "Trace" : "Conversation output"}</h2>
+                <p className="mt-1 font-mono text-sm text-neutral-500">{run.id}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <FirebenchCta href={`/projects/${skill.slug}`} data-testid="edit-skill-in-build">
-                  Edit SKILL.md in Build
-                </FirebenchCta>
+              <div className="flex flex-wrap gap-3">
+                {run.status !== "pending" ? <ButtonLink href={`/traces/${run.id}`} testId="open-trace" variant="secondary">Open trace</ButtonLink> : null}
+                {run.status !== "pending" ? <ButtonLink href={`/api/traces/${run.id}`} variant="secondary">JSON</ButtonLink> : null}
+              </div>
+            </div>
+            <div className="grid gap-3 border-b border-neutral-200 p-4 sm:grid-cols-3 sm:p-5">
+              <RunMetric label="status" value={run.status} />
+              <RunMetric label="latency" value={`${run.latencyMs}ms`} />
+              <RunMetric label="mode" value={run.sandbox?.executionMode ?? executionMode} />
+            </div>
+            <div className={`relative ${guided ? "sw-trace-pane sw-trace-pane--lab" : "sw-trace-pane"}`}>
+              <Conversation className="h-full">
+                <ConversationContent className="gap-5 p-5">
+                  {!hasConversation ? (
+                    <ConversationEmptyState
+                      description="Choose a suggestion or enter a prompt to create a persisted run."
+                      title="Start a skill run"
+                    />
+                  ) : null}
+                  {run.input || input ? (
+                    <Message from="user">
+                      <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-950">
+                        <p className="whitespace-pre-wrap text-sm leading-6">{run.input || input}</p>
+                      </MessageContent>
+                    </Message>
+                  ) : null}
+                  {run.events.length || isRunning ? (
+                    <Message from="assistant">
+                      <MessageContent className="w-full">
+                        <Reasoning className="w-full" defaultOpen={isRunning} isStreaming={isRunning}>
+                          <ReasoningTrigger
+                            getThinkingMessage={(streaming) => (
+                              <p>{streaming ? "Streaming run trace..." : "Run trace summary"}</p>
+                            )}
+                          />
+                          <ReasoningContent>{traceSummary}</ReasoningContent>
+                        </Reasoning>
+                      </MessageContent>
+                    </Message>
+                  ) : null}
+                  {run.output ? (
+                    <Message from="assistant" className="max-w-full">
+                      <MessageContent className="w-full rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-4">
+                        <SafeMessageResponse>{run.output}</SafeMessageResponse>
+                      </MessageContent>
+                    </Message>
+                  ) : isRunning ? (
+                    <Message from="assistant">
+                      <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                        Streaming output...
+                      </MessageContent>
+                    </Message>
+                  ) : null}
+                </ConversationContent>
+                <ConversationScrollButton />
+              </Conversation>
+            </div>
+          </Panel>
+
+          {guided ? (
+            <div className="sw-run-lab__dock">
+              <div className="sw-run-lab__dock-tabs" role="tablist" aria-label="Run context">
                 <button
-                  onClick={addWorkspaceFile}
-                  data-testid="add-workspace-file"
-                  className="sw-chip-btn"
                   type="button"
+                  role="tab"
+                  aria-selected={contextDock === "files"}
+                  className="sw-run-lab__dock-tab"
+                  onClick={() => setContextDock("files")}
                 >
-                  Add file
+                  Workspace
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={contextDock === "timeline"}
+                  className="sw-run-lab__dock-tab"
+                  onClick={() => setContextDock("timeline")}
+                >
+                  Timeline
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={contextDock === "terminal"}
+                  className="sw-run-lab__dock-tab"
+                  onClick={() => setContextDock("terminal")}
+                >
+                  Terminal
                 </button>
               </div>
-            </div>
-            <div className="mt-4">
-              {fileRecords.length ? (
-                <FileTree
-                  className="border-neutral-200 bg-neutral-50"
-                  defaultExpanded={defaultExpandedPaths(fileRecords)}
-                  onSelect={setSelectedFilePath}
-                  selectedPath={selectedFile?.path}
-                >
-                  {renderFileTree(fileRecords)}
-                </FileTree>
-              ) : (
-                <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
-                  No files are attached. Upload a package in Builder or add a file here.
-                </div>
-              )}
-            </div>
-            {selectedFile ? (
-              <div className="mt-4 rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
-                {/(^|\/)SKILL\.md$/i.test(selectedFile.path) || selectedFile.path === "SKILL.md" ? (
-                  <div className="mb-3 rounded-md border border-[color-mix(in_srgb,var(--primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--primary)_8%,white)] px-3 py-2 text-sm text-neutral-800">
-                    Editing here affects this run only.{" "}
-                    <a href={`/projects/${skill.slug}`} className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline">
-                      Open the package in Build
-                    </a>
-                    .
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-mono text-xs font-semibold text-neutral-950">{selectedFile.path}</div>
-                    <div className="mt-1 text-xs text-neutral-500">
-                      {selectedFile.source} {selectedFile.role ? `/${selectedFile.role}` : ""} · {selectedFile.size} bytes
+
+              {contextDock === "files" ? (
+                <div className="sw-run-lab__dock-pane" role="tabpanel">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-neutral-600">Run-scoped files — permanent edits go to Build.</p>
+                    <div className="flex flex-wrap gap-2">
+                      <FirebenchCta href={`/projects/${skill.slug}`} data-testid="edit-skill-in-build">
+                        Edit in Build
+                      </FirebenchCta>
+                      <button onClick={addWorkspaceFile} data-testid="add-workspace-file" className="sw-chip-btn" type="button">
+                        Add file
+                      </button>
                     </div>
                   </div>
-                  <Badge tone={selectedFile.editable ? "blue" : "neutral"}>{selectedFile.editable ? "editable" : "read only"}</Badge>
+                  {fileRecords.length ? (
+                    <FileTree
+                      className="border-neutral-200 bg-neutral-50"
+                      defaultExpanded={defaultExpandedPaths(fileRecords)}
+                      onSelect={setSelectedFilePath}
+                      selectedPath={selectedFile?.path}
+                    >
+                      {renderFileTree(fileRecords)}
+                    </FileTree>
+                  ) : (
+                    <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
+                      No files are attached. Upload a package in Builder or add a file here.
+                    </div>
+                  )}
+                  {selectedFile ? (
+                    <div className="mt-3 rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
+                      {/(^|\/)SKILL\.md$/i.test(selectedFile.path) || selectedFile.path === "SKILL.md" ? (
+                        <div className="mb-3 rounded-md border border-[color-mix(in_srgb,var(--primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--primary)_8%,white)] px-3 py-2 text-sm text-neutral-800">
+                          Editing here affects this run only.{" "}
+                          <a href={`/projects/${skill.slug}`} className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline">
+                            Open the package in Build
+                          </a>
+                          .
+                        </div>
+                      ) : null}
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="font-mono text-xs font-semibold text-neutral-950">{selectedFile.path}</div>
+                          <div className="mt-1 text-xs text-neutral-500">
+                            {selectedFile.source} {selectedFile.role ? `/${selectedFile.role}` : ""} · {selectedFile.size} bytes
+                          </div>
+                        </div>
+                        <Badge tone={selectedFile.editable ? "blue" : "neutral"}>{selectedFile.editable ? "editable" : "read only"}</Badge>
+                      </div>
+                      {selectedFile.editable ? (
+                        <WorkspaceFileEditor
+                          file={selectedFile}
+                          onChange={(path, content) => {
+                            const index = workspaceFiles.findIndex((item) => item.path === selectedFile.path);
+                            if (index >= 0) updateWorkspaceFile(index, { path, content });
+                          }}
+                        />
+                      ) : (
+                        <div className="mt-3 max-h-40 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-3">
+                          <SafeMessageResponse>{selectedFile.content || "No preview content available."}</SafeMessageResponse>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
-                {selectedFile.editable ? (
-                  <WorkspaceFileEditor
-                    file={selectedFile}
-                    onChange={(path, content) => {
-                      const index = workspaceFiles.findIndex((item) => item.path === selectedFile.path);
-                      if (index >= 0) updateWorkspaceFile(index, { path, content });
-                    }}
-                  />
-                ) : (
-                  <div className="mt-3 max-h-56 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-3">
-                    <SafeMessageResponse>{selectedFile.content || "No preview content available."}</SafeMessageResponse>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </Panel>
+              ) : null}
 
-          <Panel className="p-5">
-            <h2 className="font-semibold text-neutral-950">Tool timeline</h2>
-            <div className="mt-4 max-h-[520px] overflow-auto pr-1">
-              {run.events.length ? (
-                run.events.map((event) => <TraceTool key={`${event.order}-${event.title}`} event={event} />)
-              ) : (
-                <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
-                  No trace events yet. Start a run to stream permission checks and tool calls.
+              {contextDock === "timeline" ? (
+                <div className="sw-run-lab__dock-pane" role="tabpanel">
+                  <div className="max-h-[280px] overflow-auto pr-1">
+                    {run.events.length ? (
+                      run.events.map((event) => <TraceTool key={`${event.order}-${event.title}`} event={event} />)
+                    ) : (
+                      <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
+                        No trace events yet. Start a run to stream permission checks and tool calls.
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
+              ) : null}
+
+              {contextDock === "terminal" ? (
+                <div className="sw-run-lab__dock-pane" role="tabpanel">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-neutral-600">Real shell output. Virtual provider stays in Trace.</p>
+                    {run.status !== "pending" ? <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">Workspace zip</ButtonLink> : null}
+                  </div>
+                  <Terminal autoScroll className="m-0" isStreaming={isRunning && executionMode === "real-shell"} output={terminalOutput} />
+                </div>
+              ) : null}
             </div>
-          </Panel>
+          ) : (
+            <div className="sw-run-grid__workspace min-w-0">
+              <Panel className="p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-semibold text-neutral-950">Run workspace</h2>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Context for this sandbox run only — not the Projects Build package editor.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FirebenchCta href={`/projects/${skill.slug}`} data-testid="edit-skill-in-build">
+                      Edit SKILL.md in Build
+                    </FirebenchCta>
+                    <button
+                      onClick={addWorkspaceFile}
+                      data-testid="add-workspace-file"
+                      className="sw-chip-btn"
+                      type="button"
+                    >
+                      Add file
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  {fileRecords.length ? (
+                    <FileTree
+                      className="border-neutral-200 bg-neutral-50"
+                      defaultExpanded={defaultExpandedPaths(fileRecords)}
+                      onSelect={setSelectedFilePath}
+                      selectedPath={selectedFile?.path}
+                    >
+                      {renderFileTree(fileRecords)}
+                    </FileTree>
+                  ) : (
+                    <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
+                      No files are attached. Upload a package in Builder or add a file here.
+                    </div>
+                  )}
+                </div>
+                {selectedFile ? (
+                  <div className="mt-4 rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-3">
+                    {/(^|\/)SKILL\.md$/i.test(selectedFile.path) || selectedFile.path === "SKILL.md" ? (
+                      <div className="mb-3 rounded-md border border-[color-mix(in_srgb,var(--primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--primary)_8%,white)] px-3 py-2 text-sm text-neutral-800">
+                        Editing here affects this run only.{" "}
+                        <a href={`/projects/${skill.slug}`} className="font-semibold text-[var(--primary)] underline-offset-2 hover:underline">
+                          Open the package in Build
+                        </a>
+                        .
+                      </div>
+                    ) : null}
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-mono text-xs font-semibold text-neutral-950">{selectedFile.path}</div>
+                        <div className="mt-1 text-xs text-neutral-500">
+                          {selectedFile.source} {selectedFile.role ? `/${selectedFile.role}` : ""} · {selectedFile.size} bytes
+                        </div>
+                      </div>
+                      <Badge tone={selectedFile.editable ? "blue" : "neutral"}>{selectedFile.editable ? "editable" : "read only"}</Badge>
+                    </div>
+                    {selectedFile.editable ? (
+                      <WorkspaceFileEditor
+                        file={selectedFile}
+                        onChange={(path, content) => {
+                          const index = workspaceFiles.findIndex((item) => item.path === selectedFile.path);
+                          if (index >= 0) updateWorkspaceFile(index, { path, content });
+                        }}
+                      />
+                    ) : (
+                      <div className="mt-3 max-h-56 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-3">
+                        <SafeMessageResponse>{selectedFile.content || "No preview content available."}</SafeMessageResponse>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </Panel>
+
+              <Panel className="p-5">
+                <h2 className="font-semibold text-neutral-950">Tool timeline</h2>
+                <div className="mt-4 max-h-[520px] overflow-auto pr-1">
+                  {run.events.length ? (
+                    run.events.map((event) => <TraceTool key={`${event.order}-${event.title}`} event={event} />)
+                  ) : (
+                    <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
+                      No trace events yet. Start a run to stream permission checks and tool calls.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            </div>
+          )}
         </div>
       </div>
 
-
-
-      <Panel className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
-          <div>
-            <h2 className="font-semibold text-neutral-950">Real shell terminal</h2>
-            <p className="mt-1 text-sm text-neutral-600">
-              Shows command output for Vercel Sandbox shell runs. Virtual provider output stays in the conversation pane.
-            </p>
+      {!guided ? (
+        <Panel className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-5">
+            <div>
+              <h2 className="font-semibold text-neutral-950">Real shell terminal</h2>
+              <p className="mt-1 text-sm text-neutral-600">
+                Shows command output for Vercel Sandbox shell runs. Virtual provider output stays in the conversation pane.
+              </p>
+            </div>
+            {run.status !== "pending" ? <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">Workspace zip</ButtonLink> : null}
           </div>
-          {run.status !== "pending" ? <ButtonLink href={`/api/workspaces/${run.id}`} variant="secondary">Workspace zip</ButtonLink> : null}
-        </div>
-        <Terminal autoScroll className="m-5" isStreaming={isRunning && executionMode === "real-shell"} output={terminalOutput} />
-      </Panel>
+          <Terminal autoScroll className="m-5" isStreaming={isRunning && executionMode === "real-shell"} output={terminalOutput} />
+        </Panel>
+      ) : null}
 
       {run.artifacts?.length ? (
         <Panel className="p-5">

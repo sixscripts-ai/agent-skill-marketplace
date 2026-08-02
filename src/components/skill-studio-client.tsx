@@ -165,14 +165,25 @@ export function SkillStudioClient({
           <div>
             <div className="sw-studio-compact-kicker">sandbox</div>
             <h1 className="sw-studio-compact-title">{skill.name}</h1>
+            <p className="sw-studio-compact-sub">Approve once · run · read the stream</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <FirebenchCta href={`/projects/${skill.slug}`} variant="ghost">
-              Edit in Build
-            </FirebenchCta>
+          <div className="sw-studio-compact-actions">
+            <button type="button" className="sw-chip-btn" onClick={() => openEvidence("versions")}>
+              Versions
+            </button>
+            <button type="button" className="sw-chip-btn" onClick={() => openEvidence("evals")}>
+              Evals
+            </button>
+            <button type="button" className="sw-chip-btn" onClick={() => openEvidence("graph")}>
+              Graph
+            </button>
+            <Link href={`/terminal?skill=${skill.slug}`} className="sw-chip-btn">
+              Live Terminal
+            </Link>
+            <FirebenchCta href={`/projects/${skill.slug}`}>Edit in Build</FirebenchCta>
             <FirebenchButton type="button" variant="ghost" onClick={() => goStage("package")}>
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to Package
+              Package
             </FirebenchButton>
           </div>
         </div>
@@ -189,9 +200,9 @@ export function SkillStudioClient({
           Distribution
         </StageTab>
       </div>
-      <p className="sw-stage-sub">{STAGE_COPY[stage]}</p>
+      {!compact ? <p className="sw-stage-sub">{STAGE_COPY[stage]}</p> : null}
 
-      <div className="sw-studio-layout">
+      <div className={`sw-studio-layout${compact ? " sw-studio-layout--sandbox" : ""}`}>
         <div className="sw-studio-main min-w-0">
           {evidence ? (
             <section className="sw-panel" data-testid="studio-evidence-panel">
@@ -343,16 +354,18 @@ export function SkillStudioClient({
           {!evidence && stage === "distribution" ? <SkillDistributionPanel skill={skill} version={version} /> : null}
         </div>
 
-        <aside className="sw-evidence-rail" aria-label="Evidence">
-          <h3>Evidence</h3>
-          <EvidenceButton active={evidence === "versions"} onClick={() => openEvidence("versions")} label="Version history" />
-          <EvidenceButton active={evidence === "evals"} onClick={() => openEvidence("evals")} label="Evaluation suites" />
-          <EvidenceButton active={evidence === "graph"} onClick={() => openEvidence("graph")} label="Dependency map" />
-          <Link href={`/terminal?skill=${skill.slug}`} className="sw-evidence-link">
-            <TerminalSquare className="size-3.5" aria-hidden="true" />
-            Open Live Terminal
-          </Link>
-        </aside>
+        {!compact ? (
+          <aside className="sw-evidence-rail" aria-label="Evidence">
+            <h3>Evidence</h3>
+            <EvidenceButton active={evidence === "versions"} onClick={() => openEvidence("versions")} label="Version history" />
+            <EvidenceButton active={evidence === "evals"} onClick={() => openEvidence("evals")} label="Evaluation suites" />
+            <EvidenceButton active={evidence === "graph"} onClick={() => openEvidence("graph")} label="Dependency map" />
+            <Link href={`/terminal?skill=${skill.slug}`} className="sw-evidence-link">
+              <TerminalSquare className="size-3.5" aria-hidden="true" />
+              Open Live Terminal
+            </Link>
+          </aside>
+        ) : null}
       </div>
     </FirebenchPage>
   );
