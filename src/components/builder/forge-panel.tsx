@@ -40,7 +40,7 @@ function urlsForSlug(skillSlug: string) {
   return {
     detail: `/skills/${skillSlug}`,
     marketplace: "/marketplace",
-    mySkills: "/skills",
+    mySkills: "/projects",
     run: `/skills/${skillSlug}?stage=sandbox`,
     edit: `/builder/${encodeURIComponent(skillSlug)}`,
   };
@@ -388,7 +388,7 @@ export function ForgePanel({
             Sandbox
           </Link>
           <Link href={publishedUrls.mySkills} className="builder-secondary-button">
-            My Skills
+            Projects
           </Link>
           <Link href={publishedUrls.edit} className="builder-secondary-button">
             Edit

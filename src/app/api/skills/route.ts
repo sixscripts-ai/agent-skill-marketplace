@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         urls: {
           detail: `/skills/${skill.slug}`,
           marketplace: "/marketplace",
-          mySkills: "/skills",
+          mySkills: "/projects",
           run: `/skills/${skill.slug}?stage=sandbox`,
           edit: `/builder/${skill.slug}`,
         },

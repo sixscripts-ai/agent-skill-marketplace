@@ -65,8 +65,8 @@ export function SkillDetailClient({
           </>
         }
         actionsRight={
-          <FirebenchCta href="/skills" variant="ghost">
-            My Skills
+          <FirebenchCta href="/projects" variant="ghost">
+            Projects
           </FirebenchCta>
         }
       >

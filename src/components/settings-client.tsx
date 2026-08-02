@@ -70,8 +70,8 @@ export function SettingsClient({ user }: { user: { name: string; email: string }
             </label>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/skills" className="builder-secondary-button">
-              My Skills
+            <Link href="/projects" className="builder-secondary-button">
+              Projects
             </Link>
             <SignOutButton>
               <button type="button" className="builder-secondary-button">
