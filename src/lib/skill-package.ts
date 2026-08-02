@@ -109,13 +109,14 @@ export async function processSkillUpload(files: File[], owner: MarketplaceUser):
 
 async function unzipSkillPackage(file: File) {
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
-  const rawFiles: RawPackageFile[] = [];
-  for (const entry of Object.values(zip.files)) {
-    if (entry.dir) continue;
-    const safePath = sanitizePackagePath(entry.name);
-    const bytes = new Uint8Array(await entry.async("uint8array"));
-    rawFiles.push({ path: safePath, bytes, mimeType: mimeTypeForPath(safePath) });
-  }
+  const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+  const rawFiles: RawPackageFile[] = await Promise.all(
+    entries.map(async (entry) => {
+      const safePath = sanitizePackagePath(entry.name);
+      const bytes = new Uint8Array(await entry.async("uint8array"));
+      return { path: safePath, bytes, mimeType: mimeTypeForPath(safePath) };
+    })
+  );
   return rawFiles;
 }
 
