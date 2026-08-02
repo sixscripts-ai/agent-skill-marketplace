@@ -69,3 +69,7 @@ Optional production environment variables:
 ## Notes
 
 The local MVP can use seeded in-app data and a deterministic mock sandbox runner. Production deployments should use Clerk, Postgres, Vercel Blob, and optionally Vercel Sandbox for real isolated execution.
+
+## How We Use Jules AI
+
+Jules AI is used in the development of this project to assist with coding tasks, such as solving bugs, implementing features, and writing tests. It helps maintain code quality, verify functionality, and accelerate the development workflow.
