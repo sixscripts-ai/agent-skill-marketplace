@@ -16,16 +16,8 @@ function badgeToneClass(tone: "green" | "amber" | "red" | "blue" | "neutral") {
   return "cyber-badge cyber-badge-neutral";
 }
 
-function cleanSkillSummary(summary: string): string {
-  if (!summary) return "";
-  return summary
-    .replace(/^[>\s#\\|'"]+/, "")
-    .trim();
-}
-
 export function SkillCard({ skill }: { skill: Skill }) {
   const tone = trustTone(skill.trustLevel);
-  const cleanedSummary = cleanSkillSummary(skill.summary);
 
   return (
     <Link
@@ -48,8 +40,8 @@ export function SkillCard({ skill }: { skill: Skill }) {
         </div>
       </div>
       
-      <p className="mt-4 text-sm leading-6 text-gray-400 line-clamp-2 flex-1" title={cleanedSummary}>
-        {cleanedSummary}
+      <p className="mt-4 text-sm leading-6 text-gray-400 line-clamp-2 flex-1" title={skill.summary}>
+        {skill.summary}
       </p>
 
       <div className="mt-6 flex items-center justify-between border-t border-neutral-800 pt-4">

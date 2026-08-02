@@ -180,9 +180,7 @@ function CyberFilter({
         className="cyber-select h-11 w-full px-3 text-sm"
       >
         {values.map((item) => (
-          <option key={item} value={item}>
-            {item === "All" ? `${label}: All` : (labels?.[item] ?? item)}
-          </option>
+          <option key={item} value={item}>{labels?.[item] ?? item}</option>
         ))}
       </select>
     </label>
