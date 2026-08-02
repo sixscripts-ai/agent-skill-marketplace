@@ -13,6 +13,7 @@ import type {
   MarketplaceUser,
   PackageExport,
   PermissionKey,
+  MarketplaceSkillCard,
   Skill,
   SkillDraftInput,
   SkillLifecycleStatus,
@@ -371,6 +372,96 @@ export async function listMarketplaceSkills() {
     orderBy: { updatedAt: "desc" },
   });
   return rows.map(toSkill);
+}
+
+function toMarketplaceSkillCard(row: {
+  id: string;
+  slug: string;
+  name: string;
+  summary: string;
+  category: string;
+  trustLevel: Skill["trustLevel"];
+  installCount: number;
+  rating: number;
+  currentVersion: string;
+  author: { name: string } | null;
+  permissions: any[];
+  versions: any[];
+}): MarketplaceSkillCard {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    summary: row.summary,
+    category: row.category,
+    trustLevel: row.trustLevel,
+    author: row.author?.name ?? "Unknown author",
+    installCount: row.installCount,
+    rating: row.rating,
+    currentVersion: row.currentVersion,
+    permissions: currentVersionPermissions(row),
+    versions: (row.versions ?? []).map((version: any) => ({
+      version: version.version,
+      compatibilityTargets: normalizeCompatibilityTargets(version.compatibilityTargets),
+      createdAt: dateOnly(version.createdAt),
+    })),
+  };
+}
+
+/** Public marketplace grid — omits markdown, packages, evals, reviews. */
+export async function listMarketplaceSkillCards() {
+  if (!hasDatabase) {
+    const skills = await listMarketplaceSkills();
+    return skills.map((skill) => ({
+      id: skill.id,
+      slug: skill.slug,
+      name: skill.name,
+      summary: skill.summary,
+      category: skill.category,
+      trustLevel: skill.trustLevel,
+      author: skill.author,
+      installCount: skill.installCount,
+      rating: skill.rating,
+      currentVersion: skill.currentVersion,
+      permissions: skill.permissions,
+      versions: skill.versions.map((version) => ({
+        version: version.version,
+        compatibilityTargets: version.compatibilityTargets,
+        createdAt: version.createdAt,
+      })),
+    }));
+  }
+
+  await ensureSeeded();
+  const rows = await prisma.skill.findMany({
+    where: { visibility: "public", status: "released" },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      summary: true,
+      category: true,
+      trustLevel: true,
+      installCount: true,
+      rating: true,
+      currentVersion: true,
+      author: { select: { name: true } },
+      permissions: {
+        select: { key: true, reason: true, risk: true, skillVersionId: true },
+      },
+      versions: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          version: true,
+          compatibilityTargets: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+  return rows.map((row) => toMarketplaceSkillCard(row as any));
 }
 
 export async function findSkill(slug: string, user: MarketplaceUser = seedUser) {

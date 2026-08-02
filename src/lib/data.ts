@@ -755,6 +755,9 @@ export function getSkillById(id: string) {
   return skills.find((skill) => skill.id === id || skill.slug === id);
 }
 
-export function latestVersion(skill: Skill) {
+export function latestVersion<T extends { version: string; createdAt: string }>(skill: {
+  currentVersion: string;
+  versions: T[];
+}): T {
   return skill.versions.find((version) => version.version === skill.currentVersion) ?? skill.versions[0];
 }

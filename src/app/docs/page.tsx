@@ -10,7 +10,7 @@ import {
 } from "@/components/firebench";
 
 export const metadata: Metadata = {
-  title: "Docs | Agent Skill Marketplace",
+  title: "Docs",
   description: "Learn how to browse, upload, validate, run, trace, evaluate, and export agent skills.",
 };
 

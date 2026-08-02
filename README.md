@@ -59,6 +59,14 @@ To deploy to Vercel, you must provision the following resources and configure th
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk Publishable Key.
    - `CLERK_SECRET_KEY`: Clerk Secret Key.
 
+   **Production vs Development (required):**
+   - Vercel **Production** must use a Clerk **Production** instance (`pk_live_…` / `sk_live_…`).
+   - Vercel **Preview** and local **Development** should keep the Clerk Development instance (`pk_test_…` / `sk_test_…`).
+   - Using `pk_test_` on Production forces `*.clerk.accounts.dev` handshake redirects on cold visits and hurts mobile PageSpeed.
+   - In the Clerk Production dashboard, allow `https://agent-skill-marketplace.vercel.app` (and any custom domain) with redirect URLs for `/sign-in`, `/sign-up`, and post-auth (e.g. `/projects`).
+   - After swapping Production keys in Vercel, redeploy Production and confirm a cold visit to `/` no longer hops through `accounts.dev`.
+   - See `.env.example` for the full env checklist.
+
 Optional production environment variables:
 
 - `ENABLE_REAL_SANDBOX=true`: Enables real shell execution through Vercel Sandbox. Leave unset to use the virtual provider route.

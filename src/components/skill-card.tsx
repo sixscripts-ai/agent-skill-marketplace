@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Download, Star } from "lucide-react";
-import type { Skill } from "@/lib/types";
+import type { MarketplaceSkillCard } from "@/lib/types";
 
-function trustToneClass(trust: Skill["trustLevel"]) {
+function trustToneClass(trust: MarketplaceSkillCard["trustLevel"]) {
   if (trust === "Verified") return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
   if (trust === "Reviewed") return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300";
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300";
@@ -12,7 +12,7 @@ function cleanSkillSummary(summary: string): string {
   return summary.replace(/^[>\s#\\|'"'`]+/, "").trim();
 }
 
-export function SkillCard({ skill }: { skill: Skill }) {
+export function SkillCard({ skill }: { skill: MarketplaceSkillCard }) {
   const cleanedSummary = cleanSkillSummary(skill.summary);
   const installs = skill.installCount || 0;
   const rating = skill.rating || 0;

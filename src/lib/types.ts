@@ -121,6 +121,26 @@ export type Skill = {
   packages?: SkillPackage[];
 };
 
+/** Lean marketplace grid row — no markdown, packages, evals, or reviews. */
+export type MarketplaceSkillCard = {
+  id: string;
+  slug: string;
+  name: string;
+  summary: string;
+  category: string;
+  trustLevel: Skill["trustLevel"];
+  author: string;
+  installCount: number;
+  rating: number;
+  currentVersion: string;
+  permissions: SkillPermission[];
+  versions: {
+    version: string;
+    compatibilityTargets: CompatibilityTarget[];
+    createdAt: string;
+  }[];
+};
+
 export type SkillTraceEvent = {
   order: number;
   type: TraceEventType;

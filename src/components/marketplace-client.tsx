@@ -3,13 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { categories, compatibilityTargets, latestVersion, permissionKeys, permissionLabels } from "@/lib/data";
-import type { CompatibilityTarget, Skill } from "@/lib/types";
+import type { CompatibilityTarget, MarketplaceSkillCard } from "@/lib/types";
 import { MarketplaceHero } from "./marketplace-hero";
 import { SkillCard } from "./skill-card";
 
 const filterPills = ["All", "Popular", "New", "Top Rated", "Verified"];
 
-export function MarketplaceClient({ initialQuery = "", skills }: { initialQuery?: string; skills: Skill[] }) {
+export function MarketplaceClient({
+  initialQuery = "",
+  skills,
+}: {
+  initialQuery?: string;
+  skills: MarketplaceSkillCard[];
+}) {
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState("All");
   const [target, setTarget] = useState("All");
