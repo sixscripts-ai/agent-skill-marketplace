@@ -15,12 +15,20 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      dependencies: ["setup"],
+      testIgnore: /auth\.setup\.ts/,
     },
     {
       name: "mobile-chrome",
       use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } },
+      dependencies: ["setup"],
+      testIgnore: /auth\.setup\.ts/,
     },
   ],
   webServer: isProdTarget

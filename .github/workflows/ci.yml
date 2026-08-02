@@ -50,6 +50,9 @@ jobs:
       - name: Type Check
         run: pnpm tsc --noEmit
 
+      - name: Production Build
+        run: pnpm build
+
       - name: Run Security Tests
         run: pnpm test:security
 

@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-unused-vars, prefer-const */
 // @ts-nocheck
-export function initCyanLanding(): void {
+export function initCyanLanding(): () => void {
 
   "use strict";
 
@@ -8,6 +9,51 @@ export function initCyanLanding(): void {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (selector, scope = doc) => scope.querySelector(selector);
   const $$ = (selector, scope = doc) => Array.from(scope.querySelectorAll(selector));
+  const asset = (name) => `/landing-cyan/assets/${name}`;
+  const cleanups = [];
+  const timeouts = new Set();
+  const intervals = new Set();
+  const rafs = new Set();
+  const observers = [];
+  const abort = new AbortController();
+  const { signal } = abort;
+
+  const scheduleTimeout = (fn, ms) => {
+    const id = window.setTimeout(() => {
+      timeouts.delete(id);
+      fn();
+    }, ms);
+    timeouts.add(id);
+    return id;
+  };
+  const clearScheduledTimeout = (id) => {
+    if (id != null) {
+      window.clearTimeout(id);
+      timeouts.delete(id);
+    }
+  };
+  const scheduleInterval = (fn, ms) => {
+    const id = window.setInterval(fn, ms);
+    intervals.add(id);
+    return id;
+  };
+  const scheduleRaf = (fn) => {
+    const id = requestAnimationFrame((t) => {
+      rafs.delete(id);
+      fn(t);
+    });
+    rafs.add(id);
+    return id;
+  };
+  const observe = (observer) => {
+    observers.push(observer);
+    return observer;
+  };
+  const on = (target, type, handler, options) => {
+    if (!target) return;
+    const opts = options && typeof options === "object" ? { ...options, signal } : { signal, ...(options ? { capture: options } : {}) };
+    target.addEventListener(type, handler, opts);
+  };
 
   function escapeHtml(value) {
     return String(value)
@@ -23,8 +69,8 @@ export function initCyanLanding(): void {
     if (!toast) return;
     $("span", toast).textContent = message;
     toast.classList.add("show");
-    window.clearTimeout(showToast.timer);
-    showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1900);
+    clearScheduledTimeout(showToast.timer);
+    showToast.timer = scheduleTimeout(() => toast.classList.remove("show"), 1900);
   }
 
   async function copyText(text) {
@@ -44,14 +90,8 @@ export function initCyanLanding(): void {
     }
   }
 
-  // Theme switcher.
-  let storedTheme = null;
-  try { storedTheme = localStorage.getItem("agent-skills-cyan-theme"); } catch (error) {}
-  if (storedTheme === "light" || storedTheme === "dark") {
-    root.dataset.theme = storedTheme;
-  }
-
-  $("#themeToggle")?.addEventListener("click", () => {
+  // Theme switcher (preference restored in root layout pre-hydration script).
+  on($("#themeToggle"), "click", () => {
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
     try { localStorage.setItem("agent-skills-cyan-theme", next); } catch (error) {}
@@ -68,15 +108,15 @@ export function initCyanLanding(): void {
     mobileMenu.classList.remove("open");
     doc.body.classList.remove("menu-open");
   }
-  mobileMenuButton?.addEventListener("click", () => {
+  on(mobileMenuButton, "click", () => {
     const open = mobileMenuButton.getAttribute("aria-expanded") === "true";
     mobileMenuButton.setAttribute("aria-expanded", String(!open));
     mobileMenuButton.setAttribute("aria-label", open ? "Open navigation menu" : "Close navigation menu");
     mobileMenu?.classList.toggle("open", !open);
     doc.body.classList.toggle("menu-open", !open);
   });
-  $$("a", mobileMenu).forEach((link) => link.addEventListener("click", closeMobileMenu));
-  window.addEventListener("resize", () => {
+  $$("a", mobileMenu).forEach((link) => on(link, "click", closeMobileMenu));
+  on(window, "resize", () => {
     if (window.innerWidth >= 1024) closeMobileMenu();
   });
 
@@ -103,28 +143,28 @@ export function initCyanLanding(): void {
     }
   }
 
-  window.addEventListener("load", () => {
+  on(window, "load", () => {
     measureScrollAnchors();
     updateScrollState();
   });
-  window.addEventListener("resize", () => {
+  on(window, "resize", () => {
     measureScrollAnchors();
     updateScrollState();
   });
-  window.addEventListener("scroll", updateScrollState, { passive: true });
+  on(window, "scroll", updateScrollState, { passive: true });
 
   // Scroll reveal behavior.
   const revealNodes = $$(".reveal");
   if (reduceMotion || !("IntersectionObserver" in window)) {
     revealNodes.forEach((node) => node.classList.add("in-view"));
   } else {
-    const revealObserver = new IntersectionObserver((entries, observer) => {
+    const revealObserver = observe(new IntersectionObserver((entries, observer) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         entry.target.classList.add("in-view");
         observer.unobserve(entry.target);
       });
-    }, { threshold: 0.08, rootMargin: "0px 0px -4% 0px" });
+    }, { threshold: 0.08, rootMargin: "0px 0px -4% 0px" }));
     revealNodes.forEach((node, index) => {
       node.style.transitionDelay = `${Math.min(index % 4, 3) * 55}ms`;
       revealObserver.observe(node);
@@ -244,7 +284,7 @@ export function initCyanLanding(): void {
 
   function placeholderTick() {
     if (!playgroundInput || doc.activeElement === playgroundInput || playgroundInput.value) {
-      placeholderTimer = window.setTimeout(placeholderTick, 450);
+      placeholderTimer = scheduleTimeout(placeholderTick, 450);
       return;
     }
     const words = playgroundModes[activeMode].placeholders;
@@ -254,7 +294,7 @@ export function initCyanLanding(): void {
       playgroundInput.placeholder = word.slice(0, placeholderCharacterIndex);
       if (placeholderCharacterIndex >= word.length) {
         placeholderDeleting = true;
-        placeholderTimer = window.setTimeout(placeholderTick, 1200);
+        placeholderTimer = scheduleTimeout(placeholderTick, 1200);
         return;
       }
     } else {
@@ -265,7 +305,7 @@ export function initCyanLanding(): void {
         placeholderWordIndex += 1;
       }
     }
-    placeholderTimer = window.setTimeout(placeholderTick, placeholderDeleting ? 24 : 46);
+    placeholderTimer = scheduleTimeout(placeholderTick, placeholderDeleting ? 24 : 46);
   }
 
   function renderPlaygroundOutput(mode) {
@@ -292,7 +332,7 @@ export function initCyanLanding(): void {
   }
 
   endpointTabs.forEach((button) => {
-    button.addEventListener("click", () => selectPlaygroundMode(button.dataset.mode));
+    on(button, "click", () => selectPlaygroundMode(button.dataset.mode));
   });
 
   function runPlayground() {
@@ -305,14 +345,14 @@ export function initCyanLanding(): void {
     if (resultTitle) resultTitle.textContent = `${data.label} in progress...`;
     if (resultMeta) resultMeta.textContent = "Starting controlled workflow";
     if (heroJsonCode) heroJsonCode.innerHTML = `<code>{\n  <b>"status"</b>: <em>"processing"</em>,\n  <b>"workflow"</b>: <em>"${activeMode}"</em>\n}</code>`;
-    window.setTimeout(() => {
+    scheduleTimeout(() => {
       playgroundCard.classList.remove("loading");
       renderPlaygroundOutput(activeMode);
     }, reduceMotion ? 40 : 1200);
   }
 
-  playgroundRun?.addEventListener("click", runPlayground);
-  playgroundInput?.addEventListener("keydown", (event) => {
+  on(playgroundRun, "click", runPlayground);
+  on(playgroundInput, "keydown", (event) => {
     if (event.key === "Enter") runPlayground();
   });
   selectPlaygroundMode("browse");
@@ -320,38 +360,38 @@ export function initCyanLanding(): void {
 
   // Copy controls.
   $$('[data-copy-target]').forEach((button) => {
-    button.addEventListener("click", () => {
+    on(button, "click", () => {
       const target = doc.getElementById(button.dataset.copyTarget);
       if (target) copyText(target.textContent.trim());
     });
   });
   $$('[data-copy-text]').forEach((button) => {
-    button.addEventListener("click", () => copyText(button.dataset.copyText || ""));
+    on(button, "click", () => copyText(button.dataset.copyText || ""));
   });
 
   // Logo cloud timed swaps.
   const logos = [
-    ["assets/logo-codex.svg", "Codex"],
-    ["assets/logo-claude.svg", "Claude"],
-    ["assets/logo-opencode.svg", "OpenCode"],
-    ["assets/logo-grok.svg", "Grok"],
-    ["assets/logo-vscode.svg", "VS Code"],
-    ["assets/logo-antigravity.svg", "Antigravity"],
-    ["assets/logo-mcp.svg", "MCP"],
-    ["assets/logo-vercel.svg", "Vercel Sandbox"],
-    ["assets/logo-prisma.svg", "Prisma"],
-    ["assets/logo-next.svg", "Next.js"]
+    [asset("logo-codex.svg"), "Codex"],
+    [asset("logo-claude.svg"), "Claude"],
+    [asset("logo-opencode.svg"), "OpenCode"],
+    [asset("logo-grok.svg"), "Grok"],
+    [asset("logo-vscode.svg"), "VS Code"],
+    [asset("logo-antigravity.svg"), "Antigravity"],
+    [asset("logo-mcp.svg"), "MCP"],
+    [asset("logo-vercel.svg"), "Vercel Sandbox"],
+    [asset("logo-prisma.svg"), "Prisma"],
+    [asset("logo-next.svg"), "Next.js"]
   ];
   const logoTiles = $$("#logoTiles .logo-tile");
   let logoSwapStep = 5;
   if (!reduceMotion && logoTiles.length) {
-    window.setInterval(() => {
+    scheduleInterval(() => {
       const tileIndex = logoSwapStep % logoTiles.length;
       const logoIndex = logoSwapStep % logos.length;
       const tile = logoTiles[tileIndex];
       const image = $("img", tile);
       tile.classList.add("swapping");
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         image.src = logos[logoIndex][0];
         image.alt = logos[logoIndex][1];
         tile.classList.remove("swapping");
@@ -500,7 +540,7 @@ Status: installed`
   }
 
   featureButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
+    on(button, "click", (event) => {
       if (event.target.closest("a")) return;
       activeFeature = button.dataset.feature;
       featureButtons.forEach((item) => item.classList.toggle("active", item === button));
@@ -508,7 +548,7 @@ Status: installed`
     });
   });
   languageButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    on(button, "click", () => {
       activeLanguage = button.dataset.language;
       languageButtons.forEach((item) => item.classList.toggle("active", item === button));
       renderCodeDemo();
@@ -524,7 +564,7 @@ Status: installed`
     mcp: "npx asm skill inspect pr-sentinel --json"
   };
   commandSwitchButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    on(button, "click", () => {
       commandSwitchButtons.forEach((item) => item.classList.toggle("active", item === button));
       if (agentCommand) agentCommand.textContent = agentCommands[button.dataset.command];
     });
@@ -542,9 +582,9 @@ Status: installed`
       const progress = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - progress, 3);
       element.textContent = `${Math.round(target * eased)}${suffix}`;
-      if (progress < 1) requestAnimationFrame(frame);
+      if (progress < 1) scheduleRaf(frame);
     }
-    requestAnimationFrame(frame);
+    scheduleRaf(frame);
   }
 
   const chart = $("[data-chart]");
@@ -555,12 +595,12 @@ Status: installed`
     };
     if (reduceMotion) activateChart();
     else {
-      const chartObserver = new IntersectionObserver((entries, observer) => {
+      const chartObserver = observe(new IntersectionObserver((entries, observer) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           activateChart();
           observer.disconnect();
         }
-      }, { threshold: 0.35 });
+      }, { threshold: 0.35 }));
       chartObserver.observe(chart);
     }
   }
@@ -580,15 +620,15 @@ Status: installed`
   if (latencyStream) {
     latencyStream.innerHTML = Array.from({ length: 7 }, (_, i) => latencyRow(i)).join("");
     if (!reduceMotion) {
-      window.setInterval(() => {
+      scheduleInterval(() => {
         latencyIndex += 1;
         latencyStream.insertAdjacentHTML("beforeend", latencyRow(latencyIndex + 7));
         latencyStream.style.transform = "translateY(-28px)";
-        window.setTimeout(() => {
+        scheduleTimeout(() => {
           latencyStream.firstElementChild?.remove();
           latencyStream.style.transition = "none";
           latencyStream.style.transform = "translateY(0)";
-          requestAnimationFrame(() => { latencyStream.style.transition = "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)"; });
+          scheduleRaf(() => { latencyStream.style.transition = "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)"; });
         }, 420);
       }, 1350);
     }
@@ -603,7 +643,7 @@ Status: installed`
     discardLines.forEach((line) => line.classList.toggle("filtered", tokenFiltered));
     if (tokenCount) tokenCount.textContent = tokenFiltered ? "5" : "24";
   }
-  if (!reduceMotion) window.setInterval(toggleTokenFilter, 2700);
+  if (!reduceMotion) scheduleInterval(toggleTokenFilter, 2700);
 
   // Media parsing carousel.
   const mediaItems = [
@@ -617,10 +657,10 @@ Status: installed`
   const mediaType = $("#mediaType");
   const parseStatus = $("#parseStatus");
   if (!reduceMotion && mediaStage) {
-    window.setInterval(() => {
+    scheduleInterval(() => {
       mediaStage.classList.add("changing");
       if (parseStatus) parseStatus.textContent = "Ready";
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         mediaIndex = (mediaIndex + 1) % mediaItems.length;
         if (mediaUrl) mediaUrl.textContent = mediaItems[mediaIndex][0];
         if (mediaType) mediaType.textContent = mediaItems[mediaIndex][1];
@@ -633,13 +673,13 @@ Status: installed`
   // Smart wait timer.
   const waitTimer = $("#waitTimer");
   if (waitTimer && !reduceMotion) {
-    let waitStart = performance.now();
+    const waitStart = performance.now();
     function tickWait(now) {
       const elapsed = ((now - waitStart) / 1000) % 3.4;
       waitTimer.textContent = `${elapsed.toFixed(1)}s`;
-      requestAnimationFrame(tickWait);
+      scheduleRaf(tickWait);
     }
-    requestAnimationFrame(tickWait);
+    scheduleRaf(tickWait);
   }
 
   // Sequential browser actions and cursor motion.
@@ -659,7 +699,7 @@ Status: installed`
   }
   activateAction(0);
   if (!reduceMotion && actionButtons.length) {
-    window.setInterval(() => {
+    scheduleInterval(() => {
       actionIndex = (actionIndex + 1) % actionButtons.length;
       activateAction(actionIndex);
     }, 1150);
@@ -675,7 +715,7 @@ Status: installed`
   ];
   let wikiIndex = 0;
   if (!reduceMotion && wikiStatus) {
-    window.setInterval(() => {
+    scheduleInterval(() => {
       wikiIndex = (wikiIndex + 1) % wikiStates.length;
       wikiStatus.textContent = wikiStates[wikiIndex][0];
       if (wikiRoute) wikiRoute.textContent = wikiStates[wikiIndex][1];
@@ -692,7 +732,7 @@ Status: installed`
     research: {
       title: "Marketplace discovery",
       customer: "SixScripts AI",
-      logo: "assets/logo-sixscripts.svg",
+      logo: asset("logo-sixscripts.svg"),
       proof: "publishes portable, inspectable skills with visible permissions, evals, versions, and install targets.",
       render: () => `<div class="research-demo"><div class="research-list">
         <div><span>CR</span><p>Code review</p><b data-found="18">0 found</b></div>
@@ -705,7 +745,7 @@ Status: installed`
     chat: {
       title: "EVE · Intent → Craft → Agent → Prove → Ship",
       customer: "EVE Builder",
-      logo: "assets/logo-eve.svg",
+      logo: asset("logo-eve.svg"),
       proof: "turns a plain-language agent brief into files, tool contracts, approval gates, tests, and an exportable project.",
       render: () => `<div class="chat-demo">
         <div class="chat-bubble user">Build an incident postmortem agent that reads logs, cites evidence, and never exposes secrets.</div>
@@ -717,7 +757,7 @@ Status: installed`
     agents: {
       title: "Project Studio · Build → Prove → Ship",
       customer: "Project Studio",
-      logo: "assets/logo-projects.svg",
+      logo: asset("logo-projects.svg"),
       proof: "supports both new skills and imported packages through a guided, validation-first workflow.",
       render: () => `<div class="agent-demo"><div class="agent-terminal"><div><span>Project Studio</span><span>Intent · Craft · Files · Contract · Prove · Ship</span></div><pre><b>01</b> Intent      <b>complete</b>
 <b>02</b> Craft       <b>complete</b>
@@ -729,20 +769,20 @@ Status: installed`
     onboarding: {
       title: "$ live-terminal",
       customer: "Live Terminal",
-      logo: "assets/logo-terminal.svg",
+      logo: asset("logo-terminal.svg"),
       proof: "connects a real PTY and AI agent to the same Vercel Sandbox session for controlled code execution.",
       render: () => `<div class="onboarding-demo"><div><h4>Sandbox session</h4><p>Select a skill, load its policy, and connect the PTY.</p><div class="onboarding-fields"><span>skill: pr-sentinel</span><span>network: deny-all</span><span>pty: connected</span></div></div><i></i><div><h4>Agent ready</h4><p>Run commands or ask the selected model to work inside the same session.</p><div class="onboarding-fields"><span>model: Grok agent</span><span>mounted: 14 files</span><span>status: ready</span></div></div></div>`
     },
     leads: {
       title: "SkillOps control plane",
       customer: "Skill Registry",
-      logo: "assets/logo-marketplace.svg",
+      logo: asset("logo-marketplace.svg"),
       proof: "keeps trust level, versions, permissions, eval results, runs, traces, and artifacts attached to each skill.",
       render: () => `<div class="leads-demo">
-        <div class="lead-card"><img src="assets/skill-observer.svg" alt="Agent Observer"><b>Agent Observer</b><small>Verified · v1.4.0</small><div class="lead-tags"><span>96 eval</span><span>Trace</span><span>1.8K runs</span></div></div>
-        <div class="lead-card"><img src="assets/skill-rag.svg" alt="RAG Quality Auditor"><b>RAG Quality Auditor</b><small>Reviewed · v0.9.2</small><div class="lead-tags"><span>93 eval</span><span>Retrieval</span></div></div>
-        <div class="lead-card"><img src="assets/skill-pr.svg" alt="PR Sentinel"><b>PR Sentinel</b><small>Verified · v2.1.1</small><div class="lead-tags"><span>91 eval</span><span>Code review</span></div></div>
-        <div class="lead-card"><img src="assets/skill-doctor.svg" alt="Skill Format Doctor"><b>Skill Format Doctor</b><small>Verified · v1.3.0</small><div class="lead-tags"><span>Format</span><span>SkillOps</span></div></div>
+        <div class="lead-card"><img src="${asset("skill-observer.svg")}" alt="Agent Observer"><b>Agent Observer</b><small>Verified · v1.4.0</small><div class="lead-tags"><span>96 eval</span><span>Trace</span><span>1.8K runs</span></div></div>
+        <div class="lead-card"><img src="${asset("skill-rag.svg")}" alt="RAG Quality Auditor"><b>RAG Quality Auditor</b><small>Reviewed · v0.9.2</small><div class="lead-tags"><span>93 eval</span><span>Retrieval</span></div></div>
+        <div class="lead-card"><img src="${asset("skill-pr.svg")}" alt="PR Sentinel"><b>PR Sentinel</b><small>Verified · v2.1.1</small><div class="lead-tags"><span>91 eval</span><span>Code review</span></div></div>
+        <div class="lead-card"><img src="${asset("skill-doctor.svg")}" alt="Skill Format Doctor"><b>Skill Format Doctor</b><small>Verified · v1.3.0</small><div class="lead-tags"><span>Format</span><span>SkillOps</span></div></div>
       </div>`
     }
   };
@@ -754,14 +794,14 @@ Status: installed`
         element.textContent = `${target} found`;
         return;
       }
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         const start = performance.now();
         function frame(now) {
           const p = Math.min(1, (now - start) / 900);
           element.textContent = `${Math.round(target * (1 - Math.pow(1 - p, 3)))} found`;
-          if (p < 1) requestAnimationFrame(frame);
+          if (p < 1) scheduleRaf(frame);
         }
-        requestAnimationFrame(frame);
+        scheduleRaf(frame);
       }, index * 130);
     });
   }
@@ -783,10 +823,10 @@ Status: installed`
       useCaseCanvas.classList.remove("changing");
       if (key === "research") animateResearchCounts();
     };
-    window.setTimeout(render, immediate || reduceMotion ? 0 : 190);
+    scheduleTimeout(render, immediate || reduceMotion ? 0 : 190);
   }
 
-  useCaseTabs.forEach((button) => button.addEventListener("click", () => renderUseCase(button.dataset.usecase)));
+  useCaseTabs.forEach((button) => on(button, "click", () => renderUseCase(button.dataset.usecase)));
   renderUseCase("research", true);
 
   // Testimonial marquees. Each row is duplicated for a seamless loop.
@@ -874,7 +914,7 @@ Status: installed`
     `).join("");
 
     $$(".faq-question", faqGroups).forEach((button) => {
-      button.addEventListener("click", () => {
+      on(button, "click", () => {
         const item = button.closest(".faq-item");
         const list = button.closest(".faq-list");
         const opening = !item.classList.contains("open");
@@ -890,13 +930,13 @@ Status: installed`
     });
 
     if (!reduceMotion && "IntersectionObserver" in window) {
-      const faqRevealObserver = new IntersectionObserver((entries, observer) => {
+      const faqRevealObserver = observe(new IntersectionObserver((entries, observer) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
           entry.target.classList.add("in-view");
           observer.unobserve(entry.target);
         });
-      }, { threshold: 0.04 });
+      }, { threshold: 0.04 }));
       $$(".faq-group.reveal", faqGroups).forEach((group) => faqRevealObserver.observe(group));
     } else {
       $$(".faq-group.reveal", faqGroups).forEach((group) => group.classList.add("in-view"));
@@ -922,9 +962,9 @@ Status: installed`
     doc.body.classList.remove("modal-open");
     if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
   }
-  setupAgentsButton?.addEventListener("click", openAgentModal);
-  $$('[data-close-modal]', agentModal).forEach((element) => element.addEventListener("click", closeAgentModal));
-  doc.addEventListener("keydown", (event) => {
+  on(setupAgentsButton, "click", openAgentModal);
+  $$('[data-close-modal]', agentModal).forEach((element) => on(element, "click", closeAgentModal));
+  on(doc, "keydown", (event) => {
     if (event.key === "Escape") {
       closeAgentModal();
       closeMobileMenu();
@@ -933,13 +973,61 @@ Status: installed`
 
   // Prevent empty demo links from jumping unexpectedly while preserving normal section navigation.
   $$('a[href="#top"]').forEach((link) => {
-    link.addEventListener("click", () => closeMobileMenu());
+    on(link, "click", () => closeMobileMenu());
+  });
+
+
+  // Runtime readiness badge (same source as /api/health/ui).
+  const statusPill = $(".status-pill");
+  if (statusPill) {
+    const applyStatus = (label) => {
+      statusPill.innerHTML = `<i></i>[ ${label} ]`;
+    };
+    applyStatus("CHECKING");
+    fetch("/api/health/ui")
+      .then((res) => res.json())
+      .then((data) => {
+        if (signal.aborted) return;
+        applyStatus(data.statusLabel || "VIRTUAL RUNTIME");
+      })
+      .catch(() => {
+        if (!signal.aborted) applyStatus("VIRTUAL RUNTIME");
+      });
+  }
+
+  // Desktop nav disclosure semantics.
+  $$(".nav-item.has-menu > button").forEach((button) => {
+    const menu = button.parentElement?.querySelector(".nav-menu");
+    if (!menu) return;
+    button.setAttribute("aria-haspopup", "true");
+    button.setAttribute("aria-expanded", "false");
+    const sync = () => button.setAttribute("aria-expanded", button.parentElement.matches(":hover, :focus-within") ? "true" : "false");
+    on(button.parentElement, "mouseenter", sync);
+    on(button.parentElement, "mouseleave", sync);
+    on(button.parentElement, "focusin", sync);
+    on(button.parentElement, "focusout", sync);
   });
 
   // Re-measure after generated content affects document height.
-  requestAnimationFrame(() => {
+  scheduleRaf(() => {
     measureScrollAnchors();
     updateScrollState();
   });
 
+  return () => {
+    abort.abort();
+    timeouts.forEach((id) => window.clearTimeout(id));
+    timeouts.clear();
+    intervals.forEach((id) => window.clearInterval(id));
+    intervals.clear();
+    rafs.forEach((id) => cancelAnimationFrame(id));
+    rafs.clear();
+    observers.forEach((observer) => observer.disconnect());
+    observers.length = 0;
+    cleanups.forEach((cleanup) => cleanup());
+    cleanups.length = 0;
+    doc.body.classList.remove("menu-open", "modal-open");
+    closeMobileMenu();
+    closeAgentModal();
+  };
 }

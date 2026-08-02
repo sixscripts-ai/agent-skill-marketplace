@@ -1,3 +1,13 @@
+.builder-workbench-shell.eve-journey-shell {
+  max-width: min(100%, 1560px);
+  padding: 1.15rem 1.35rem 1.35rem;
+}
+
+.eve-journey-shell .builder-journey-frame {
+  flex: 1 1 0;
+  min-width: 148px;
+}
+
 .eve-builder-shell {
   display: flex;
   flex-direction: column;

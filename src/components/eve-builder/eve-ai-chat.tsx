@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import Link from "next/link";
 import { Activity, Bot, Check, KeyRound, LoaderCircle, RotateCcw, Send, Sparkles, User } from "lucide-react";
 import { AGENT_MODEL_OPTIONS, runAgentTest, synchronizeAgentProject, type AgentProject } from "@/lib/eve/agent-project";
 import { ApiSettingsModal, type ApiKeys } from "../api-settings-modal";
@@ -233,7 +234,7 @@ export function EveAiChat() {
           </p>
         </div>
         <div className="eve-chat-heading-actions">
-          <a href="/projects/new" className="builder-secondary-button">Skill lifecycle</a>
+          <Link href="/projects/new" className="builder-secondary-button">Skill lifecycle</Link>
           <button type="button" className="builder-secondary-button" onClick={() => setSettingsOpen(true)}>
             <KeyRound className="size-4" aria-hidden="true" />
             API keys

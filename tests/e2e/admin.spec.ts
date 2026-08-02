@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 
 test.describe("Admin Flow", () => {
-  test("should be able to access admin tools if authenticated as admin", async ({ page }) => {
-    test.skip(); // Placeholder for Clerk admin testing
+  test("covered by authenticated.spec.ts when E2E credentials are present", async () => {
+    test.skip(true, "See tests/e2e/authenticated.spec.ts");
   });
 });

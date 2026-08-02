@@ -7,26 +7,10 @@ import "@/app/landing-cyan.css";
 
 export function CyanLanding() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (!rootRef.current || initialized.current) return;
-    initialized.current = true;
-
-    const root = document.documentElement;
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem("agent-skills-cyan-theme");
-    } catch {
-      stored = null;
-    }
-    if (stored === "light" || stored === "dark") {
-      root.dataset.theme = stored;
-    } else if (!root.dataset.theme) {
-      root.dataset.theme = "dark";
-    }
-
-    initCyanLanding();
+    if (!rootRef.current) return;
+    return initCyanLanding();
   }, []);
 
   return (

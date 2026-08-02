@@ -42,6 +42,20 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const themeInitScript = `
+(function () {
+  try {
+    var stored = localStorage.getItem("agent-skills-cyan-theme");
+    var theme = stored === "light" || stored === "dark" ? stored : "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#0a0a0a");
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,9 +64,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
           <TooltipProvider>{children}</TooltipProvider>
