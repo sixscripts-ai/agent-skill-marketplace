@@ -1,0 +1,51 @@
+/* Shared dark-safe agent chat bubbles (Eve, builder, runner consumers). */
+
+.agent-chat-bubble {
+  border: 1px solid var(--border, #27272a);
+  border-radius: 0.8rem;
+  background: var(--surface-raised, var(--card, #141414));
+  color: var(--foreground, #fafafa);
+  padding: 0.75rem 0.85rem;
+}
+
+.agent-chat-bubble--user {
+  background: color-mix(in srgb, var(--brand, var(--primary, #06b6d4)) 12%, var(--card, #141414));
+  border-color: color-mix(in srgb, var(--brand, var(--primary, #06b6d4)) 38%, var(--border, #27272a));
+  color: var(--foreground, #fafafa);
+}
+
+.agent-chat-bubble--assistant {
+  background: var(--surface-raised, var(--card, #141414));
+  border-color: var(--border, #27272a);
+  color: var(--foreground, #fafafa);
+}
+
+.agent-chat-bubble--error {
+  background: color-mix(in srgb, #ef4444 18%, var(--card, #141414));
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border, #27272a));
+  color: #fecaca;
+}
+
+.agent-chat-bubble--error strong,
+.agent-chat-bubble--error small,
+.agent-chat-bubble--error p {
+  color: inherit;
+}
+
+.agent-danger-surface {
+  background: color-mix(in srgb, #ef4444 16%, var(--card, #141414));
+  border-color: color-mix(in srgb, #ef4444 42%, var(--border, #27272a));
+  color: #fecaca;
+}
+
+.agent-ok-surface {
+  background: color-mix(in srgb, #22c55e 14%, var(--card, #141414));
+  border-color: color-mix(in srgb, #22c55e 40%, var(--border, #27272a));
+  color: #bbf7d0;
+}
+
+.agent-info-surface {
+  background: color-mix(in srgb, var(--brand, #06b6d4) 14%, var(--card, #141414));
+  border-color: color-mix(in srgb, var(--brand, #06b6d4) 40%, var(--border, #27272a));
+  color: var(--foreground, #fafafa);
+}

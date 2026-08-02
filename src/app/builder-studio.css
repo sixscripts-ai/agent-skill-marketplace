@@ -120,7 +120,7 @@
   max-width: min(92%, 40rem);
   border: 1px solid var(--border);
   border-radius: 0.7rem;
-  background: var(--card);
+  background: var(--surface-raised, var(--card));
   padding: 0.7rem 0.8rem;
   color: var(--foreground);
   font-size: 0.82rem;
@@ -129,8 +129,20 @@
 
 .builder-copilot-message.user {
   margin-left: auto;
-  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
-  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--foreground);
+}
+
+.builder-copilot-message.assistant {
+  background: var(--surface-raised, var(--card));
+  color: var(--foreground);
+}
+
+.builder-copilot-message.error {
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border));
+  background: color-mix(in srgb, #ef4444 18%, var(--card));
+  color: #fecaca;
 }
 
 .builder-copilot-message p { white-space: pre-wrap; }
@@ -192,7 +204,8 @@
   gap: 0.5rem;
   border: 1px solid #fca5a5;
   border-radius: 0.6rem;
-  background: #fef2f2;
+  background: color-mix(in srgb, #ef4444 16%, var(--card));
+  color: #fecaca;
   padding: 0.7rem;
   color: #991b1b;
   font-size: 0.78rem;

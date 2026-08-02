@@ -739,7 +739,7 @@ export function RunnerClient({
                   ) : null}
                   {run.input || input ? (
                     <Message from="user">
-                      <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-950">
+                      <MessageContent className="agent-chat-bubble agent-chat-bubble--user px-4 py-3">
                         <p className="whitespace-pre-wrap text-sm leading-6">{run.input || input}</p>
                       </MessageContent>
                     </Message>
@@ -760,13 +760,13 @@ export function RunnerClient({
                   ) : null}
                   {run.output ? (
                     <Message from="assistant" className="max-w-full">
-                      <MessageContent className="w-full rounded-md border border-neutral-200 bg-[color-mix(in_srgb,var(--fire-paper)_75%,white)] p-4">
+                      <MessageContent className="agent-chat-bubble agent-chat-bubble--assistant w-full p-4">
                         <SafeMessageResponse>{run.output}</SafeMessageResponse>
                       </MessageContent>
                     </Message>
                   ) : isRunning ? (
                     <Message from="assistant">
-                      <MessageContent className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                      <MessageContent className="agent-chat-bubble agent-chat-bubble--assistant px-4 py-3 text-sm text-muted-foreground">
                         Streaming output...
                       </MessageContent>
                     </Message>

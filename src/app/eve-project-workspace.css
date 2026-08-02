@@ -125,8 +125,9 @@
 }
 
 .eve-save-error {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  background: color-mix(in srgb, #ef4444 16%, var(--card));
+  color: #fecaca;
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border));
   color: #b91c1c;
 }
 
@@ -188,7 +189,8 @@
 .eve-run-error {
   border: 1px solid #fca5a5;
   border-radius: 0.65rem;
-  background: #fef2f2;
+  background: color-mix(in srgb, #ef4444 16%, var(--card));
+  color: #fecaca;
   padding: 0.65rem;
   color: #991b1b;
   font-size: 0.78rem;
@@ -457,7 +459,8 @@
 }
 
 .eve-danger-button:hover:not(:disabled) {
-  background: #fef2f2 !important;
+  background: color-mix(in srgb, #ef4444 16%, var(--card)) !important;
+  color: #fecaca !important;
   border-color: #fca5a5 !important;
 }
 

@@ -6,9 +6,9 @@
   --lt-line: var(--fire-line, var(--border, #deded8));
   --lt-text: var(--fire-graphite, var(--foreground, #262626));
   --lt-muted: var(--fire-muted, var(--muted-foreground, #70706a));
-  --lt-heat: var(--fire-heat, #fa5d19);
-  --lt-heat-soft: var(--fire-heat-soft, rgba(250, 93, 25, 0.1));
-  --lt-heat-line: var(--fire-heat-line, rgba(250, 93, 25, 0.34));
+  --lt-heat: var(--fire-heat, var(--brand, #06b6d4));
+  --lt-heat-soft: var(--fire-heat-soft, var(--brand-soft, rgba(6, 182, 212, 0.1)));
+  --lt-heat-line: var(--fire-heat-line, var(--brand-line, rgba(6, 182, 212, 0.32)));
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -190,7 +190,7 @@
   cursor: text;
   --term-bg: #f7f7f4;
   --term-fg: #262626;
-  --term-cursor: #fa5d19;
+  --term-cursor: var(--brand, #06b6d4);
 }
 
 .lt-wterm-inner,
@@ -202,7 +202,7 @@
   box-shadow: none;
   --term-bg: #f7f7f4;
   --term-fg: #262626;
-  --term-cursor: #fa5d19;
+  --term-cursor: var(--brand, #06b6d4);
 }
 
 .lt-wterm .wterm.focused {
@@ -371,7 +371,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: inset 0 -5px 12px rgba(250, 93, 25, 0.22);
+  box-shadow: inset 0 -5px 12px rgba(6, 182, 212, 0.22);
 }
 
 .lt-run:disabled {

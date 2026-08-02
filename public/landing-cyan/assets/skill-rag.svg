@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="RAG Quality Auditor">
+<rect width="112" height="112" rx="14" fill="#111113"/>
+<rect x="0.5" y="0.5" width="111" height="111" rx="13.5" fill="none" stroke="#27272a"/>
+<path d="M16 24H96M16 88H96M24 16V96M88 16V96" stroke="#27272a"/>
+<rect x="26" y="25" width="60" height="48" rx="10" fill="#09090b" stroke="#06b6d4" stroke-width="1.5"/>
+<text x="56" y="57" text-anchor="middle" fill="#fafafa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="20" font-weight="600">RQ</text>
+<circle cx="32" cy="88" r="4" fill="#06b6d4"/>
+<text x="43" y="92" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="8">REVIEWED</text>
+</svg>

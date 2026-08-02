@@ -1,8 +1,8 @@
 /* Firebench — Firecrawl-faithful page system (site heat tokens) */
 
 :root {
-  --fb-heat: var(--fire-heat, #fa5d19);
-  --fb-heat-hover: var(--fire-heat-hover, #e94f0f);
+  --fb-heat: var(--brand, #06b6d4);
+  --fb-heat-hover: var(--brand-hover, #0891b2);
   --fb-heat-4: color-mix(in srgb, var(--fb-heat) 4%, transparent);
   --fb-heat-8: color-mix(in srgb, var(--fb-heat) 8%, transparent);
   --fb-heat-12: color-mix(in srgb, var(--fb-heat) 12%, transparent);
@@ -258,17 +258,17 @@
   color: #fff;
   border-color: var(--fb-heat);
   box-shadow:
-    inset 0 -6px 12px rgba(250, 93, 25, 0.18),
-    0 2px 4px rgba(250, 93, 25, 0.12),
-    0 1px 1px rgba(250, 93, 25, 0.12);
+    inset 0 -6px 12px rgba(6, 182, 212, 0.18),
+    0 2px 4px rgba(6, 182, 212, 0.12),
+    0 1px 1px rgba(6, 182, 212, 0.12);
 }
 
 .fb-cta--primary:hover {
   background: var(--fb-heat-hover);
   box-shadow:
-    inset 0 -6px 12px rgba(250, 93, 25, 0.2),
-    0 4px 8px rgba(250, 93, 25, 0.16),
-    0 1px 1px rgba(250, 93, 25, 0.12);
+    inset 0 -6px 12px rgba(6, 182, 212, 0.2),
+    0 4px 8px rgba(6, 182, 212, 0.16),
+    0 1px 1px rgba(6, 182, 212, 0.12);
 }
 
 .fb-cta--ghost {
@@ -469,7 +469,7 @@
   background: var(--fb-heat);
   border-color: var(--fb-heat);
   color: #fff;
-  box-shadow: 0 2px 4px rgba(250, 93, 25, 0.18);
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.18);
 }
 
 /* Stats */
@@ -660,7 +660,7 @@
 
 .fb-card:hover {
   border-color: color-mix(in srgb, var(--fb-heat) 40%, var(--fb-border));
-  box-shadow: 0 6px 18px rgba(250, 93, 25, 0.08);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.08);
 }
 
 .fb-card h3 {

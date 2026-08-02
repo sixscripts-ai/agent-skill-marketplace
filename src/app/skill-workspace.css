@@ -1,10 +1,10 @@
 /* Skill detail + run lab — Firebench-aligned (no neon) */
 
 .sw-page {
-  --sw-heat: var(--fb-heat, var(--fire-heat, #fa5d19));
-  --sw-heat-hover: var(--fb-heat-hover, var(--fire-heat-hover, #e94f0f));
-  --sw-heat-soft: var(--fb-heat-8, var(--fire-heat-soft, rgba(250, 93, 25, 0.1)));
-  --sw-heat-line: var(--fire-heat-line, rgba(250, 93, 25, 0.34));
+  --sw-heat: var(--fb-heat, var(--fire-heat, var(--brand, #06b6d4)));
+  --sw-heat-hover: var(--fb-heat-hover, var(--fire-heat-hover, var(--brand-hover, #0891b2)));
+  --sw-heat-soft: var(--fb-heat-8, var(--fire-heat-soft, var(--brand-soft, rgba(6, 182, 212, 0.1))));
+  --sw-heat-line: var(--fire-heat-line, var(--brand-line, rgba(6, 182, 212, 0.32)));
   --sw-paper: var(--fb-paper, var(--fire-paper, #f9f9f7));
   --sw-panel: var(--fb-panel, var(--fire-panel, #fff));
   --sw-ink: var(--fb-ink, var(--fire-graphite, #262626));

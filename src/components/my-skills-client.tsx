@@ -151,12 +151,28 @@ export function MySkillsClient({ skills }: { skills: Skill[] }) {
         </div>
 
         {rows.length === 0 ? (
-          <div className="ms-empty">
-            No matches. Clear filters or{" "}
-            <Link href="/projects/new" className="text-[var(--ms-heat)] underline-offset-2 hover:underline">
-              create a project
-            </Link>
-            .
+          <div className="ms-empty ms-empty--cta">
+            {skills.length === 0 ? (
+              <>
+                <strong>No projects yet</strong>
+                <p>Create a skill package to edit, prove in sandbox, and ship.</p>
+                <Link href="/projects/new" className="ms-btn ms-btn--primary">
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  New project
+                </Link>
+              </>
+            ) : (
+              <>
+                <strong>No matches</strong>
+                <p>
+                  Clear filters or{" "}
+                  <Link href="/projects/new" className="text-[var(--ms-heat)] underline-offset-2 hover:underline">
+                    create a project
+                  </Link>
+                  .
+                </p>
+              </>
+            )}
           </div>
         ) : (
           rows.map((skill) => {

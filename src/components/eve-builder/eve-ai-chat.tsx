@@ -284,7 +284,9 @@ export function EveAiChat() {
           {busy || progress ? (
             <article className="eve-chat-message assistant">
               <span className="eve-chat-avatar" aria-hidden="true"><Bot className="size-4" /></span>
-              <div><p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin" aria-hidden="true" />{progress || "Working"}</p></div>
+              <div>
+                <p className="eve-chat-working"><LoaderCircle className="size-4 animate-spin" aria-hidden="true" />{progress || "Working"}</p>
+              </div>
             </article>
           ) : null}
         </div>

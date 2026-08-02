@@ -118,7 +118,22 @@ function statusTag(status: ElementStatus) {
   return "[ PLANNED ]";
 }
 
-function PlaygroundDemo({ id }: { id: string }) {
+function PlannedEmptyState({ id, description }: { id: string; description?: string }) {
+  return (
+    <div className="agent-info-surface rounded-[var(--fb-radius,0.75rem)] border px-5 py-8 text-center">
+      <p className="m-0 text-xs font-bold tracking-[0.12em] text-[var(--brand,var(--fb-heat,#06b6d4))]">[ PLANNED ]</p>
+      <h3 className="mt-2 m-0 text-base font-semibold text-foreground">{id}</h3>
+      <p className="mx-auto mt-2 mb-0 max-w-md text-sm leading-6 text-muted-foreground">
+        {description || "No interactive preview yet."} This element is on the roadmap — not a dead link.
+      </p>
+    </div>
+  );
+}
+
+function PlaygroundDemo({ id, status, description }: { id: string; status?: ElementStatus; description?: string }) {
+  if (status === "planned") {
+    return <PlannedEmptyState id={id} description={description} />;
+  }
   if (id === "suggestion") {
     return (
       <Suggestions>
@@ -163,6 +178,13 @@ function PlaygroundDemo({ id }: { id: string }) {
         </FileTreeFolder>
       </FileTree>
     );
+  }
+  if (id === "message") {
+    return <SafeMessageResponse>{markdownExample}</SafeMessageResponse>;
+  }
+  const planned = catalog.find((item) => item.id === id);
+  if (planned?.status === "planned") {
+    return <PlannedEmptyState id={id} description={planned.description} />;
   }
   return <SafeMessageResponse>{markdownExample}</SafeMessageResponse>;
 }
@@ -320,7 +342,11 @@ export function AiElementsCatalog() {
           </>
         }
       >
-        <PlaygroundDemo id={activeTab} />
+        <PlaygroundDemo
+          id={activeTab}
+          status={catalog.find((item) => item.id === activeTab)?.status}
+          description={catalog.find((item) => item.id === activeTab)?.description}
+        />
       </FirebenchHeroCard>
 
       <div className="fb-actions">
@@ -387,7 +413,13 @@ export function AiElementsCatalog() {
             {items.map((item) => (
               <article key={item.id} className="fb-row">
                 <div>
-                  <h3 className="fb-row__name">{item.id}</h3>
+                  <button
+                    type="button"
+                    className="fb-row__name text-left underline-offset-2 hover:underline"
+                    onClick={() => setActiveTab(item.id)}
+                  >
+                    {item.id}
+                  </button>
                   <div className="fb-row__meta">
                     <FirebenchTag>{item.category}</FirebenchTag>
                     <span>{statusTag(item.status)}</span>
@@ -398,7 +430,10 @@ export function AiElementsCatalog() {
                 <div>
                   <FirebenchButton
                     variant="ghost"
-                    onClick={() => void copyElementId(item.id)}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      void copyElementId(item.id);
+                    }}
                     style={
                       copiedId === item.id
                         ? { background: "var(--fb-heat)", color: "#fff", borderColor: "var(--fb-heat)" }
@@ -406,7 +441,7 @@ export function AiElementsCatalog() {
                     }
                   >
                     {copiedId === item.id ? <Check className="size-3.5" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
-                    {copiedId === item.id ? "Copied" : "Copy id"}
+                    {copiedId === item.id ? "Copied" : item.status === "planned" ? "Preview" : "Copy id"}
                   </FirebenchButton>
                 </div>
               </article>

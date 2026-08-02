@@ -2,24 +2,33 @@
 @source "../node_modules/streamdown/dist/*.js";
 
 :root {
-  --background: #f9f9f7;
-  --foreground: #262626;
-  --card: #ffffff;
-  --card-foreground: #262626;
-  --panel-subtle: #f1f1ed;
-  --border: #deded8;
-  --border-strong: #bdbdb5;
-  --muted: #f1f1ed;
-  --muted-foreground: #70706a;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #141414;
+  --card-foreground: #fafafa;
+  --panel-subtle: #18181b;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
 
-  --topbar: rgba(249, 249, 247, 0.92);
-  --topbar-border: #deded8;
-  --topbar-text: #262626;
-  --topbar-muted: #70706a;
+  --topbar: rgba(10, 10, 10, 0.92);
+  --topbar-border: #27272a;
+  --topbar-text: #fafafa;
+  --topbar-muted: #a1a1aa;
 
-  --sidebar: #f4f4f0;
-  --sidebar-foreground: #41413d;
-  --sidebar-accent: #eaeae4;
-  --sidebar-accent-foreground: #262626;
-  --sidebar-border: #deded8;
+  --sidebar: #111113;
+  --sidebar-foreground: #d4d4d8;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+
+  --brand: #06b6d4;
+  --brand-hover: #0891b2;
+  --brand-active: #0e7490;
+  --brand-foreground: #ffffff;
+  --brand-soft: rgba(6, 182, 212, 0.1);
+  --brand-muted: rgba(6, 182, 212, 0.16);
+  --brand-line: rgba(6, 182, 212, 0.32);
+  --brand-glow: rgba(6, 182, 212, 0.4);
 }

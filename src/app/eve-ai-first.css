@@ -127,19 +127,19 @@
 
 .eve-build-status.failed,
 .eve-build-status.error {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 18%, var(--card));
+  color: #fecaca;
 }
 
 .eve-build-status.completed {
-  background: #ecfdf5;
-  color: #047857;
+  background: color-mix(in srgb, #22c55e 16%, var(--card));
+  color: #bbf7d0;
 }
 
 .eve-build-status.running,
 .eve-build-status.building {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: color-mix(in srgb, var(--brand, #06b6d4) 16%, var(--card));
+  color: var(--foreground);
 }
 
 .eve-build-prompt,
@@ -199,8 +199,9 @@
 }
 
 .eve-build-event.failed {
-  border-color: #fca5a5;
-  background: #fef2f2;
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border));
+  background: color-mix(in srgb, #ef4444 16%, var(--card));
+  color: #fecaca;
 }
 
 .eve-chat-message {
@@ -232,24 +233,34 @@
   gap: 0.55rem;
   border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: var(--card);
+  background: var(--surface-raised, var(--card));
+  color: var(--foreground);
   padding: 0.75rem 0.85rem;
 }
 
 .eve-chat-message.user > div {
-  background: color-mix(in srgb, var(--primary) 10%, var(--card));
-  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  color: var(--foreground);
 }
 
 .eve-chat-message.error > div {
-  border-color: #fca5a5;
-  background: #fef2f2;
+  border-color: color-mix(in srgb, #ef4444 45%, var(--border));
+  background: color-mix(in srgb, #ef4444 18%, var(--card));
+  color: #fecaca;
+}
+
+.eve-chat-message.error > div p,
+.eve-chat-message.error > div small,
+.eve-chat-message.error > div strong {
+  color: inherit;
 }
 
 .eve-chat-message p {
   white-space: pre-wrap;
   font-size: 0.82rem;
   line-height: 1.55;
+  color: inherit;
 }
 
 .eve-chat-working {
@@ -417,7 +428,8 @@
 }
 
 .eve-status-failed {
-  background: #fef2f2;
+  background: color-mix(in srgb, #ef4444 16%, var(--card));
+  color: #fecaca;
   border-color: #fca5a5;
   color: #b91c1c;
 }

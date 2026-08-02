@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="590" viewBox="0 0 980 590" role="img" aria-labelledby="title desc">
+<title id="title">EVE generated project</title><desc id="desc">A technical interface showing an agent project file tree, permission contract, and passing evaluation results.</desc>
+<defs><filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="980" height="590" rx="24" fill="#09090b"/>
+<rect x="1" y="1" width="978" height="588" rx="23" fill="none" stroke="#27272a" stroke-width="2"/>
+<rect x="0" y="0" width="980" height="54" rx="24" fill="#111113"/><path d="M0 54H980" stroke="#27272a"/>
+<circle cx="28" cy="27" r="5" fill="#3f3f46"/><circle cx="46" cy="27" r="5" fill="#3f3f46"/><circle cx="64" cy="27" r="5" fill="#06b6d4"/>
+<text x="92" y="33" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="12">EVE / INCIDENT-POSTMORTEM-AGENT</text>
+<rect x="20" y="74" width="245" height="496" rx="12" fill="#111113" stroke="#27272a"/>
+<text x="38" y="105" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="11">PROJECT FILES</text>
+<g font-family="Geist Mono,JetBrains Mono,monospace" font-size="13">
+<text x="40" y="143" fill="#fafafa">▾ incident-agent</text>
+<text x="58" y="174" fill="#06b6d4">◆ SKILL.md</text>
+<text x="58" y="205" fill="#fafafa">◇ README.md</text>
+<text x="58" y="236" fill="#fafafa">▾ tools</text>
+<text x="78" y="267" fill="#a1a1aa">log-reader.ts</text>
+<text x="78" y="298" fill="#a1a1aa">evidence-citer.ts</text>
+<text x="58" y="329" fill="#fafafa">▾ evals</text>
+<text x="78" y="360" fill="#a1a1aa">redaction.yaml</text>
+<text x="78" y="391" fill="#a1a1aa">citations.yaml</text>
+<text x="58" y="422" fill="#fafafa">◇ manifest.json</text>
+</g>
+<rect x="285" y="74" width="675" height="306" rx="12" fill="#111113" stroke="#27272a"/>
+<text x="309" y="108" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="11">SKILL.md / CONTRACT</text>
+<g font-family="Geist Mono,JetBrains Mono,monospace" font-size="14">
+<text x="309" y="148" fill="#06b6d4">---</text>
+<text x="309" y="177" fill="#fafafa">name:</text><text x="370" y="177" fill="#a1a1aa">incident-postmortem-agent</text>
+<text x="309" y="206" fill="#fafafa">description:</text><text x="405" y="206" fill="#a1a1aa">Build evidence-linked incident reports.</text>
+<text x="309" y="235" fill="#fafafa">permissions:</text>
+<text x="329" y="264" fill="#a1a1aa">read_files:</text><text x="428" y="264" fill="#06b6d4">allow</text>
+<text x="329" y="293" fill="#a1a1aa">shell:</text><text x="384" y="293" fill="#f0b94b">ask</text>
+<text x="329" y="322" fill="#a1a1aa">secrets:</text><text x="400" y="322" fill="#ef6a6a">deny</text>
+<text x="309" y="350" fill="#06b6d4">---</text>
+</g>
+<rect x="285" y="400" width="324" height="170" rx="12" fill="#111113" stroke="#27272a"/>
+<text x="309" y="434" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="11">APPROVAL MATRIX</text>
+<g font-family="Geist,Inter,system-ui,sans-serif" font-size="13"><text x="309" y="471" fill="#fafafa">Read workspace files</text><text x="552" y="471" text-anchor="end" fill="#06b6d4">Allowed</text><text x="309" y="503" fill="#fafafa">Run shell commands</text><text x="552" y="503" text-anchor="end" fill="#f0b94b">Ask</text><text x="309" y="535" fill="#fafafa">Read secrets</text><text x="552" y="535" text-anchor="end" fill="#ef6a6a">Blocked</text></g>
+<rect x="629" y="400" width="331" height="170" rx="12" fill="#111113" stroke="#27272a"/>
+<text x="653" y="434" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="11">PROVE / EVALUATIONS</text>
+<rect x="653" y="461" width="283" height="10" rx="5" fill="#202024"/><rect x="653" y="461" width="271" height="10" rx="5" fill="#06b6d4" filter="url(#glow)"/>
+<text x="653" y="505" fill="#fafafa" font-family="Geist,Inter,system-ui,sans-serif" font-size="15" font-weight="600">8 / 8 cases passing</text>
+<text x="653" y="535" fill="#a1a1aa" font-family="Geist Mono,JetBrains Mono,monospace" font-size="12">READY TO SHIP  •  ZIP + SKILL.md</text>
+</svg>
