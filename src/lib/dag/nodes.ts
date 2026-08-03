@@ -1,7 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
-import type { AgentState } from "./schema";
+import { StateAnnotation } from "./schema";
 
-export async function terminalExecutorNode(state: AgentState): Promise<Partial<AgentState>> {
+export async function terminalExecutorNode(state: typeof StateAnnotation.State): Promise<Partial<typeof StateAnnotation.State>> {
   const command = state.payload.command;
   if (!command) {
     return { hasError: true, terminalOutput: "No command provided to terminal executor." };
@@ -37,7 +37,7 @@ export async function terminalExecutorNode(state: AgentState): Promise<Partial<A
   }
 }
 
-export async function mcpMounterNode(state: AgentState): Promise<Partial<AgentState>> {
+export async function mcpMounterNode(state: typeof StateAnnotation.State): Promise<Partial<typeof StateAnnotation.State>> {
   // mcp-to-skill: Dynamically resolve and mount MCP tools into the node context
   const serverId = state.payload.mcpServerId;
   const currentSkills = new Set(state.activeMcpSkills);
@@ -55,7 +55,7 @@ export async function mcpMounterNode(state: AgentState): Promise<Partial<AgentSt
   };
 }
 
-export async function llmProcessorNode(state: AgentState): Promise<Partial<AgentState>> {
+export async function llmProcessorNode(state: typeof StateAnnotation.State): Promise<Partial<typeof StateAnnotation.State>> {
   // Placeholder logic for the LLM processor
   // This would invoke the AI provider (e.g. via Vercel AI SDK)
   const prompt = state.payload.prompt;
@@ -73,7 +73,7 @@ export async function llmProcessorNode(state: AgentState): Promise<Partial<Agent
   };
 }
 
-export async function errorHandlerNode(state: AgentState): Promise<Partial<AgentState>> {
+export async function errorHandlerNode(state: typeof StateAnnotation.State): Promise<Partial<typeof StateAnnotation.State>> {
   return {
     retryCount: state.retryCount + 1,
     hasError: false,

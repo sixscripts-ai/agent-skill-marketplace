@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Annotation } from "@langchain/langgraph";
 
 export const AgentStateSchema = z.object({
   executionId: z.string().uuid(),
@@ -11,3 +12,13 @@ export const AgentStateSchema = z.object({
 });
 
 export type AgentState = z.infer<typeof AgentStateSchema>;
+
+export const StateAnnotation = Annotation.Root({
+  executionId: Annotation<string>,
+  currentNode: Annotation<string>,
+  payload: Annotation<Record<string, any>>,
+  activeMcpSkills: Annotation<string[]>,
+  terminalOutput: Annotation<string | null>,
+  hasError: Annotation<boolean>,
+  retryCount: Annotation<number>,
+});
