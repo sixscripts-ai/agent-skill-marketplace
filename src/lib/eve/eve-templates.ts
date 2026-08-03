@@ -65,8 +65,8 @@ export default new Tool({
     try {
       const { stdout, stderr } = await execAsync(command);
       return { result: stdout || stderr || 'Command completed successfully (no output).' };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   },
 });
@@ -99,8 +99,8 @@ export default new Tool({
       const skillPath = path.join(skillsDir, \`\${skillName}.md\`);
       await fs.writeFile(skillPath, content, 'utf-8');
       return { result: \`Skill \${skillName} evolved successfully.\` };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   },
 });
